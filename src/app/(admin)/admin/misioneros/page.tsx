@@ -24,7 +24,7 @@ export default function MisionerosPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-title text-2xl text-brand-dark">Misioneros</h1>
 
         <Dialog open={open} onOpenChange={setOpen}>

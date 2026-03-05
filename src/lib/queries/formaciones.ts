@@ -85,6 +85,43 @@ export const useUpdateFormacion = (id: string) => {
   });
 };
 
+export const useUpdateFormacionCompleta = (id: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: FormacionInput) => {
+      const { error } = await supabase
+        .from('formaciones_misioneros')
+        .update(input)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.detail(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+    },
+  });
+};
+
+export const useDeleteFormacion = () => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // Verificar que no tenga clases
+      const { count } = await supabase
+        .from('clases')
+        .select('id', { count: 'exact', head: true })
+        .eq('formacion_id', id);
+      if (count && count > 0)
+        throw new Error('No se puede eliminar: tiene clases asociadas. Eliminá las clases primero.');
+      const { error } = await supabase.from('formaciones_misioneros').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all }),
+  });
+};
+
 // --- Clases ---
 
 export const useClases = (formacionId: string) => {

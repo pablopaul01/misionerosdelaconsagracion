@@ -430,7 +430,7 @@ export const InscripcionesView = ({ formacionId }: InscripcionesViewProps) => {
   ];
 
   const table = useReactTable({
-    data: inscripciones,
+    data: inscripciones as Inscripcion[],
     columns: COLUMNS,
     state: { globalFilter },
     onGlobalFilterChange: setGlobalFilter,
