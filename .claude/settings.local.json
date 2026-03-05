@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm dlx create-next-app@14 . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-pnpm)",
+      "Bash(pnpm install)",
+      "Bash(CI=true pnpm install)",
+      "Bash(pnpm add @supabase/supabase-js @supabase/ssr @tanstack/react-query @tanstack/react-table @tanstack/react-form @tanstack/zod-form-adapter zustand zod framer-motion)",
+      "Bash(pnpm add -D @netlify/plugin-nextjs @tanstack/react-query-devtools)",
+      "Bash(pnpm dlx shadcn@latest init --yes --base-color slate)",
+      "Bash(pnpm dlx shadcn@latest add button input label select checkbox textarea card table badge dialog alert-dialog sheet tabs form separator)",
+      "Bash(pnpm run build)",
+      "Bash(pnpm add framer-motion@11)",
+      "Bash(pnpm dlx supabase@latest gen types typescript --project-id zfbrvgcsiykxbwikkqmp)",
+      "Bash(ls \"c:/Users/salomonjp/proyectos/Nueva carpeta/misionerosdelaconsagracion/src/app/\\(admin\\)/admin/\")",
+      "Bash(ls \"c:/Users/salomonjp/proyectos/Nueva carpeta/misionerosdelaconsagracion/src/app/\\(admin\\)/admin/usuarios/\")",
+      "Bash(node -e \"const p = require\\(''./node_modules/zod/package.json''\\); console.log\\(p.version\\)\")",
+      "Bash(node -e \"const p = require\\(''./node_modules/@tanstack/react-form/package.json''\\); console.log\\(p.version\\)\")",
+      "Bash(node -e \"const tf = require\\(''./node_modules/@tanstack/form-core/package.json''\\); console.log\\(tf.version\\)\")",
+      "Bash(xargs sed -i 's/validators: { onChange:/validators: { onSubmit:/g')"
+    ]
+  }
+}
