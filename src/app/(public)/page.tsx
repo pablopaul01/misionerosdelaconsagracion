@@ -4,7 +4,7 @@ import { InkRevealLogo } from '@/components/shared/InkRevealLogo';
 
 export default function LandingPage() {
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-center bg-brand-cream px-4 overflow-hidden">
+    <main className="relative min-h-dvh flex flex-col items-center justify-center bg-brand-cream px-4 overflow-hidden">
       {/* Marca de agua */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
         <Image

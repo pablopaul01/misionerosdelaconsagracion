@@ -24,7 +24,7 @@ export default async function LoginPage() {
     redirect(profile?.role === USER_ROLES.ADMIN ? '/admin/dashboard' : '/secretario/inscripciones');
   }
   return (
-    <main className="min-h-screen flex items-center justify-center bg-brand-cream px-4">
+    <main className="min-h-dvh flex items-center justify-center bg-brand-cream px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-md p-8 flex flex-col gap-6">
         <div className="flex flex-col items-center gap-3">
           <Image
