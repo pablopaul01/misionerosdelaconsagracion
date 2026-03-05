@@ -171,7 +171,7 @@ export default function AsistenciasFormacionPage() {
   const toggleExpandido = (misioneroId: string) =>
     setExpandidos((prev) => {
       const next = new Set(prev);
-      next.has(misioneroId) ? next.delete(misioneroId) : next.add(misioneroId);
+      if (next.has(misioneroId)) { next.delete(misioneroId); } else { next.add(misioneroId); }
       return next;
     });
 
