@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useFormacion, useMisionerosDeFormacion, useInscribirMisionero } from '@/lib/queries/formaciones';
+import { useFormacion, useMisionerosDeFormacion, useInscribirMisionero, useUpdateFormacion } from '@/lib/queries/formaciones';
 import { useMisioneros } from '@/lib/queries/misioneros';
 import { ClaseList } from '@/components/formaciones/ClaseList';
 import { TIPO_FORMACION_LABEL, DIAS_SEMANA } from '@/lib/constants/formaciones';
 import { formatFechaCorta } from '@/lib/utils/dates';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -37,7 +38,10 @@ export default function FormacionDetailPage() {
   const { data: todosMisioneros = [] } = useMisioneros();
   const { mutateAsync: inscribir } = useInscribirMisionero(id);
 
+  const { mutateAsync: updateFormacion } = useUpdateFormacion(id);
   const [misioneroSeleccionado, setMisioneroSeleccionado] = useState('');
+  const [editandoFechaInicio, setEditandoFechaInicio] = useState(false);
+  const [nuevaFechaInicio, setNuevaFechaInicio] = useState('');
 
   // Misioneros que no están inscriptos en esta formación
   const inscriptosIds = new Set(inscriptos.map((i) => i.misionero_id));
@@ -47,6 +51,12 @@ export default function FormacionDetailPage() {
     if (!misioneroSeleccionado) return;
     await inscribir(misioneroSeleccionado);
     setMisioneroSeleccionado('');
+  };
+
+  const handleGuardarFechaInicio = async () => {
+    if (!nuevaFechaInicio) return;
+    await updateFormacion({ fecha_inicio: nuevaFechaInicio });
+    setEditandoFechaInicio(false);
   };
 
   if (isLoading) return <p className="text-brand-brown">Cargando...</p>;
@@ -62,10 +72,35 @@ export default function FormacionDetailPage() {
           <h1 className="font-title text-2xl text-brand-dark">
             {TIPO_FORMACION_LABEL[formacion.tipo]}
           </h1>
-          <p className="text-sm text-brand-brown">
-            {formacion.anio} · Inicia {formatFechaCorta(formacion.fecha_inicio)} ·
-            Clase los {DIAS_SEMANA[formacion.dia_semana]}
-          </p>
+          <div className="flex items-center gap-2 flex-wrap text-sm text-brand-brown">
+            <span>{formacion.anio}</span>
+            <span>·</span>
+            <span>Inicia</span>
+            {editandoFechaInicio ? (
+              <>
+                <Input
+                  type="date"
+                  value={nuevaFechaInicio}
+                  onChange={(e) => setNuevaFechaInicio(e.target.value)}
+                  className="h-7 text-sm w-36"
+                />
+                <Button size="sm" className="bg-brand-brown text-white h-7 px-2" onClick={handleGuardarFechaInicio}>
+                  OK
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditandoFechaInicio(false)}>
+                  ✕
+                </Button>
+              </>
+            ) : (
+              <button
+                className="hover:underline text-brand-brown"
+                onClick={() => { setNuevaFechaInicio(formacion.fecha_inicio); setEditandoFechaInicio(true); }}
+              >
+                {formatFechaCorta(formacion.fecha_inicio)}
+              </button>
+            )}
+            <span>· Clase los {DIAS_SEMANA[formacion.dia_semana]}</span>
+          </div>
         </div>
       </div>
 

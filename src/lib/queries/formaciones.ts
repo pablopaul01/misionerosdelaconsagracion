@@ -67,6 +67,24 @@ export const useCreateFormacion = () => {
   });
 };
 
+export const useUpdateFormacion = (id: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { fecha_inicio: string }) => {
+      const { error } = await supabase
+        .from('formaciones_misioneros')
+        .update(input)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.detail(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+    },
+  });
+};
+
 // --- Clases ---
 
 export const useClases = (formacionId: string) => {
@@ -145,6 +163,61 @@ export const useActivarClase = (formacionId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.clases(formacionId) });
     },
+  });
+};
+
+export const useDeleteClase = (formacionId: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (claseId: string) => {
+      // Verificar que no tenga asistencias
+      const { count } = await supabase
+        .from('asistencias_misioneros')
+        .select('id', { count: 'exact', head: true })
+        .eq('clase_id', claseId);
+      if (count && count > 0) throw new Error('No se puede eliminar: tiene asistencias registradas');
+      const { error } = await supabase.from('clases').delete().eq('id', claseId);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.clases(formacionId) }),
+  });
+};
+
+/** Upsert asistencia de un misionero a una clase */
+export const useToggleAsistenciaMisionero = (formacionId: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      claseId,
+      misioneroId,
+      asistio,
+      asistenciaId,
+      motivoAusencia,
+    }: {
+      claseId: string;
+      misioneroId: string;
+      asistio: boolean;
+      asistenciaId?: string;
+      motivoAusencia?: string;
+    }) => {
+      const motivo = asistio ? null : (motivoAusencia?.trim() || null);
+      if (asistenciaId) {
+        const { error } = await supabase
+          .from('asistencias_misioneros')
+          .update({ asistio, motivo_ausencia: motivo })
+          .eq('id', asistenciaId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('asistencias_misioneros')
+          .insert({ clase_id: claseId, misionero_id: misioneroId, asistio, motivo_ausencia: motivo });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['asistencias-formacion', formacionId] }),
   });
 };
 

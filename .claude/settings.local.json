@@ -16,7 +16,8 @@
       "Bash(node -e \"const p = require\\(''./node_modules/zod/package.json''\\); console.log\\(p.version\\)\")",
       "Bash(node -e \"const p = require\\(''./node_modules/@tanstack/react-form/package.json''\\); console.log\\(p.version\\)\")",
       "Bash(node -e \"const tf = require\\(''./node_modules/@tanstack/form-core/package.json''\\); console.log\\(tf.version\\)\")",
-      "Bash(xargs sed -i 's/validators: { onChange:/validators: { onSubmit:/g')"
+      "Bash(xargs sed -i 's/validators: { onChange:/validators: { onSubmit:/g')",
+      "Bash(pnpm add sonner)"
     ]
   }
 }

@@ -99,7 +99,7 @@ export default function AsistenciaPage() {
       return;
     }
 
-    const formacion = (clase.formaciones_misioneros as unknown as { tipo: 'san_lorenzo' | 'escuela_de_maria'; anio: number }[])[0];
+    const formacion = clase.formaciones_misioneros as unknown as { tipo: 'san_lorenzo' | 'escuela_de_maria'; anio: number };
 
     setMisionero(misioneroData);
     setClaseActiva({ id: clase.id, numero: clase.numero, fecha: clase.fecha, formacion });
@@ -137,8 +137,8 @@ export default function AsistenciaPage() {
         <Image
           src="/logomisioneros.png"
           alt="Logo"
-          width={80}
-          height={80}
+          width={180}
+          height={180}
           className="object-contain"
         />
         <h1 className="font-title text-brand-dark text-xl tracking-wide text-center">

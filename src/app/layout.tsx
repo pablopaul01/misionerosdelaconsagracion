@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Cinzel } from 'next/font/google';
+import { Toaster } from 'sonner';
 import { QueryProvider } from '@/components/providers/QueryProvider';
 import './globals.css';
 
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es" className={cinzel.variable}>
       <body className="bg-brand-cream font-body antialiased">
         <QueryProvider>{children}</QueryProvider>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

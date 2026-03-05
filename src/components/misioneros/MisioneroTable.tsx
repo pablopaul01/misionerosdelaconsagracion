@@ -78,7 +78,8 @@ export const MisioneroTable = () => {
         className="max-w-sm"
       />
 
-      <div className="rounded-lg border border-brand-creamLight overflow-hidden">
+      {/* ── Desktop: tabla ── */}
+      <div className="hidden md:block rounded-lg border border-brand-creamLight overflow-hidden">
         <Table>
           <TableHeader className="bg-brand-creamLight">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -111,6 +112,29 @@ export const MisioneroTable = () => {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* ── Mobile: cards ── */}
+      <div className="md:hidden flex flex-col gap-3">
+        {table.getRowModel().rows.length === 0 && (
+          <p className="text-center text-brand-brown py-6">No hay misioneros registrados</p>
+        )}
+        {table.getRowModel().rows.map((row) => {
+          const m = row.original;
+          return (
+            <div key={m.id} className="bg-white border border-brand-creamLight rounded-xl p-4 flex items-center justify-between gap-3">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <p className="font-title text-brand-dark font-semibold truncate">
+                  {m.apellido}, {m.nombre}
+                </p>
+                <p className="text-xs text-brand-brown">
+                  DNI {m.dni} · WA {m.whatsapp ?? '—'}
+                </p>
+              </div>
+              <AccionesCell id={m.id} />
+            </div>
+          );
+        })}
       </div>
 
       {/* Paginación */}

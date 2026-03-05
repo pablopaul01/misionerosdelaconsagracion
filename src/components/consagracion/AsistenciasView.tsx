@@ -7,6 +7,8 @@ import {
   useInscripcionesConsagracion,
   useAsistenciasConsagracion,
   useAddLeccion,
+  useUpdateLeccion,
+  useDeleteLeccion,
 } from '@/lib/queries/consagracion';
 import { leccionConsagracionSchema } from '@/lib/validations/consagracion';
 import { TIPO_LECCION } from '@/lib/constants/consagracion';
@@ -23,6 +25,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 interface AsistenciasViewProps {
   formacionId: string;
@@ -125,6 +139,19 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
   const { data: lecciones = [] } = useLeccionesConsagracion(formacionId);
   const { data: inscripciones = [] } = useInscripcionesConsagracion(formacionId);
   const { data: asistencias = [] } = useAsistenciasConsagracion(formacionId);
+  const { mutateAsync: updateLeccion } = useUpdateLeccion(formacionId);
+  const { mutateAsync: deleteLeccion } = useDeleteLeccion(formacionId);
+
+  const [editandoFecha, setEditandoFecha] = useState<string | null>(null);
+  const [nuevaFecha, setNuevaFecha] = useState('');
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+
+  const toggleExpandido = (id: string) =>
+    setExpandidos((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   // Índice: `${leccion_id}-${inscripcion_id}` → asistencia
   const asistenciasMap = Object.fromEntries(
@@ -132,6 +159,21 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
   );
 
   const proximoNumero = lecciones.length + 1;
+
+  const handleGuardarFecha = async (leccionId: string) => {
+    await updateLeccion({ id: leccionId, fecha: nuevaFecha });
+    setEditandoFecha(null);
+    setNuevaFecha('');
+  };
+
+  const handleEliminar = async (leccionId: string) => {
+    try {
+      await deleteLeccion(leccionId);
+      toast.success('Lección eliminada');
+    } catch (e) {
+      toast.error((e as Error)?.message ?? 'Error al eliminar');
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -142,60 +184,154 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
           {lecciones.length === 0 ? 'No hay lecciones creadas aún.' : 'No hay inscriptos aún.'}
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-brand-creamLight">
-          <table className="text-sm min-w-max">
-            <thead className="bg-brand-creamLight">
-              <tr>
-                <th className="px-4 py-3 text-left font-title text-brand-dark sticky left-0 bg-brand-creamLight">
-                  Participante
-                </th>
-                {lecciones.map((leccion) => (
-                  <th key={leccion.id} className="px-2 py-3 text-center font-title text-brand-dark min-w-[60px]">
-                    <div className="flex flex-col items-center gap-1">
-                      <span>{leccion.tipo === TIPO_LECCION.RETIRO ? 'R' : ''}{leccion.numero}</span>
-                      {leccion.tipo === TIPO_LECCION.RETIRO && (
-                        <Badge className="bg-brand-gold text-brand-dark text-xs px-1">Retiro</Badge>
-                      )}
-                      {leccion.fecha && (
-                        <span className="text-xs font-normal text-brand-brown">{formatFechaCorta(leccion.fecha)}</span>
-                      )}
-                    </div>
+        <>
+          {/* ── Desktop: tabla ── */}
+          <div className="hidden md:block overflow-x-auto rounded-xl border border-brand-creamLight">
+            <table className="text-sm min-w-max">
+              <thead className="bg-brand-creamLight">
+                <tr>
+                  <th className="px-4 py-3 text-left font-title text-brand-dark sticky left-0 bg-brand-creamLight">
+                    Participante
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {inscripciones.map((insc) => {
-                const asistioCount = lecciones.filter(
-                  (l) => asistenciasMap[`${l.id}-${insc.id}`]?.asistio === true,
-                ).length;
+                  {lecciones.map((leccion) => (
+                    <th key={leccion.id} className="px-2 py-3 text-center font-title text-brand-dark min-w-[80px]">
+                      <div className="flex flex-col items-center gap-1">
+                        <span>{leccion.tipo === TIPO_LECCION.RETIRO ? 'R' : ''}{leccion.numero}</span>
+                        {leccion.tipo === TIPO_LECCION.RETIRO && (
+                          <Badge className="bg-brand-gold text-brand-dark text-xs px-1">Retiro</Badge>
+                        )}
+                        {editandoFecha === leccion.id ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <Input
+                              type="date"
+                              value={nuevaFecha}
+                              onChange={(e) => setNuevaFecha(e.target.value)}
+                              className="h-6 text-xs w-28 px-1"
+                            />
+                            <div className="flex gap-1">
+                              <button className="text-xs text-brand-teal hover:underline" onClick={() => handleGuardarFecha(leccion.id)}>OK</button>
+                              <button className="text-xs text-brand-brown hover:underline" onClick={() => setEditandoFecha(null)}>✕</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            className="text-xs font-normal text-brand-brown hover:underline"
+                            onClick={() => { setEditandoFecha(leccion.id); setNuevaFecha(leccion.fecha ?? ''); }}
+                          >
+                            {leccion.fecha ? formatFechaCorta(leccion.fecha) : '+ fecha'}
+                          </button>
+                        )}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button className="text-xs text-red-400 hover:text-red-600">✕ elim.</button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Eliminar lección {leccion.numero}?</AlertDialogTitle>
+                              <AlertDialogDescription>Solo se puede eliminar si no tiene asistencias registradas.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleEliminar(leccion.id)} className="bg-red-500 hover:bg-red-700 text-white">Eliminar</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {inscripciones.map((insc) => {
+                  const asistioCount = lecciones.filter(
+                    (l) => asistenciasMap[`${l.id}-${insc.id}`]?.asistio === true,
+                  ).length;
+                  return (
+                    <tr key={insc.id} className="border-t border-brand-creamLight hover:bg-brand-cream/30">
+                      <td className="px-4 py-2 sticky left-0 bg-white font-medium text-brand-dark">
+                        <div>{insc.apellido}, {insc.nombre}</div>
+                        <div className="text-xs text-brand-brown">{asistioCount}/{lecciones.length}</div>
+                      </td>
+                      {lecciones.map((leccion) => {
+                        const reg = asistenciasMap[`${leccion.id}-${insc.id}`];
+                        return (
+                          <td key={leccion.id} className="px-2 py-2 text-center">
+                            <AsistenciaToggle
+                              formacionId={formacionId}
+                              leccionId={leccion.id}
+                              inscripcionId={insc.id}
+                              asistenciaId={reg?.id}
+                              asistio={reg?.asistio}
+                            />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
-                return (
-                  <tr key={insc.id} className="border-t border-brand-creamLight hover:bg-brand-cream/30">
-                    <td className="px-4 py-2 sticky left-0 bg-white font-medium text-brand-dark">
-                      <div>{insc.apellido}, {insc.nombre}</div>
-                      <div className="text-xs text-brand-brown">{asistioCount}/{lecciones.length}</div>
-                    </td>
-                    {lecciones.map((leccion) => {
-                      const reg = asistenciasMap[`${leccion.id}-${insc.id}`];
-                      return (
-                        <td key={leccion.id} className="px-2 py-2 text-center">
-                          <AsistenciaToggle
-                            formacionId={formacionId}
-                            leccionId={leccion.id}
-                            inscripcionId={insc.id}
-                            asistenciaId={reg?.id}
-                            asistio={reg?.asistio}
-                          />
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+          {/* ── Mobile: acordeón por participante ── */}
+          <div className="md:hidden flex flex-col gap-2">
+            {inscripciones.map((insc) => {
+              const abierto = expandidos.has(insc.id);
+              const asistioCount = lecciones.filter(
+                (l) => asistenciasMap[`${l.id}-${insc.id}`]?.asistio === true,
+              ).length;
+
+              return (
+                <div key={insc.id} className="bg-white border border-brand-creamLight rounded-xl overflow-hidden">
+                  {/* Header del card — siempre visible */}
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-3 text-left"
+                    onClick={() => toggleExpandido(insc.id)}
+                  >
+                    <div>
+                      <p className="font-title text-brand-dark font-semibold text-sm">
+                        {insc.apellido}, {insc.nombre}
+                      </p>
+                      <p className="text-xs text-brand-brown">{asistioCount}/{lecciones.length} asistencias</p>
+                    </div>
+                    <span className="text-brand-brown text-lg leading-none">{abierto ? '▲' : '▼'}</span>
+                  </button>
+
+                  {/* Lecciones expandidas */}
+                  {abierto && (
+                    <div className="border-t border-brand-creamLight divide-y divide-brand-creamLight/60">
+                      {lecciones.map((leccion) => {
+                        const reg = asistenciasMap[`${leccion.id}-${insc.id}`];
+                        return (
+                          <div key={leccion.id} className="flex items-center justify-between px-4 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-brand-dark w-6 text-center">
+                                {leccion.numero}
+                              </span>
+                              {leccion.tipo === TIPO_LECCION.RETIRO && (
+                                <Badge className="bg-brand-gold text-brand-dark text-xs px-1">Retiro</Badge>
+                              )}
+                              {leccion.fecha && (
+                                <span className="text-xs text-brand-brown">{formatFechaCorta(leccion.fecha)}</span>
+                              )}
+                            </div>
+                            <AsistenciaToggle
+                              formacionId={formacionId}
+                              leccionId={leccion.id}
+                              inscripcionId={insc.id}
+                              asistenciaId={reg?.id}
+                              asistio={reg?.asistio}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

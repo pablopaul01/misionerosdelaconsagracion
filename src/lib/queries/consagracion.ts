@@ -86,6 +86,38 @@ export const useLeccionesConsagracion = (formacionId: string) => {
   });
 };
 
+export const useUpdateLeccion = (formacionId: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, fecha }: { id: string; fecha: string }) => {
+      const { error } = await supabase
+        .from('lecciones_consagracion')
+        .update({ fecha: fecha || null })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lecciones(formacionId) }),
+  });
+};
+
+export const useDeleteLeccion = (formacionId: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (leccionId: string) => {
+      const { count } = await supabase
+        .from('asistencias_consagracion')
+        .select('id', { count: 'exact', head: true })
+        .eq('leccion_id', leccionId);
+      if (count && count > 0) throw new Error('No se puede eliminar: tiene asistencias registradas');
+      const { error } = await supabase.from('lecciones_consagracion').delete().eq('id', leccionId);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lecciones(formacionId) }),
+  });
+};
+
 export const useAddLeccion = (formacionId: string) => {
   const supabase = createClient();
   const queryClient = useQueryClient();
@@ -134,6 +166,36 @@ export const useCreateInscripcionConsagracion = (formacionId: string) => {
         .single();
       if (error) throw error;
       return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inscripciones(formacionId) }),
+  });
+};
+
+export const useUpdateInscripcionConsagracion = (formacionId: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, input }: { id: string; input: Partial<InscripcionConsagracionInput> }) => {
+      const { error } = await supabase
+        .from('inscripciones_consagracion')
+        .update(input)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inscripciones(formacionId) }),
+  });
+};
+
+export const useDeleteInscripcionConsagracion = (formacionId: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('inscripciones_consagracion')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inscripciones(formacionId) }),
   });

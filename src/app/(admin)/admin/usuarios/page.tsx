@@ -209,54 +209,89 @@ export default function UsuariosPage() {
       {loading && <p className="text-brand-brown">Cargando...</p>}
 
       {!loading && (
-        <div className="rounded-xl border border-brand-creamLight overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-brand-creamLight">
-              <tr>
-                <th className="px-4 py-3 text-left font-title text-brand-dark">Nombre</th>
-                <th className="px-4 py-3 text-left font-title text-brand-dark">Email</th>
-                <th className="px-4 py-3 text-left font-title text-brand-dark">Rol</th>
-                <th className="px-4 py-3 text-left font-title text-brand-dark"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios.map((u) => (
-                <tr key={u.id} className="border-t border-brand-creamLight hover:bg-brand-cream/30">
-                  <td className="px-4 py-3 font-medium text-brand-dark">{u.nombre}</td>
-                  <td className="px-4 py-3 text-brand-brown">{u.email}</td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      className={
-                        u.role === USER_ROLES.ADMIN
-                          ? 'bg-brand-navy text-white'
-                          : 'bg-brand-teal text-white'
-                      }
-                    >
-                      {ROLE_LABEL[u.role] ?? u.role}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-red-500 hover:text-red-700"
-                      onClick={() => setConfirmarEliminar(u)}
-                    >
-                      Eliminar
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-              {usuarios.length === 0 && (
+        <>
+          {/* ── Desktop: tabla ── */}
+          <div className="hidden md:block rounded-xl border border-brand-creamLight overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-brand-creamLight">
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-brand-brown">
-                    No hay usuarios registrados
-                  </td>
+                  <th className="px-4 py-3 text-left font-title text-brand-dark">Nombre</th>
+                  <th className="px-4 py-3 text-left font-title text-brand-dark">Email</th>
+                  <th className="px-4 py-3 text-left font-title text-brand-dark">Rol</th>
+                  <th className="px-4 py-3 text-left font-title text-brand-dark"></th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {usuarios.map((u) => (
+                  <tr key={u.id} className="border-t border-brand-creamLight hover:bg-brand-cream/30">
+                    <td className="px-4 py-3 font-medium text-brand-dark">{u.nombre}</td>
+                    <td className="px-4 py-3 text-brand-brown">{u.email}</td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        className={
+                          u.role === USER_ROLES.ADMIN
+                            ? 'bg-brand-navy text-white'
+                            : 'bg-brand-teal text-white'
+                        }
+                      >
+                        {ROLE_LABEL[u.role] ?? u.role}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-500 hover:text-red-700"
+                        onClick={() => setConfirmarEliminar(u)}
+                      >
+                        Eliminar
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {usuarios.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center text-brand-brown">
+                      No hay usuarios registrados
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── Mobile: cards ── */}
+          <div className="md:hidden flex flex-col gap-3">
+            {usuarios.length === 0 && (
+              <p className="text-center text-brand-brown py-6">No hay usuarios registrados</p>
+            )}
+            {usuarios.map((u) => (
+              <div key={u.id} className="bg-white border border-brand-creamLight rounded-xl p-4 flex items-start justify-between gap-3">
+                <div className="flex flex-col gap-1 min-w-0">
+                  <p className="font-title text-brand-dark font-semibold">{u.nombre}</p>
+                  <p className="text-xs text-brand-brown truncate">{u.email}</p>
+                  <Badge
+                    className={`mt-1 w-fit ${
+                      u.role === USER_ROLES.ADMIN
+                        ? 'bg-brand-navy text-white'
+                        : 'bg-brand-teal text-white'
+                    }`}
+                  >
+                    {ROLE_LABEL[u.role] ?? u.role}
+                  </Badge>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-red-500 hover:text-red-700 shrink-0"
+                  onClick={() => setConfirmarEliminar(u)}
+                >
+                  Eliminar
+                </Button>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       <AlertDialog

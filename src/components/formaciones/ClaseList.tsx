@@ -10,12 +10,14 @@ import {
   useActivarClase,
   useDesactivarClases,
   useUpdateClaseFecha,
+  useDeleteClase,
 } from '@/lib/queries/formaciones';
 import { formatFechaLarga } from '@/lib/utils/dates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -123,6 +125,7 @@ export const ClaseList = ({ formacionId }: ClaseListProps) => {
   const { mutateAsync: activarClase } = useActivarClase(formacionId);
   const { mutateAsync: desactivarClases } = useDesactivarClases(formacionId);
   const { mutateAsync: updateFecha } = useUpdateClaseFecha(formacionId);
+  const { mutateAsync: deleteClase } = useDeleteClase(formacionId);
 
   const [editandoFecha, setEditandoFecha] = useState<string | null>(null);
   const [nuevaFecha, setNuevaFecha] = useState('');
@@ -143,6 +146,15 @@ export const ClaseList = ({ formacionId }: ClaseListProps) => {
     await updateFecha({ claseId, fecha: nuevaFecha });
     setEditandoFecha(null);
     setNuevaFecha('');
+  };
+
+  const handleEliminarClase = async (claseId: string) => {
+    try {
+      await deleteClase(claseId);
+      toast.success('Clase eliminada');
+    } catch (e) {
+      toast.error((e as Error)?.message ?? 'Error al eliminar');
+    }
   };
 
   if (isLoading) return <p className="text-brand-brown">Cargando clases...</p>;
@@ -231,31 +243,58 @@ export const ClaseList = ({ formacionId }: ClaseListProps) => {
             </div>
 
             {!clase.activa && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="text-brand-teal border-brand-teal">
-                    Activar
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Activar clase {clase.numero}?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Los misioneros podrán registrar su asistencia a esta clase.
-                      {claseActiva && ' La clase activa actual se desactivará.'}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => handleActivar(clase.id)}
-                      className="bg-brand-teal hover:bg-brand-navy text-white"
-                    >
-                      Activar
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <div className="flex gap-2">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="text-brand-teal border-brand-teal">
+                        Activar
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Activar clase {clase.numero}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Los misioneros podrán registrar su asistencia a esta clase.
+                          {claseActiva && ' La clase activa actual se desactivará.'}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleActivar(clase.id)}
+                          className="bg-brand-teal hover:bg-brand-navy text-white"
+                        >
+                          Activar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700">
+                        Eliminar
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Eliminar clase {clase.numero}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Solo se puede eliminar si no tiene asistencias registradas. Esta acción no se puede deshacer.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleEliminarClase(clase.id)}
+                          className="bg-red-500 hover:bg-red-700 text-white"
+                        >
+                          Eliminar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
             )}
           </div>
         ))}

@@ -89,21 +89,27 @@ export const AdminSidebar = ({ nombre }: AdminSidebarProps) => {
       </aside>
 
       {/* Mobile: barra superior fija + Sheet drawer */}
-      <div className="md:hidden fixed top-0 inset-x-0 z-40 h-14 bg-brand-dark flex items-center px-4 gap-3">
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <div className="md:hidden fixed top-0 inset-x-0 z-40 h-14 bg-brand-dark flex items-center justify-between px-4">
           <SheetTrigger asChild>
-            <button className="text-brand-cream p-1" aria-label="Abrir menú">
+            <button className="text-brand-cream p-1 -ml-1" aria-label="Abrir menú">
               <Menu className="w-6 h-6" />
             </button>
           </SheetTrigger>
-          <SheetContent side="left" className="bg-brand-dark border-r border-brand-brown/40 w-64 p-6">
-            <NavContent />
-          </SheetContent>
-        </Sheet>
-        <span className="font-title text-brand-creamLight text-sm tracking-widest uppercase">
-          Misioneros
-        </span>
-      </div>
+          <Image
+            src="/logomisioneros_blanco.png"
+            alt="Logo"
+            width={94}
+            height={94}
+            className="object-contain"
+          />
+          {/* Espacio para centrar el logo */}
+          <div className="w-8" />
+        </div>
+        <SheetContent side="left" className="bg-brand-dark border-r border-brand-brown/40 w-64 p-6">
+          <NavContent />
+        </SheetContent>
+      </Sheet>
     </>
   );
 };

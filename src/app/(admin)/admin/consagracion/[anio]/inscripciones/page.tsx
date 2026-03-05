@@ -13,7 +13,7 @@ export default function AdminInscripcionesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-title text-2xl text-brand-dark">
+      <h1 className="font-title text-2xl text-brand-dark break-words">
         Inscripciones Consagración {anio}
       </h1>
       <InscripcionesView formacionId={formacion.id} />

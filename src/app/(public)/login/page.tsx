@@ -1,14 +1,28 @@
 import Image from 'next/image';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { USER_ROLES } from '@/lib/constants/roles';
 import { LoginForm } from '@/components/auth/LoginForm';
 
-// Requiere sesión de usuario — no pre-renderizar
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Iniciar sesión — Misioneros de la Consagración',
 };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    redirect(profile?.role === USER_ROLES.ADMIN ? '/admin/dashboard' : '/secretario/inscripciones');
+  }
   return (
     <main className="min-h-screen flex items-center justify-center bg-brand-cream px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-md p-8 flex flex-col gap-6">

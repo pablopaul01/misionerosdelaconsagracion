@@ -31,7 +31,7 @@ export async function crearUsuario(data: CrearUsuarioInput) {
 
   const { error: profileError } = await admin
     .from('profiles')
-    .insert({ id: authData.user.id, nombre: parsed.data.nombre, role: parsed.data.role });
+    .upsert({ id: authData.user.id, nombre: parsed.data.nombre, role: parsed.data.role });
 
   if (profileError) {
     // Revertir creación de usuario auth
