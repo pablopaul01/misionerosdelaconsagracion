@@ -68,6 +68,37 @@ export async function listarUsuarios() {
   };
 }
 
+const editarUsuarioSchema = z.object({
+  nombre:   z.string().min(1, 'El nombre es requerido'),
+  role:     z.enum([USER_ROLES.ADMIN, USER_ROLES.SECRETARIO_CONSAGRACION]),
+  password: z.string().optional(),
+});
+
+export type EditarUsuarioInput = z.infer<typeof editarUsuarioSchema>;
+
+export async function editarUsuario(id: string, data: EditarUsuarioInput) {
+  const parsed = editarUsuarioSchema.safeParse(data);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const admin = createAdminClient();
+
+  const { error: profileError } = await admin
+    .from('profiles')
+    .update({ nombre: parsed.data.nombre, role: parsed.data.role })
+    .eq('id', id);
+
+  if (profileError) return { error: profileError.message };
+
+  if (parsed.data.password) {
+    const { error: authError } = await admin.auth.admin.updateUserById(id, {
+      password: parsed.data.password,
+    });
+    if (authError) return { error: authError.message };
+  }
+
+  return { success: true };
+}
+
 export async function eliminarUsuario(id: string) {
   const admin = createAdminClient();
 

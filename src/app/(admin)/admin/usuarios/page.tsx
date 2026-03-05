@@ -33,7 +33,8 @@ import {
 } from '@/components/ui/select';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { fieldError } from '@/lib/utils/form';
-import { crearUsuario, listarUsuarios, eliminarUsuario } from './actions';
+import { crearUsuario, listarUsuarios, eliminarUsuario, editarUsuario } from './actions';
+import { Pencil } from 'lucide-react';
 
 const ROLE_LABEL: Record<string, string> = {
   [USER_ROLES.ADMIN]: 'Administrador',
@@ -161,6 +162,129 @@ const NuevoUsuarioForm = ({ onSuccess }: { onSuccess: () => void }) => {
   );
 };
 
+const editarSchema = z.object({
+  nombre:   z.string().min(1, 'El nombre es requerido'),
+  role:     z.enum([USER_ROLES.ADMIN, USER_ROLES.SECRETARIO_CONSAGRACION]),
+  password: z.string().optional(),
+});
+
+const EditarUsuarioDialog = ({
+  usuario,
+  onSuccess,
+}: {
+  usuario: Usuario;
+  onSuccess: () => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState('');
+
+  const form = useForm({
+    defaultValues: {
+      nombre:   usuario.nombre,
+      role:     usuario.role as 'admin' | 'secretario_consagracion',
+      password: '',
+    },
+    validators: { onSubmit: editarSchema },
+    onSubmit: async ({ value }) => {
+      setError('');
+      const result = await editarUsuario(usuario.id, {
+        ...value,
+        password: value.password || undefined,
+      });
+      if (result.error) { setError(result.error); return; }
+      setOpen(false);
+      onSuccess();
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="ghost" className="text-brand-brown hover:text-brand-dark">
+          <Pencil className="w-4 h-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-title text-brand-dark">Editar usuario</DialogTitle>
+        </DialogHeader>
+        <form
+          onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}
+          className="flex flex-col gap-4"
+        >
+          <form.Field name="nombre">
+            {(field) => (
+              <div className="flex flex-col gap-1.5">
+                <Label>Nombre</Label>
+                <Input
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+                {field.state.meta.errors[0] && (
+                  <span className="text-sm text-red-600">{fieldError(field.state.meta.errors[0])}</span>
+                )}
+              </div>
+            )}
+          </form.Field>
+
+          <form.Field name="role">
+            {(field) => (
+              <div className="flex flex-col gap-1.5">
+                <Label>Rol</Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={(v) => field.handleChange(v as 'admin' | 'secretario_consagracion')}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={USER_ROLES.SECRETARIO_CONSAGRACION}>
+                      Secretario de Consagración
+                    </SelectItem>
+                    <SelectItem value={USER_ROLES.ADMIN}>Administrador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </form.Field>
+
+          <form.Field name="password">
+            {(field) => (
+              <div className="flex flex-col gap-1.5">
+                <Label>Nueva contraseña <span className="text-brand-brown/60 font-normal text-xs">(dejar vacío para no cambiar)</span></Label>
+                <Input
+                  type="password"
+                  placeholder="••••••"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+                {field.state.meta.errors[0] && (
+                  <span className="text-sm text-red-600">{fieldError(field.state.meta.errors[0])}</span>
+                )}
+              </div>
+            )}
+          </form.Field>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
+          <form.Subscribe selector={(s) => s.isSubmitting}>
+            {(isSubmitting) => (
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-brand-brown hover:bg-brand-dark text-white"
+              >
+                {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
+              </Button>
+            )}
+          </form.Subscribe>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export default function UsuariosPage() {
   const [open, setOpen] = useState(false);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -238,14 +362,17 @@ export default function UsuariosPage() {
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => setConfirmarEliminar(u)}
-                      >
-                        Eliminar
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <EditarUsuarioDialog usuario={u} onSuccess={cargar} />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => setConfirmarEliminar(u)}
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -280,14 +407,17 @@ export default function UsuariosPage() {
                     {ROLE_LABEL[u.role] ?? u.role}
                   </Badge>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-red-500 hover:text-red-700 shrink-0"
-                  onClick={() => setConfirmarEliminar(u)}
-                >
-                  Eliminar
-                </Button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <EditarUsuarioDialog usuario={u} onSuccess={cargar} />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-500 hover:text-red-700"
+                    onClick={() => setConfirmarEliminar(u)}
+                  >
+                    Eliminar
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
