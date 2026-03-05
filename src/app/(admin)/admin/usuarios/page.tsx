@@ -165,7 +165,7 @@ const NuevoUsuarioForm = ({ onSuccess }: { onSuccess: () => void }) => {
 const editarSchema = z.object({
   nombre:   z.string().min(1, 'El nombre es requerido'),
   role:     z.enum([USER_ROLES.ADMIN, USER_ROLES.SECRETARIO_CONSAGRACION]),
-  password: z.string().optional(),
+  password: z.string(),
 });
 
 const EditarUsuarioDialog = ({
