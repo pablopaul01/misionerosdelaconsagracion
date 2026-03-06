@@ -15,6 +15,7 @@ import {
   useCreateInscripcionConsagracion,
   useUpdateInscripcionConsagracion,
   useDeleteInscripcionConsagracion,
+  useMarcarConsagracion,
 } from '@/lib/queries/consagracion';
 import { ESTADO_CIVIL_LABEL, ESTADO_CIVIL } from '@/lib/constants/consagracion';
 import { Input } from '@/components/ui/input';
@@ -303,12 +304,23 @@ interface InscripcionesViewProps {
   formacionId: string;
 }
 
+type FiltroConsagracion = 'todos' | 'consagrados' | 'no_completo' | 'pendiente';
+
+const FILTRO_LABELS: Record<FiltroConsagracion, string> = {
+  todos:        'Todos',
+  consagrados:  'Se consagraron',
+  no_completo:  'No completaron',
+  pendiente:    'Pendientes',
+};
+
 export const InscripcionesView = ({ formacionId }: InscripcionesViewProps) => {
   const { data: inscripciones = [], isLoading } = useInscripcionesConsagracion(formacionId);
   const { mutateAsync: convertir, isPending: convirtiendo } = useConvertirAMisionero(formacionId);
   const { mutateAsync: eliminar } = useDeleteInscripcionConsagracion(formacionId);
+  const { mutate: marcar } = useMarcarConsagracion(formacionId);
 
   const [globalFilter, setGlobalFilter] = useState('');
+  const [filtroConsagracion, setFiltroConsagracion] = useState<FiltroConsagracion>('todos');
   const [confirmando, setConfirmando] = useState<Inscripcion | null>(null);
   const [convertidos, setConvertidos] = useState<Set<string>>(new Set());
   const [errorConversion, setErrorConversion] = useState('');
@@ -318,6 +330,15 @@ export const InscripcionesView = ({ formacionId }: InscripcionesViewProps) => {
 
   const [eliminando, setEliminando] = useState<Inscripcion | null>(null);
   const [errorEliminar, setErrorEliminar] = useState('');
+
+  const datosFiltrados = (() => {
+    if (filtroConsagracion === 'consagrados') return (inscripciones as Inscripcion[]).filter((i) => i.se_consagro === true);
+    if (filtroConsagracion === 'no_completo') return (inscripciones as Inscripcion[]).filter((i) => i.se_consagro === false);
+    if (filtroConsagracion === 'pendiente')   return (inscripciones as Inscripcion[]).filter((i) => i.se_consagro === null);
+    return inscripciones as Inscripcion[];
+  })();
+
+  const totalConsagrados = (inscripciones as Inscripcion[]).filter((i) => i.se_consagro === true).length;
 
   const handleConvertir = async () => {
     if (!confirmando) return;
@@ -391,6 +412,39 @@ export const InscripcionesView = ({ formacionId }: InscripcionesViewProps) => {
       ),
     },
     {
+      id: 'se_consagro',
+      header: 'Consagración',
+      cell: ({ row }) => {
+        const ins = row.original;
+        return (
+          <div className="flex items-center gap-1">
+            <button
+              title="Se consagró"
+              onClick={() => marcar({ id: ins.id, se_consagro: ins.se_consagro === true ? null : true })}
+              className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
+                ins.se_consagro === true
+                  ? 'bg-green-600 text-white'
+                  : 'bg-transparent text-green-700 border border-green-600 hover:bg-green-50'
+              }`}
+            >
+              ✓
+            </button>
+            <button
+              title="No completó"
+              onClick={() => marcar({ id: ins.id, se_consagro: ins.se_consagro === false ? null : false })}
+              className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
+                ins.se_consagro === false
+                  ? 'bg-red-500 text-white'
+                  : 'bg-transparent text-red-500 border border-red-400 hover:bg-red-50'
+              }`}
+            >
+              ✗
+            </button>
+          </div>
+        );
+      },
+    },
+    {
       id: 'acciones',
       header: '',
       cell: ({ row }) => {
@@ -430,7 +484,7 @@ export const InscripcionesView = ({ formacionId }: InscripcionesViewProps) => {
   ];
 
   const table = useReactTable({
-    data: inscripciones as Inscripcion[],
+    data: datosFiltrados,
     columns: COLUMNS,
     state: { globalFilter },
     onGlobalFilterChange: setGlobalFilter,
@@ -456,6 +510,9 @@ export const InscripcionesView = ({ formacionId }: InscripcionesViewProps) => {
         />
         <span className="text-sm text-brand-brown shrink-0">
           {table.getFilteredRowModel().rows.length} inscripto(s)
+          {totalConsagrados > 0 && (
+            <span className="ml-2 text-green-700 font-medium">· {totalConsagrados} consagrado(s)</span>
+          )}
         </span>
         <Button
           onClick={openCreate}
@@ -463,6 +520,23 @@ export const InscripcionesView = ({ formacionId }: InscripcionesViewProps) => {
         >
           + Nueva inscripción
         </Button>
+      </div>
+
+      {/* Filtro por estado de consagración */}
+      <div className="flex flex-wrap gap-2">
+        {(Object.keys(FILTRO_LABELS) as FiltroConsagracion[]).map((key) => (
+          <button
+            key={key}
+            onClick={() => setFiltroConsagracion(key)}
+            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+              filtroConsagracion === key
+                ? 'bg-brand-brown text-white border-brand-brown'
+                : 'bg-white text-brand-brown border-brand-creamLight hover:border-brand-brown'
+            }`}
+          >
+            {FILTRO_LABELS[key]}
+          </button>
+        ))}
       </div>
 
       {/* ── Desktop: tabla ── */}
@@ -511,6 +585,7 @@ export const InscripcionesView = ({ formacionId }: InscripcionesViewProps) => {
           const esRenovacion = ins.tipo_inscripcion === 'renovacion';
           const yaConvertido = convertidos.has(ins.id);
           const sacramentos = (ins.sacramentos as string[]) ?? [];
+          const seConsagroLabel = ins.se_consagro === true ? 'Se consagró' : ins.se_consagro === false ? 'No completó' : null;
 
           return (
             <div key={ins.id} className="bg-white border border-brand-creamLight rounded-xl p-4 flex flex-col gap-2">
@@ -553,6 +628,38 @@ export const InscripcionesView = ({ formacionId }: InscripcionesViewProps) => {
               {ins.comentario && (
                 <p className="text-xs text-brand-brown italic">{ins.comentario}</p>
               )}
+
+              {/* Consagración toggle */}
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-xs text-brand-brown">Consagración:</span>
+                <button
+                  title="Se consagró"
+                  onClick={() => marcar({ id: ins.id, se_consagro: ins.se_consagro === true ? null : true })}
+                  className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
+                    ins.se_consagro === true
+                      ? 'bg-green-600 text-white'
+                      : 'bg-transparent text-green-700 border border-green-600'
+                  }`}
+                >
+                  ✓
+                </button>
+                <button
+                  title="No completó"
+                  onClick={() => marcar({ id: ins.id, se_consagro: ins.se_consagro === false ? null : false })}
+                  className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
+                    ins.se_consagro === false
+                      ? 'bg-red-500 text-white'
+                      : 'bg-transparent text-red-500 border border-red-400'
+                  }`}
+                >
+                  ✗
+                </button>
+                {seConsagroLabel && (
+                  <span className={`text-xs font-medium ${ins.se_consagro ? 'text-green-700' : 'text-red-500'}`}>
+                    {seConsagroLabel}
+                  </span>
+                )}
+              </div>
 
               <div className="pt-1">
                 {esRenovacion ? (

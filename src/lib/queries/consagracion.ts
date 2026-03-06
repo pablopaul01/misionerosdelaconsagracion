@@ -201,6 +201,43 @@ export const useDeleteInscripcionConsagracion = (formacionId: string) => {
   });
 };
 
+// --- Marcar consagración individual ---
+
+export const useMarcarConsagracion = (formacionId: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, se_consagro }: { id: string; se_consagro: boolean | null }) => {
+      const { error } = await supabase
+        .from('inscripciones_consagracion')
+        .update({ se_consagro })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inscripciones(formacionId) }),
+  });
+};
+
+// --- Finalizar formación ---
+
+export const useFinalizarFormacion = () => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('formaciones_consagracion')
+        .update({ finalizada: true })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.formaciones });
+      queryClient.invalidateQueries({ queryKey: ['formacion-consagracion'] });
+    },
+  });
+};
+
 // --- Convertir inscripto a misionero ---
 
 export const useConvertirAMisionero = (formacionId: string) => {
@@ -270,17 +307,24 @@ export const useToggleAsistenciaConsagracion = (formacionId: string) => {
     }: {
       leccionId: string;
       inscripcionId: string;
-      asistio: boolean;
+      asistio: boolean | null; // null = eliminar el registro
       asistenciaId?: string;
     }) => {
-      if (asistenciaId) {
+      if (asistio === null && asistenciaId) {
+        // Eliminar registro para volver a "sin marcar"
+        const { error } = await supabase
+          .from('asistencias_consagracion')
+          .delete()
+          .eq('id', asistenciaId);
+        if (error) throw error;
+      } else if (asistenciaId && asistio !== null) {
         // Actualizar existente
         const { error } = await supabase
           .from('asistencias_consagracion')
           .update({ asistio })
           .eq('id', asistenciaId);
         if (error) throw error;
-      } else {
+      } else if (asistio !== null) {
         // Crear nueva
         const { error } = await supabase
           .from('asistencias_consagracion')

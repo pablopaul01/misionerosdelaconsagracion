@@ -9,17 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 
 type Estado = 'buscar' | 'confirmar' | 'registrado' | 'sin-clase' | 'ya-registrado';
 
@@ -47,6 +36,7 @@ export default function AsistenciaPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [seleccion, setSeleccion] = useState<'asistio' | 'no_asistio' | null>(null);
   const [motivoAusencia, setMotivoAusencia] = useState('');
   const [misionero, setMisionero] = useState<MisioneroEncontrado | null>(null);
   const [claseActiva, setClaseActiva] = useState<ClaseActiva | null>(null);
@@ -128,7 +118,13 @@ export default function AsistenciaPage() {
     setErrorMsg(null);
     setMisionero(null);
     setClaseActiva(null);
+    setSeleccion(null);
     setMotivoAusencia('');
+  };
+
+  const handleConfirmar = () => {
+    if (!seleccion) return;
+    registrarAsistencia(seleccion === 'asistio');
   };
 
   return (
@@ -174,7 +170,7 @@ export default function AsistenciaPage() {
 
         {/* PASO 2: Confirmar asistencia */}
         {estado === 'confirmar' && misionero && claseActiva && (
-          <div className="bg-white rounded-2xl shadow-sm p-6 w-full flex flex-col gap-4">
+          <div className="bg-white rounded-2xl shadow-sm p-6 w-full flex flex-col gap-5">
             <div className="bg-brand-creamLight rounded-lg p-4">
               <p className="font-title text-brand-dark text-lg">
                 {misionero.apellido}, {misionero.nombre}
@@ -189,37 +185,41 @@ export default function AsistenciaPage() {
 
             <p className="text-center text-brand-dark font-medium">¿Pudiste asistir a esta clase?</p>
 
-            {/* Botón SÍ con confirmación */}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button className="bg-green-600 hover:bg-green-700 text-white text-lg py-6">
-                  ✓ Sí, asistí
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Confirmar asistencia?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Registrarás tu presencia en la clase {claseActiva.numero}.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => registrarAsistencia(true)}
-                    disabled={guardando}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    Confirmar
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            {/* Opciones seleccionables */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setSeleccion('asistio')}
+                className={`rounded-xl border-2 p-4 flex flex-col items-center gap-2 transition-all ${
+                  seleccion === 'asistio'
+                    ? 'border-green-600 bg-green-50'
+                    : 'border-brand-creamLight hover:border-green-300'
+                }`}
+              >
+                <span className="text-2xl">✓</span>
+                <span className={`text-sm font-medium ${seleccion === 'asistio' ? 'text-green-700' : 'text-brand-dark'}`}>
+                  Sí, asistí
+                </span>
+              </button>
 
-            {/* Botón NO — despliega campo de motivo */}
-            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => setSeleccion('no_asistio')}
+                className={`rounded-xl border-2 p-4 flex flex-col items-center gap-2 transition-all ${
+                  seleccion === 'no_asistio'
+                    ? 'border-red-400 bg-red-50'
+                    : 'border-brand-creamLight hover:border-red-200'
+                }`}
+              >
+                <span className="text-2xl">✗</span>
+                <span className={`text-sm font-medium ${seleccion === 'no_asistio' ? 'text-red-600' : 'text-brand-dark'}`}>
+                  No pude asistir
+                </span>
+              </button>
+            </div>
+
+            {/* Motivo — solo si eligió "no asistió" */}
+            {seleccion === 'no_asistio' && (
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="motivo">No pude asistir — motivo (opcional)</Label>
+                <Label htmlFor="motivo">Motivo (opcional)</Label>
                 <Textarea
                   id="motivo"
                   placeholder="Ej: Estaba enfermo, trabajo, etc."
@@ -228,33 +228,15 @@ export default function AsistenciaPage() {
                   rows={2}
                 />
               </div>
+            )}
 
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="border-red-400 text-red-600 hover:bg-red-50">
-                    ✗ No pude asistir
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Registrar ausencia?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Se registrará tu ausencia en la clase {claseActiva.numero}. Esta acción no se puede deshacer.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => registrarAsistencia(false)}
-                      disabled={guardando}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Registrar ausencia
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
+            <Button
+              onClick={handleConfirmar}
+              disabled={!seleccion || guardando}
+              className="bg-brand-brown hover:bg-brand-dark text-white font-title tracking-wide py-5 disabled:opacity-40"
+            >
+              {guardando ? 'Registrando...' : 'Confirmar'}
+            </Button>
           </div>
         )}
 

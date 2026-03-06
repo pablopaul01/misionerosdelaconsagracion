@@ -22,10 +22,21 @@ export const AsistenciaToggle = ({
   const { mutate, isPending } = useToggleAsistenciaConsagracion(formacionId);
 
   const handleClick = () => {
-    // Ciclo: sin registro → asistió → no asistió → asistió
-    const nuevoValor = asistio === undefined ? true : !asistio;
-    mutate({ leccionId, inscripcionId, asistio: nuevoValor, asistenciaId });
+    // Ciclo: sin registro → asistió → no asistió → sin registro (elimina)
+    if (asistio === undefined) {
+      mutate({ leccionId, inscripcionId, asistio: true, asistenciaId });
+    } else if (asistio === true) {
+      mutate({ leccionId, inscripcionId, asistio: false, asistenciaId });
+    } else {
+      // false → eliminar registro
+      mutate({ leccionId, inscripcionId, asistio: null, asistenciaId });
+    }
   };
+
+  const title =
+    asistio === undefined ? 'Sin registrar — click para marcar asistencia' :
+    asistio === true      ? 'Asistió — click para marcar ausencia' :
+                            'No asistió — click para desmarcar';
 
   return (
     <button
@@ -38,7 +49,7 @@ export const AsistenciaToggle = ({
         asistio === undefined && 'bg-gray-100 text-gray-400 hover:bg-gray-200',
         isPending && 'opacity-50 cursor-wait',
       )}
-      title={asistio === undefined ? 'Sin registrar — click para marcar' : asistio ? 'Asistió — click para cambiar' : 'No asistió — click para cambiar'}
+      title={title}
     >
       {asistio === true ? '✓' : asistio === false ? '✗' : '·'}
     </button>

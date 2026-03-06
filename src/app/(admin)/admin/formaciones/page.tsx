@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, CheckCircle2 } from 'lucide-react';
 import {
   useFormaciones,
   useCreateFormacion,
@@ -49,6 +49,7 @@ type Formacion = {
   anio: number;
   fecha_inicio: string;
   dia_semana: number;
+  finalizada: boolean;
 };
 
 // ── Dialog editar formación ──────────────────────────────────────────────────
@@ -221,13 +222,20 @@ export default function FormacionesPage() {
               onClick={() => router.push(`/admin/formaciones/${formacion.id}`)}
               className="text-left hover:opacity-80 transition-opacity"
             >
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-1 gap-2">
                 <span className="font-title text-brand-dark text-lg">
                   {TIPO_FORMACION_LABEL[formacion.tipo]}
                 </span>
-                <Badge className="bg-brand-creamLight text-brand-brown">
-                  {formacion.anio}
-                </Badge>
+                <div className="flex items-center gap-2 shrink-0">
+                  {formacion.finalizada && (
+                    <span className="flex items-center gap-1 text-xs text-green-700 font-medium">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Finalizada
+                    </span>
+                  )}
+                  <Badge className="bg-brand-creamLight text-brand-brown">
+                    {formacion.anio}
+                  </Badge>
+                </div>
               </div>
               <p className="text-sm text-brand-brown">
                 Inicio: {new Date(formacion.fecha_inicio + 'T00:00:00').toLocaleDateString('es-AR')}

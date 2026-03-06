@@ -298,6 +298,39 @@ export const useMisionerosDeFormacion = (formacionId: string) => {
   });
 };
 
+export const useFinalizarFormacionMisioneros = () => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('formaciones_misioneros')
+        .update({ finalizada: true })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.detail(id) });
+    },
+  });
+};
+
+export const useMarcarCompletoMisionero = (formacionId: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, completo }: { id: string; completo: boolean | null }) => {
+      const { error } = await supabase
+        .from('inscripciones_misioneros')
+        .update({ completo })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.misioneros(formacionId) }),
+  });
+};
+
 export const useInscribirMisionero = (formacionId: string) => {
   const supabase = createClient();
   const queryClient = useQueryClient();

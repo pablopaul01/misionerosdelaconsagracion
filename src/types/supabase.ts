@@ -135,18 +135,21 @@ export type Database = {
           anio: number
           created_at: string | null
           fecha_inicio: string
+          finalizada: boolean
           id: string
         }
         Insert: {
           anio: number
           created_at?: string | null
           fecha_inicio: string
+          finalizada?: boolean
           id?: string
         }
         Update: {
           anio?: number
           created_at?: string | null
           fecha_inicio?: string
+          finalizada?: boolean
           id?: string
         }
         Relationships: []
@@ -157,6 +160,7 @@ export type Database = {
           created_at: string | null
           dia_semana: number
           fecha_inicio: string
+          finalizada: boolean
           id: string
           tipo: Database["public"]["Enums"]["tipo_formacion"]
         }
@@ -165,6 +169,7 @@ export type Database = {
           created_at?: string | null
           dia_semana: number
           fecha_inicio: string
+          finalizada?: boolean
           id?: string
           tipo: Database["public"]["Enums"]["tipo_formacion"]
         }
@@ -173,6 +178,7 @@ export type Database = {
           created_at?: string | null
           dia_semana?: number
           fecha_inicio?: string
+          finalizada?: boolean
           id?: string
           tipo?: Database["public"]["Enums"]["tipo_formacion"]
         }
@@ -189,6 +195,7 @@ export type Database = {
           id: string
           nombre: string
           sacramentos: Json
+          se_consagro: boolean | null
           whatsapp: string
         }
         Insert: {
@@ -201,6 +208,7 @@ export type Database = {
           id?: string
           nombre: string
           sacramentos?: Json
+          se_consagro?: boolean | null
           whatsapp: string
         }
         Update: {
@@ -213,6 +221,7 @@ export type Database = {
           id?: string
           nombre?: string
           sacramentos?: Json
+          se_consagro?: boolean | null
           whatsapp?: string
         }
         Relationships: [
@@ -227,18 +236,21 @@ export type Database = {
       }
       inscripciones_misioneros: {
         Row: {
+          completo: boolean | null
           created_at: string | null
           formacion_id: string
           id: string
           misionero_id: string
         }
         Insert: {
+          completo?: boolean | null
           created_at?: string | null
           formacion_id: string
           id?: string
           misionero_id: string
         }
         Update: {
+          completo?: boolean | null
           created_at?: string | null
           formacion_id?: string
           id?: string

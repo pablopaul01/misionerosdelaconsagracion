@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFormacionesConsagracion, useCreateFormacionConsagracion } from '@/lib/queries/consagracion';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, CheckCircle2 } from 'lucide-react';
 import { formacionConsagracionSchema } from '@/lib/validations/consagracion';
 import { fieldError } from '@/lib/utils/form';
 import { useForm } from '@tanstack/react-form';
@@ -108,7 +108,14 @@ export default function ConsagracionPage() {
           <div key={f.id} className="bg-white border border-brand-creamLight rounded-xl p-5 flex flex-col gap-3">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <p className="font-title text-brand-dark text-lg">Consagración {f.anio}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-title text-brand-dark text-lg">Consagración {f.anio}</p>
+                  {f.finalizada && (
+                    <span className="flex items-center gap-1 text-xs text-green-700 font-medium">
+                      <CheckCircle2 className="w-4 h-4" /> Finalizada
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-brand-brown">
                   Inicio: {new Date(f.fecha_inicio + 'T00:00:00').toLocaleDateString('es-AR')}
                 </p>

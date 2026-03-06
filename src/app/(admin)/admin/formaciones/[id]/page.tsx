@@ -2,7 +2,14 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useFormacion, useMisionerosDeFormacion, useInscribirMisionero, useUpdateFormacion } from '@/lib/queries/formaciones';
+import {
+  useFormacion,
+  useMisionerosDeFormacion,
+  useInscribirMisionero,
+  useUpdateFormacion,
+  useFinalizarFormacionMisioneros,
+  useMarcarCompletoMisionero,
+} from '@/lib/queries/formaciones';
 import { useMisioneros } from '@/lib/queries/misioneros';
 import { ClaseList } from '@/components/formaciones/ClaseList';
 import { TIPO_FORMACION_LABEL, DIAS_SEMANA } from '@/lib/constants/formaciones';
@@ -10,6 +17,7 @@ import { formatFechaCorta } from '@/lib/utils/dates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { CheckCircle2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -37,11 +45,25 @@ export default function FormacionDetailPage() {
   const { data: inscriptos = [] } = useMisionerosDeFormacion(id);
   const { data: todosMisioneros = [] } = useMisioneros();
   const { mutateAsync: inscribir } = useInscribirMisionero(id);
+  const { mutateAsync: finalizar, isPending: finalizando } = useFinalizarFormacionMisioneros();
+  const { mutate: marcarCompleto } = useMarcarCompletoMisionero(id);
 
   const { mutateAsync: updateFormacion } = useUpdateFormacion(id);
   const [misioneroSeleccionado, setMisioneroSeleccionado] = useState('');
   const [editandoFechaInicio, setEditandoFechaInicio] = useState(false);
   const [nuevaFechaInicio, setNuevaFechaInicio] = useState('');
+  const [confirmarFinalizar, setConfirmarFinalizar] = useState(false);
+  const [errorFinalizar, setErrorFinalizar] = useState('');
+
+  const handleFinalizar = async () => {
+    setErrorFinalizar('');
+    try {
+      await finalizar(id);
+      setConfirmarFinalizar(false);
+    } catch (e) {
+      setErrorFinalizar((e as Error)?.message ?? 'Error al finalizar');
+    }
+  };
 
   // Misioneros que no están inscriptos en esta formación
   const inscriptosIds = new Set(inscriptos.map((i) => i.misionero_id));
@@ -64,14 +86,21 @@ export default function FormacionDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-wrap">
         <Button variant="ghost" onClick={() => router.back()} className="text-brand-brown">
           ← Volver
         </Button>
-        <div>
-          <h1 className="font-title text-2xl text-brand-dark">
-            {TIPO_FORMACION_LABEL[formacion.tipo]}
-          </h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="font-title text-2xl text-brand-dark">
+              {TIPO_FORMACION_LABEL[formacion.tipo]}
+            </h1>
+            {formacion.finalizada && (
+              <span className="flex items-center gap-1 text-sm text-green-700 font-medium">
+                <CheckCircle2 className="w-4 h-4" /> Finalizada
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2 flex-wrap text-sm text-brand-brown">
             <span>{formacion.anio}</span>
             <span>·</span>
@@ -102,6 +131,15 @@ export default function FormacionDetailPage() {
             <span>· Clase los {DIAS_SEMANA[formacion.dia_semana]}</span>
           </div>
         </div>
+        {!formacion.finalizada && (
+          <Button
+            variant="outline"
+            className="border-brand-gold text-brand-dark hover:bg-brand-gold/10 shrink-0"
+            onClick={() => setConfirmarFinalizar(true)}
+          >
+            Finalizar formación
+          </Button>
+        )}
       </div>
 
       <Tabs defaultValue="clases">
@@ -166,27 +204,63 @@ export default function FormacionDetailPage() {
               </AlertDialog>
             </div>
 
-            {/* Lista de inscriptos */}
+            {/* Stats y lista de inscriptos */}
+            {inscriptos.length > 0 && (() => {
+              const completaron = inscriptos.filter((i) => i.completo === true).length;
+              return (
+                <p className="text-sm text-brand-brown">
+                  {completaron > 0 && (
+                    <span className="text-green-700 font-medium">{completaron} completaron · </span>
+                  )}
+                  {inscriptos.length} inscriptos en total
+                </p>
+              );
+            })()}
+
             <div className="flex flex-col gap-2">
               {inscriptos.map((insc) => (
                 <div
                   key={insc.id}
-                  className="flex items-center justify-between bg-white border border-brand-creamLight rounded-lg px-4 py-3"
+                  className="flex items-center justify-between bg-white border border-brand-creamLight rounded-lg px-4 py-3 gap-3"
                 >
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <span className="font-medium text-brand-dark">
                       {insc.misioneros?.apellido}, {insc.misioneros?.nombre}
                     </span>
                     <span className="text-sm text-brand-brown ml-3">DNI {insc.misioneros?.dni}</span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-brand-teal"
-                    onClick={() => router.push(`/admin/formaciones/${id}/asistencias`)}
-                  >
-                    Ver asistencias →
-                  </Button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      title={insc.completo === true ? 'Completó — click para desmarcar' : 'Marcar como completó'}
+                      onClick={() => marcarCompleto({ id: insc.id, completo: insc.completo === true ? null : true })}
+                      className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
+                        insc.completo === true
+                          ? 'bg-green-600 text-white'
+                          : 'bg-transparent text-green-700 border border-green-600 hover:bg-green-50'
+                      }`}
+                    >
+                      ✓
+                    </button>
+                    <button
+                      title={insc.completo === false ? 'No completó — click para desmarcar' : 'Marcar como no completó'}
+                      onClick={() => marcarCompleto({ id: insc.id, completo: insc.completo === false ? null : false })}
+                      className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
+                        insc.completo === false
+                          ? 'bg-red-500 text-white'
+                          : 'bg-transparent text-red-500 border border-red-400 hover:bg-red-50'
+                      }`}
+                    >
+                      ✗
+                    </button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-brand-teal"
+                      onClick={() => router.push(`/admin/formaciones/${id}/asistencias`)}
+                    >
+                      Asistencias →
+                    </Button>
+                  </div>
                 </div>
               ))}
 
@@ -197,6 +271,33 @@ export default function FormacionDetailPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* AlertDialog finalizar formación */}
+      <AlertDialog
+        open={confirmarFinalizar}
+        onOpenChange={(open) => { if (!open) { setConfirmarFinalizar(false); setErrorFinalizar(''); } }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Finalizar la formación?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esto marca la formación <strong>{TIPO_FORMACION_LABEL[formacion.tipo]} {formacion.anio}</strong> como
+              concluida. Podés seguir editando misioneros y asistencias después.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {errorFinalizar && <p className="text-sm text-red-600 px-1">{errorFinalizar}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-brand-brown hover:bg-brand-dark text-white"
+              onClick={handleFinalizar}
+              disabled={finalizando}
+            >
+              {finalizando ? 'Finalizando...' : 'Confirmar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
