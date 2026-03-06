@@ -32,7 +32,7 @@ export const AsistenciaToggle = ({
       onClick={handleClick}
       disabled={isPending}
       className={cn(
-        'w-8 h-8 rounded-full text-sm font-bold transition-colors mx-auto flex items-center justify-center',
+        'w-8 h-8 rounded-full text-sm font-bold transition-colors flex items-center justify-center',
         asistio === true  && 'bg-green-100 text-green-700 hover:bg-green-200',
         asistio === false && 'bg-red-100 text-red-600 hover:bg-red-200',
         asistio === undefined && 'bg-gray-100 text-gray-400 hover:bg-gray-200',
