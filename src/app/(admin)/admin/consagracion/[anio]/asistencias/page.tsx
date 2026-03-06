@@ -1,11 +1,13 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useFormacionConsagracion } from '@/lib/queries/consagracion';
 import { AsistenciasView } from '@/components/consagracion/AsistenciasView';
+import { Button } from '@/components/ui/button';
 
 export default function AdminAsistenciasConsagracionPage() {
   const { anio } = useParams<{ anio: string }>();
+  const router = useRouter();
   const { data: formacion, isLoading } = useFormacionConsagracion(Number(anio));
 
   if (isLoading) return <p className="text-brand-brown">Cargando...</p>;
@@ -13,9 +15,14 @@ export default function AdminAsistenciasConsagracionPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-title text-2xl text-brand-dark">
-        Asistencias Consagración {anio}
-      </h1>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" onClick={() => router.back()} className="text-brand-brown">
+          ← Volver
+        </Button>
+        <h1 className="font-title text-2xl text-brand-dark">
+          Asistencias Consagración {anio}
+        </h1>
+      </div>
       <AsistenciasView formacionId={formacion.id} />
     </div>
   );
