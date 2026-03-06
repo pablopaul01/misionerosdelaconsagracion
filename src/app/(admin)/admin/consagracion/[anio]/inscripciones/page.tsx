@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { useFormacionConsagracion, useFinalizarFormacion } from '@/lib/queries/consagracion';
 import { InscripcionesView } from '@/components/consagracion/InscripcionesView';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,27 +41,21 @@ export default function AdminInscripcionesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4 flex-wrap">
-        <Button variant="ghost" onClick={() => router.back()} className="text-brand-brown">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" onClick={() => router.back()} className="text-brand-brown shrink-0">
           ← Volver
         </Button>
-        <h1 className="font-title text-2xl text-brand-dark break-words flex-1">
-          Inscripciones Consagración {anio}
+        <h1 className="font-title text-xl text-brand-dark">
+          Consagración {anio}
         </h1>
-        {formacion.finalizada ? (
-          <Badge className="bg-green-700 text-white text-sm px-3 py-1">FINALIZADA</Badge>
-        ) : (
-          <Button
-            variant="outline"
-            className="border-brand-gold text-brand-dark hover:bg-brand-gold/10 shrink-0"
-            onClick={() => setConfirmarFinalizar(true)}
-          >
-            Finalizar consagración
-          </Button>
-        )}
       </div>
 
-      <InscripcionesView formacionId={formacion.id} />
+      <InscripcionesView
+        formacionId={formacion.id}
+        finalizada={formacion.finalizada}
+        onFinalizar={() => setConfirmarFinalizar(true)}
+        finalizando={finalizando}
+      />
 
       <AlertDialog
         open={confirmarFinalizar}

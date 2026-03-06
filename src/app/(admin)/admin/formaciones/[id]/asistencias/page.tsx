@@ -181,11 +181,11 @@ export default function AsistenciasFormacionPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => router.back()} className="text-brand-brown">
+      <div className="flex flex-col gap-1">
+        <Button variant="ghost" onClick={() => router.back()} className="text-brand-brown self-start -ml-3">
           ← Volver
         </Button>
-        <h1 className="font-title text-2xl text-brand-dark">
+        <h1 className="font-title text-xl text-brand-dark">
           Asistencias — {formacion ? TIPO_FORMACION_LABEL[formacion.tipo] : ''} {formacion?.anio}
         </h1>
       </div>

@@ -86,60 +86,65 @@ export default function FormacionDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4 flex-wrap">
-        <Button variant="ghost" onClick={() => router.back()} className="text-brand-brown">
-          ← Volver
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="font-title text-2xl text-brand-dark">
-              {TIPO_FORMACION_LABEL[formacion.tipo]}
-            </h1>
-            {formacion.finalizada && (
-              <span className="flex items-center gap-1 text-sm text-green-700 font-medium">
-                <CheckCircle2 className="w-4 h-4" /> Finalizada
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 flex-wrap text-sm text-brand-brown">
-            <span>{formacion.anio}</span>
-            <span>·</span>
-            <span>Inicia</span>
-            {editandoFechaInicio ? (
-              <>
-                <Input
-                  type="date"
-                  value={nuevaFechaInicio}
-                  onChange={(e) => setNuevaFechaInicio(e.target.value)}
-                  className="h-7 text-sm w-36"
-                />
-                <Button size="sm" className="bg-brand-brown text-white h-7 px-2" onClick={handleGuardarFechaInicio}>
-                  OK
-                </Button>
-                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditandoFechaInicio(false)}>
-                  ✕
-                </Button>
-              </>
-            ) : (
-              <button
-                className="hover:underline text-brand-brown"
-                onClick={() => { setNuevaFechaInicio(formacion.fecha_inicio); setEditandoFechaInicio(true); }}
-              >
-                {formatFechaCorta(formacion.fecha_inicio)}
-              </button>
-            )}
-            <span>· Clase los {DIAS_SEMANA[formacion.dia_semana]}</span>
-          </div>
-        </div>
-        {!formacion.finalizada && (
-          <Button
-            variant="outline"
-            className="border-brand-gold text-brand-dark hover:bg-brand-gold/10 shrink-0"
-            onClick={() => setConfirmarFinalizar(true)}
-          >
-            Finalizar formación
+      <div className="flex flex-col gap-2">
+        {/* Fila 1: navegación + acción */}
+        <div className="flex items-center justify-between gap-3">
+          <Button variant="ghost" onClick={() => router.back()} className="text-brand-brown -ml-3">
+            ← Volver
           </Button>
-        )}
+          {!formacion.finalizada && (
+            <Button
+              variant="outline"
+              className="border-brand-gold text-brand-dark hover:bg-brand-gold/10 shrink-0"
+              onClick={() => setConfirmarFinalizar(true)}
+            >
+              Finalizar formación
+            </Button>
+          )}
+        </div>
+
+        {/* Fila 2: título */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="font-title text-xl text-brand-dark">
+            {TIPO_FORMACION_LABEL[formacion.tipo]}
+          </h1>
+          {formacion.finalizada && (
+            <span className="flex items-center gap-1 text-sm text-green-700 font-medium">
+              <CheckCircle2 className="w-4 h-4" /> Finalizada
+            </span>
+          )}
+        </div>
+
+        {/* Fila 3: metadata */}
+        <div className="flex items-center gap-2 flex-wrap text-sm text-brand-brown">
+          <span>{formacion.anio}</span>
+          <span>·</span>
+          <span>Inicia</span>
+          {editandoFechaInicio ? (
+            <>
+              <Input
+                type="date"
+                value={nuevaFechaInicio}
+                onChange={(e) => setNuevaFechaInicio(e.target.value)}
+                className="h-7 text-sm w-36"
+              />
+              <Button size="sm" className="bg-brand-brown text-white h-7 px-2" onClick={handleGuardarFechaInicio}>
+                OK
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditandoFechaInicio(false)}>
+                ✕
+              </Button>
+            </>
+          ) : (
+            <button
+              className="hover:underline text-brand-brown"
+              onClick={() => { setNuevaFechaInicio(formacion.fecha_inicio); setEditandoFechaInicio(true); }}
+            >
+              {formatFechaCorta(formacion.fecha_inicio)}
+            </button>
+          )}
+          <span>· Clase los {DIAS_SEMANA[formacion.dia_semana]}</span>
+        </div>
       </div>
 
       <Tabs defaultValue="clases">
@@ -221,41 +226,45 @@ export default function FormacionDetailPage() {
               {inscriptos.map((insc) => (
                 <div
                   key={insc.id}
-                  className="flex items-center justify-between bg-white border border-brand-creamLight rounded-lg px-4 py-3 gap-3"
+                  className="bg-white border border-brand-creamLight rounded-lg px-4 py-3 flex flex-col gap-2"
                 >
-                  <div className="flex-1 min-w-0">
-                    <span className="font-medium text-brand-dark">
+                  {/* Fila 1: nombre + toggles de completado */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-brand-dark truncate">
                       {insc.misioneros?.apellido}, {insc.misioneros?.nombre}
                     </span>
-                    <span className="text-sm text-brand-brown ml-3">DNI {insc.misioneros?.dni}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        title={insc.completo === true ? 'Completó — click para desmarcar' : 'Marcar como completó'}
+                        onClick={() => marcarCompleto({ id: insc.id, completo: insc.completo === true ? null : true })}
+                        className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
+                          insc.completo === true
+                            ? 'bg-green-600 text-white'
+                            : 'bg-transparent text-green-700 border border-green-600 hover:bg-green-50'
+                        }`}
+                      >
+                        ✓
+                      </button>
+                      <button
+                        title={insc.completo === false ? 'No completó — click para desmarcar' : 'Marcar como no completó'}
+                        onClick={() => marcarCompleto({ id: insc.id, completo: insc.completo === false ? null : false })}
+                        className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
+                          insc.completo === false
+                            ? 'bg-red-500 text-white'
+                            : 'bg-transparent text-red-500 border border-red-400 hover:bg-red-50'
+                        }`}
+                      >
+                        ✗
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      title={insc.completo === true ? 'Completó — click para desmarcar' : 'Marcar como completó'}
-                      onClick={() => marcarCompleto({ id: insc.id, completo: insc.completo === true ? null : true })}
-                      className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
-                        insc.completo === true
-                          ? 'bg-green-600 text-white'
-                          : 'bg-transparent text-green-700 border border-green-600 hover:bg-green-50'
-                      }`}
-                    >
-                      ✓
-                    </button>
-                    <button
-                      title={insc.completo === false ? 'No completó — click para desmarcar' : 'Marcar como no completó'}
-                      onClick={() => marcarCompleto({ id: insc.id, completo: insc.completo === false ? null : false })}
-                      className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
-                        insc.completo === false
-                          ? 'bg-red-500 text-white'
-                          : 'bg-transparent text-red-500 border border-red-400 hover:bg-red-50'
-                      }`}
-                    >
-                      ✗
-                    </button>
+                  {/* Fila 2: DNI + link a asistencias */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm text-brand-brown">DNI {insc.misioneros?.dni}</span>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-brand-teal"
+                      className="text-brand-teal h-6 px-2 text-xs"
                       onClick={() => router.push(`/admin/formaciones/${id}/asistencias`)}
                     >
                       Asistencias →

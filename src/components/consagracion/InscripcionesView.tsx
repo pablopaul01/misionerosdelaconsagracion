@@ -302,6 +302,9 @@ const InscripcionDialog = ({ open, onOpenChange, formacionId, inscripcion }: Ins
 
 interface InscripcionesViewProps {
   formacionId: string;
+  finalizada?: boolean;
+  onFinalizar?: () => void;
+  finalizando?: boolean;
 }
 
 type FiltroConsagracion = 'todos' | 'consagrados' | 'no_completo' | 'pendiente';
@@ -313,7 +316,7 @@ const FILTRO_LABELS: Record<FiltroConsagracion, string> = {
   pendiente:    'Pendientes',
 };
 
-export const InscripcionesView = ({ formacionId }: InscripcionesViewProps) => {
+export const InscripcionesView = ({ formacionId, finalizada, onFinalizar, finalizando }: InscripcionesViewProps) => {
   const { data: inscripciones = [], isLoading } = useInscripcionesConsagracion(formacionId);
   const { mutateAsync: convertir, isPending: convirtiendo } = useConvertirAMisionero(formacionId);
   const { mutateAsync: eliminar } = useDeleteInscripcionConsagracion(formacionId);
@@ -501,25 +504,43 @@ export const InscripcionesView = ({ formacionId }: InscripcionesViewProps) => {
   return (
     <div className="flex flex-col gap-4">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col gap-2">
+        {/* Buscador — fila propia para que siempre tenga espacio */}
         <Input
           placeholder="Buscar por apellido, nombre..."
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
-          className="max-w-sm flex-1"
+          className="w-full"
         />
-        <span className="text-sm text-brand-brown shrink-0">
+        {/* Acciones — ambos botones juntos */}
+        <div className="flex items-center gap-2">
+          {finalizada ? (
+            <Badge className="bg-green-700 text-white px-3 py-1.5 text-xs">FINALIZADA</Badge>
+          ) : onFinalizar ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-brand-gold text-brand-dark hover:bg-brand-gold/10 shrink-0"
+              onClick={onFinalizar}
+              disabled={finalizando}
+            >
+              {finalizando ? 'Finalizando...' : 'Finalizar consagración'}
+            </Button>
+          ) : null}
+          <Button
+            onClick={openCreate}
+            className="bg-brand-brown hover:bg-brand-dark text-white ml-auto shrink-0"
+          >
+            + Nueva inscripción
+          </Button>
+        </div>
+        {/* Stats */}
+        <span className="text-sm text-brand-brown">
           {table.getFilteredRowModel().rows.length} inscripto(s)
           {totalConsagrados > 0 && (
             <span className="ml-2 text-green-700 font-medium">· {totalConsagrados} consagrado(s)</span>
           )}
         </span>
-        <Button
-          onClick={openCreate}
-          className="bg-brand-brown hover:bg-brand-dark text-white shrink-0"
-        >
-          + Nueva inscripción
-        </Button>
       </div>
 
       {/* Filtro por estado de consagración */}
