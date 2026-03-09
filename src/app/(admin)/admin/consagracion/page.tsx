@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFormacionesConsagracion, useCreateFormacionConsagracion } from '@/lib/queries/consagracion';
-import { Check, Copy, CheckCircle2 } from 'lucide-react';
+import { Check, Copy, CheckCircle2, Users } from 'lucide-react';
 import { formacionConsagracionSchema } from '@/lib/validations/consagracion';
 import { fieldError } from '@/lib/utils/form';
 import { useForm } from '@tanstack/react-form';
@@ -17,6 +17,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { PapasSheet } from '@/components/consagracion/PapasSheet';
 
 const NuevaFormacionForm = ({ onSuccess }: { onSuccess: () => void }) => {
   const { mutateAsync: create } = useCreateFormacionConsagracion();
@@ -73,6 +75,8 @@ const NuevaFormacionForm = ({ onSuccess }: { onSuccess: () => void }) => {
 export default function ConsagracionPage() {
   const [open, setOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [papasSheetOpen, setPapasSheetOpen] = useState(false);
+  const [selectedFormacionId, setSelectedFormacionId] = useState<string | null>(null);
   const router = useRouter();
 
   const copyLink = (anio: number, id: string) => {
@@ -80,6 +84,12 @@ export default function ConsagracionPage() {
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
+
+  const openPapasSheet = (formacionId: string) => {
+    setSelectedFormacionId(formacionId);
+    setPapasSheetOpen(true);
+  };
+
   const { data: formaciones = [], isLoading } = useFormacionesConsagracion();
 
   return (
@@ -104,59 +114,105 @@ export default function ConsagracionPage() {
       {isLoading && <p className="text-brand-brown">Cargando...</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {formaciones.map((f) => (
-          <div key={f.id} className="bg-white border border-brand-creamLight rounded-xl p-5 flex flex-col gap-3">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-title text-brand-dark text-lg">Consagración {f.anio}</p>
-                  {f.finalizada && (
-                    <span className="flex items-center gap-1 text-xs text-green-700 font-medium">
-                      <CheckCircle2 className="w-4 h-4" /> Finalizada
-                    </span>
-                  )}
+        {formaciones.map((f) => {
+          const papas = (f as typeof f & { papas_consagracion?: Array<{ misioneros: { id: string; nombre: string; apellido: string } | null }> }).papas_consagracion ?? [];
+          const papasConMisionero = papas.filter((p) => p.misioneros);
+          const maxVisible = 2;
+          const visibles = papasConMisionero.slice(0, maxVisible);
+          const restantes = papasConMisionero.length - maxVisible;
+
+          return (
+            <div key={f.id} className="bg-white border border-brand-creamLight rounded-xl p-5 flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-title text-brand-dark text-lg">Consagración {f.anio}</p>
+                    {f.finalizada && (
+                      <span className="flex items-center gap-1 text-xs text-green-700 font-medium">
+                        <CheckCircle2 className="w-4 h-4" /> Finalizada
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-brand-brown">
+                    Inicio: {new Date(f.fecha_inicio + 'T00:00:00').toLocaleDateString('es-AR')}
+                  </p>
                 </div>
-                <p className="text-sm text-brand-brown">
-                  Inicio: {new Date(f.fecha_inicio + 'T00:00:00').toLocaleDateString('es-AR')}
-                </p>
+                <button
+                  onClick={() => copyLink(f.anio, f.id)}
+                  title="Copiar link de inscripción"
+                  className="flex items-center gap-1.5 text-xs text-brand-teal hover:text-brand-navy transition-colors shrink-0 mt-1"
+                >
+                  {copiedId === f.id ? (
+                    <><Check className="w-4 h-4" /><span>Copiado</span></>
+                  ) : (
+                    <><Copy className="w-4 h-4" /><span>Link inscripción</span></>
+                  )}
+                </button>
               </div>
-              <button
-                onClick={() => copyLink(f.anio, f.id)}
-                title="Copiar link de inscripción"
-                className="flex items-center gap-1.5 text-xs text-brand-teal hover:text-brand-navy transition-colors shrink-0 mt-1"
-              >
-                {copiedId === f.id ? (
-                  <><Check className="w-4 h-4" /><span>Copiado</span></>
+
+              {/* Papás de consagración */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-brand-brown">Papás:</span>
+                {visibles.length === 0 ? (
+                  <span className="text-xs text-brand-brown/60 italic">Sin asignar</span>
                 ) : (
-                  <><Copy className="w-4 h-4" /><span>Link inscripción</span></>
+                  <>
+                    {visibles.map((p) => (
+                      <Badge key={p.misioneros!.id} className="bg-brand-creamLight text-brand-dark text-xs">
+                        {p.misioneros!.apellido}, {p.misioneros!.nombre.charAt(0)}.
+                      </Badge>
+                    ))}
+                    {restantes > 0 && (
+                      <Badge className="bg-brand-brown/20 text-brand-dark text-xs">
+                        +{restantes}
+                      </Badge>
+                    )}
+                  </>
                 )}
-              </button>
+                <button
+                  onClick={() => openPapasSheet(f.id)}
+                  className="flex items-center gap-1 text-xs text-brand-teal hover:text-brand-navy transition-colors ml-auto"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Editar</span>
+                </button>
+              </div>
+
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 text-brand-teal border-brand-teal"
+                  onClick={() => router.push(`/admin/consagracion/${f.anio}/inscripciones`)}
+                >
+                  Inscripciones
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 text-brand-brown border-brand-brown"
+                  onClick={() => router.push(`/admin/consagracion/${f.anio}/asistencias`)}
+                >
+                  Asistencias
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1 text-brand-teal border-brand-teal"
-                onClick={() => router.push(`/admin/consagracion/${f.anio}/inscripciones`)}
-              >
-                Inscripciones
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1 text-brand-brown border-brand-brown"
-                onClick={() => router.push(`/admin/consagracion/${f.anio}/asistencias`)}
-              >
-                Asistencias
-              </Button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
 
         {!isLoading && formaciones.length === 0 && (
           <p className="text-brand-brown col-span-2">No hay formaciones de consagración creadas</p>
         )}
       </div>
+
+      {/* Sheet para editar papás */}
+      {selectedFormacionId && (
+        <PapasSheet
+          formacionId={selectedFormacionId}
+          open={papasSheetOpen}
+          onOpenChange={setPapasSheetOpen}
+        />
+      )}
     </div>
   );
 }

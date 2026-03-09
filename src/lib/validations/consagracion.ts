@@ -49,9 +49,10 @@ export const formacionConsagracionSchema = z.object({
 });
 
 export const leccionConsagracionSchema = z.object({
-  numero: z.number().int().min(1).max(35),
-  tipo:   z.enum(['leccion', 'retiro']),
-  fecha:  z.string(),
+  numero:        z.number().int().min(1).max(35),
+  tipo:          z.enum(['leccion', 'retiro']),
+  fecha:         z.string(),
+  disertante_id: z.string(),
 });
 
 export type InscripcionConsagracionInput = z.infer<typeof inscripcionConsagracionSchema>;

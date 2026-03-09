@@ -276,6 +276,7 @@ export type Database = {
       lecciones_consagracion: {
         Row: {
           created_at: string | null
+          disertante_id: string | null
           fecha: string | null
           formacion_id: string
           id: string
@@ -284,6 +285,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          disertante_id?: string | null
           fecha?: string | null
           formacion_id: string
           id?: string
@@ -292,6 +294,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          disertante_id?: string | null
           fecha?: string | null
           formacion_id?: string
           id?: string
@@ -299,6 +302,13 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["tipo_leccion"]
         }
         Relationships: [
+          {
+            foreignKeyName: "lecciones_consagracion_disertante_id_fkey"
+            columns: ["disertante_id"]
+            isOneToOne: false
+            referencedRelation: "misioneros"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lecciones_consagracion_formacion_id_fkey"
             columns: ["formacion_id"]
@@ -334,6 +344,42 @@ export type Database = {
           whatsapp?: string
         }
         Relationships: []
+      }
+      papas_consagracion: {
+        Row: {
+          created_at: string | null
+          formacion_id: string
+          id: string
+          misionero_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          formacion_id: string
+          id?: string
+          misionero_id: string
+        }
+        Update: {
+          created_at?: string | null
+          formacion_id?: string
+          id?: string
+          misionero_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "papas_consagracion_formacion_id_fkey"
+            columns: ["formacion_id"]
+            isOneToOne: false
+            referencedRelation: "formaciones_consagracion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "papas_consagracion_misionero_id_fkey"
+            columns: ["misionero_id"]
+            isOneToOne: false
+            referencedRelation: "misioneros"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
