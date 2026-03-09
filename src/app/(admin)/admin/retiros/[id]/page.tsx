@@ -76,6 +76,7 @@ export default function RetiroDetailPage() {
   const [cropOpen, setCropOpen] = useState(false);
   const [rawFile, setRawFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const autoOpenedRef = useRef(false);
 
   const handleEliminar = async () => {
     const previousUrl = retiro?.imagen_url ?? '';
@@ -113,10 +114,15 @@ export default function RetiroDetailPage() {
   }, [retiro]);
 
   useEffect(() => {
-    if (searchParams.get('edit') === 'true' && !editOpen) {
+    const shouldOpen = searchParams.get('edit') === 'true';
+    if (shouldOpen && !autoOpenedRef.current) {
+      autoOpenedRef.current = true;
       openEdit();
     }
-  }, [searchParams, openEdit, editOpen]);
+    if (!shouldOpen) {
+      autoOpenedRef.current = false;
+    }
+  }, [searchParams, openEdit]);
 
   const handleImagenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -179,7 +185,10 @@ export default function RetiroDetailPage() {
               open={editOpen}
               onOpenChange={(value) => {
                 setEditOpen(value);
-                if (!value) clearEditParam();
+                if (!value) {
+                  clearEditParam();
+                  autoOpenedRef.current = false;
+                }
               }}
             >
               <DialogTrigger asChild>

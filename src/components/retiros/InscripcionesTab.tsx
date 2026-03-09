@@ -27,6 +27,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -63,6 +73,13 @@ type DeletePagoArgs = {
 export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
   const { data: stats } = useEstadisticasRetiro(retiroId, tipo);
 
+  const [deleteTarget, setDeleteTarget] = useState<
+    | { kind: 'conversion'; id: string; label: string }
+    | { kind: 'matrimonios'; id: string; label: string }
+    | { kind: 'misioneros'; id: string; label: string }
+    | null
+  >(null);
+
   const { data: conversion = [], isLoading: loadingConversion } = useInscripcionesConversion(retiroId);
   const { data: matrimonios = [], isLoading: loadingMatrimonios } = useInscripcionesMatrimonios(retiroId);
   const { data: misioneros = [], isLoading: loadingMisioneros } = useInscripcionesMisioneros(retiroId);
@@ -79,7 +96,6 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
   const handleDeletePago = (args: DeletePagoArgs) => deletePago.mutateAsync(args);
 
   const handleDeleteConversion = async (id: string) => {
-    if (!confirm('¿Eliminar inscripción?')) return;
     try {
       await deleteConversion.mutateAsync(id);
       toast.success('Inscripción eliminada');
@@ -89,7 +105,6 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
   };
 
   const handleDeleteMatrimonios = async (id: string) => {
-    if (!confirm('¿Eliminar inscripción?')) return;
     try {
       await deleteMatrimonios.mutateAsync(id);
       toast.success('Inscripción eliminada');
@@ -99,7 +114,6 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
   };
 
   const handleDeleteMisionero = async (id: string) => {
-    if (!confirm('¿Eliminar inscripción?')) return;
     try {
       await deleteMisionero.mutateAsync(id);
       toast.success('Inscripción eliminada');
@@ -160,7 +174,13 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
                 <ConversionInscripcionRow
                   key={insc.id}
                   inscripcion={insc}
-                  onDelete={() => handleDeleteConversion(insc.id)}
+                  onDelete={() =>
+                    setDeleteTarget({
+                      kind: 'conversion',
+                      id: insc.id,
+                      label: `${insc.nombre} ${insc.apellido}`,
+                    })
+                  }
                   onToggleEspera={(enEspera) => handleToggleEsperaConversion(insc.id, enEspera)}
                   onCreatePago={handleCreatePago}
                   onDeletePago={handleDeletePago}
@@ -186,7 +206,13 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
                 <MatrimonioInscripcionRow
                   key={insc.id}
                   inscripcion={insc}
-                  onDelete={() => handleDeleteMatrimonios(insc.id)}
+                  onDelete={() =>
+                    setDeleteTarget({
+                      kind: 'matrimonios',
+                      id: insc.id,
+                      label: `${insc.nombre_esposo} ${insc.apellido_esposo} & ${insc.nombre_esposa} ${insc.apellido_esposa}`,
+                    })
+                  }
                   onToggleEspera={(enEspera) => handleToggleEsperaMatrimonios(insc.id, enEspera)}
                   onCreatePago={handleCreatePago}
                   onDeletePago={handleDeletePago}
@@ -216,7 +242,18 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
                     </p>
                     <p className="text-sm text-brand-brown">DNI: {insc.misioneros?.dni}</p>
                   </div>
-                  <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDeleteMisionero(insc.id)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-500"
+                    onClick={() =>
+                      setDeleteTarget({
+                        kind: 'misioneros',
+                        id: insc.id,
+                        label: `${insc.misioneros?.nombre ?? ''} ${insc.misioneros?.apellido ?? ''}`.trim(),
+                      })
+                    }
+                  >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -225,6 +262,32 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
           )}
         </div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar inscripción?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará la inscripción <strong>{deleteTarget?.label}</strong>. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!deleteTarget) return;
+                if (deleteTarget.kind === 'conversion') await handleDeleteConversion(deleteTarget.id);
+                if (deleteTarget.kind === 'matrimonios') await handleDeleteMatrimonios(deleteTarget.id);
+                if (deleteTarget.kind === 'misioneros') await handleDeleteMisionero(deleteTarget.id);
+                setDeleteTarget(null);
+              }}
+              className="bg-red-500 hover:bg-red-700 text-white"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -270,8 +333,9 @@ function ConversionInscripcionRow({
     }
   };
 
+  const [deletePagoId, setDeletePagoId] = useState<string | null>(null);
+
   const handleEliminarPago = async (id: string) => {
-    if (!confirm('¿Eliminar pago?')) return;
     try {
       await onDeletePago({ id, tipoInscripcion: 'conversion', inscripcionId: inscripcion.id });
       toast.success('Pago eliminado');
@@ -357,7 +421,7 @@ function ConversionInscripcionRow({
                 variant="ghost"
                 size="icon"
                 className="text-red-500"
-                onClick={() => handleEliminarPago(pago.id)}
+                onClick={() => setDeletePagoId(pago.id)}
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -365,6 +429,28 @@ function ConversionInscripcionRow({
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deletePagoId} onOpenChange={(open) => !open && setDeletePagoId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar pago?</AlertDialogTitle>
+            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!deletePagoId) return;
+                await handleEliminarPago(deletePagoId);
+                setDeletePagoId(null);
+              }}
+              className="bg-red-500 hover:bg-red-700 text-white"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -410,8 +496,9 @@ function MatrimonioInscripcionRow({
     }
   };
 
+  const [deletePagoId, setDeletePagoId] = useState<string | null>(null);
+
   const handleEliminarPago = async (id: string) => {
-    if (!confirm('¿Eliminar pago?')) return;
     try {
       await onDeletePago({ id, tipoInscripcion: 'matrimonios', inscripcionId: inscripcion.id });
       toast.success('Pago eliminado');
@@ -499,7 +586,7 @@ function MatrimonioInscripcionRow({
                 variant="ghost"
                 size="icon"
                 className="text-red-500"
-                onClick={() => handleEliminarPago(pago.id)}
+                onClick={() => setDeletePagoId(pago.id)}
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -507,6 +594,28 @@ function MatrimonioInscripcionRow({
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deletePagoId} onOpenChange={(open) => !open && setDeletePagoId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar pago?</AlertDialogTitle>
+            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!deletePagoId) return;
+                await handleEliminarPago(deletePagoId);
+                setDeletePagoId(null);
+              }}
+              className="bg-red-500 hover:bg-red-700 text-white"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
