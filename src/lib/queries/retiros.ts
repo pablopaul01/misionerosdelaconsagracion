@@ -724,6 +724,22 @@ export const useUploadImagenRetiro = () => {
   });
 };
 
+export const useDeleteImagenRetiro = () => {
+  const supabase = createClient();
+  return useMutation({
+    mutationFn: async ({ publicUrl }: { publicUrl: string }) => {
+      const marker = '/storage/v1/object/public/retiros/';
+      const index = publicUrl.indexOf(marker);
+      if (index === -1) {
+        throw new Error('URL de imagen inválida');
+      }
+      const filePath = publicUrl.slice(index + marker.length);
+      const { error } = await supabase.storage.from('retiros').remove([filePath]);
+      if (error) throw error;
+    },
+  });
+};
+
 // ============ ESTADÍSTICAS ============
 
 export const useEstadisticasRetiro = (retiroId: string, tipo: TipoRetiro) => {

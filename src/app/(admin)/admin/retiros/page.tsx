@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRetiros, useCreateRetiro, useDeleteRetiro, useUploadImagenRetiro } from '@/lib/queries/retiros';
 import { TIPO_RETIRO_LABEL, TIPO_RETIRO } from '@/lib/constants/retiros';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ImageCropperDialog } from '@/components/retiros/ImageCropperDialog';
 import {
   Dialog,
   DialogContent,
@@ -35,7 +36,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Calendar, MapPin, DollarSign, Users, Copy, Check, Trash2, Upload, X } from 'lucide-react';
+import { Calendar, MapPin, DollarSign, Users, Copy, Check, Trash2, Upload, X, MoreVertical, Pencil } from 'lucide-react';
 import type { RetiroInput } from '@/lib/validations/retiros';
 
 import type { Database } from '@/types/supabase';
@@ -61,23 +62,22 @@ const NuevoRetiroForm = ({ onSuccess }: { onSuccess: () => void }) => {
   const uploadImagen = useUploadImagenRetiro();
   const [imagenFile, setImagenFile] = useState<File | null>(null);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [rawFile, setRawFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImagenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImagenFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagenPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setRawFile(file);
+      setCropOpen(true);
     }
   };
 
   const clearImagen = () => {
     setImagenFile(null);
     setImagenPreview(null);
+    setRawFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -189,6 +189,16 @@ const NuevoRetiroForm = ({ onSuccess }: { onSuccess: () => void }) => {
         <p className="text-xs text-brand-brown/60">Esta imagen aparecerá en el formulario público de inscripción</p>
       </div>
 
+      <ImageCropperDialog
+        open={cropOpen}
+        file={rawFile}
+        onClose={() => setCropOpen(false)}
+        onCropped={(file, previewUrl) => {
+          setImagenFile(file)
+          setImagenPreview(previewUrl)
+        }}
+      />
+
       <form.Field name="descripcion">
         {(field) => (
           <div className="flex flex-col gap-1.5">
@@ -293,10 +303,30 @@ export default function RetirosPage() {
   const [open, setOpen] = useState(false);
   const [eliminando, setEliminando] = useState<Retiro | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const router = useRouter();
 
   const { data: retiros = [], isLoading } = useRetiros();
   const { mutateAsync: deleteRetiro, isPending: eliminandoPending } = useDeleteRetiro();
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('[data-retiro-menu]')) return;
+      setMenuOpenId(null);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMenuOpenId(null);
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const copyLink = (retiroId: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/retiros/${retiroId}`);
@@ -356,6 +386,41 @@ export default function RetirosPage() {
                   {TIPO_RETIRO_LABEL[retiro.tipo]}
                 </Badge>
               </div>
+              <div className="relative" data-retiro-menu>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpenId((prev) => (prev === retiro.id ? null : retiro.id));
+                  }}
+                  data-retiro-menu
+                  className="p-1.5 rounded-full hover:bg-brand-creamLight text-brand-brown"
+                  aria-label="Acciones"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+                {menuOpenId === retiro.id && (
+                  <div
+                    className="absolute right-0 mt-2 w-40 bg-white border border-brand-creamLight rounded-lg shadow-lg z-10"
+                    data-retiro-menu
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => router.push(`/admin/retiros/${retiro.id}?edit=true`)}
+                      className="w-full px-3 py-2 text-left text-sm text-brand-brown hover:bg-brand-creamLight flex items-center gap-2"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => setEliminando(retiro as Retiro)}
+                      className="w-full px-3 py-2 text-left text-sm text-red-500 hover:bg-red-50 flex items-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Eliminar
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {retiro.descripcion && (
@@ -389,7 +454,7 @@ export default function RetirosPage() {
               )}
             </div>
 
-            <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-brand-creamLight">
+            <div className="flex items-center justify-between gap-3 flex-wrap pt-2 border-t border-brand-creamLight">
               <button
                 onClick={() => copyLink(retiro.id)}
                 className="flex items-center gap-1.5 text-sm text-brand-teal hover:text-brand-navy transition-colors"
@@ -400,19 +465,11 @@ export default function RetirosPage() {
                   <><Copy className="w-4 h-4" /><span>Copiar link</span></>
                 )}
               </button>
-
               <button
                 onClick={() => router.push(`/admin/retiros/${retiro.id}`)}
                 className="text-sm text-brand-brown hover:text-brand-dark transition-colors"
               >
                 Ver detalle
-              </button>
-
-              <button
-                onClick={() => setEliminando(retiro as Retiro)}
-                className="text-sm text-red-400 hover:text-red-600 transition-colors ml-auto"
-              >
-                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           </div>

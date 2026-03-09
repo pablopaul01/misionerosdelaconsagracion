@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useRetiro, useDeleteRetiro, useUpdateRetiro, useUploadImagenRetiro } from '@/lib/queries/retiros';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useRetiro, useDeleteRetiro, useUpdateRetiro, useUploadImagenRetiro, useDeleteImagenRetiro } from '@/lib/queries/retiros';
 import { TIPO_RETIRO_LABEL, TIPO_RETIRO } from '@/lib/constants/retiros';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,16 +18,27 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Calendar, MapPin, DollarSign, Users, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, DollarSign, Users, Trash2 } from 'lucide-react';
 import { InscripcionesTab } from '@/components/retiros/InscripcionesTab';
 import { ServidoresTab } from '@/components/retiros/ServidoresTab';
 import { ComprasTab } from '@/components/retiros/ComprasTab';
+import { ImageCropperDialog } from '@/components/retiros/ImageCropperDialog';
 import { toast } from 'sonner';
 import type { RetiroInput } from '@/lib/validations/retiros';
 import type { Database } from '@/types/supabase';
@@ -37,14 +48,17 @@ type TipoRetiro = Database['public']['Enums']['tipo_retiro'];
 export default function RetiroDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const retiroId = params.id as string;
 
   const { data: retiro, isLoading } = useRetiro(retiroId);
   const { mutateAsync: deleteRetiro, isPending: deleting } = useDeleteRetiro();
   const { mutateAsync: updateRetiro, isPending: updating } = useUpdateRetiro();
   const uploadImagen = useUploadImagenRetiro();
+  const deleteImagen = useDeleteImagenRetiro();
 
   const [editOpen, setEditOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [editValues, setEditValues] = useState<RetiroInput>({
     tipo: 'conversion' as TipoRetiro,
     nombre: '',
@@ -59,15 +73,24 @@ export default function RetiroDetailPage() {
   });
   const [imagenFile, setImagenFile] = useState<File | null>(null);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [rawFile, setRawFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleEliminar = async () => {
-    if (!confirm('¿Estás seguro de eliminar este retiro?')) return;
+    const previousUrl = retiro?.imagen_url ?? '';
     await deleteRetiro(retiroId);
+    if (previousUrl) {
+      await deleteImagen.mutateAsync({ publicUrl: previousUrl });
+    }
     router.push('/admin/retiros');
   };
 
-  const openEdit = () => {
+  const clearEditParam = useCallback(() => {
+    router.replace(`/admin/retiros/${retiroId}`);
+  }, [router, retiroId]);
+
+  const openEdit = useCallback(() => {
     if (!retiro) return;
     setEditValues({
       tipo: retiro.tipo,
@@ -87,21 +110,26 @@ export default function RetiroDetailPage() {
       fileInputRef.current.value = '';
     }
     setEditOpen(true);
-  };
+  }, [retiro]);
+
+  useEffect(() => {
+    if (searchParams.get('edit') === 'true' && !editOpen) {
+      openEdit();
+    }
+  }, [searchParams, openEdit, editOpen]);
 
   const handleImagenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImagenFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setImagenPreview(reader.result as string);
-      reader.readAsDataURL(file);
+      setRawFile(file);
+      setCropOpen(true);
     }
   };
 
   const clearImagen = () => {
     setImagenFile(null);
     setImagenPreview(null);
+    setRawFile(null);
     setEditValues((prev) => ({ ...prev, imagen_url: '' }));
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -111,13 +139,18 @@ export default function RetiroDetailPage() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const previousUrl = retiro?.imagen_url ?? '';
       let imagenUrl = editValues.imagen_url;
       if (imagenFile) {
         imagenUrl = await uploadImagen.mutateAsync({ file: imagenFile, retiroId });
       }
       await updateRetiro({ id: retiroId, input: { ...editValues, imagen_url: imagenUrl } });
+      if (previousUrl && previousUrl !== imagenUrl) {
+        await deleteImagen.mutateAsync({ publicUrl: previousUrl });
+      }
       toast.success('Retiro actualizado');
       setEditOpen(false);
+      clearEditParam();
     } catch {
       toast.error('Error al actualizar retiro');
     }
@@ -132,33 +165,31 @@ export default function RetiroDetailPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
+      <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/admin/retiros')}>
-            <ArrowLeft className="w-5 h-5" />
+      <div className="flex flex-col gap-2">
+        {/* Fila 1: navegación + acciones */}
+        <div className="flex items-center justify-between gap-3">
+          <Button variant="ghost" onClick={() => router.push('/admin/retiros')} className="text-brand-brown -ml-3">
+            ← Volver
           </Button>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="font-title text-2xl text-brand-dark">{retiro.nombre}</h1>
-              {!retiro.activo && <Badge className="bg-red-100 text-red-700">Inactivo</Badge>}
-            </div>
-            <Badge className="bg-brand-creamLight text-brand-brown mt-1">
-              {TIPO_RETIRO_LABEL[retiro.tipo]}
-            </Badge>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Dialog open={editOpen} onOpenChange={setEditOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" onClick={openEdit}>Editar</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Editar retiro</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleUpdate} className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Dialog
+              open={editOpen}
+              onOpenChange={(value) => {
+                setEditOpen(value);
+                if (!value) clearEditParam();
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button variant="outline" onClick={openEdit}>Editar</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Editar retiro</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleUpdate} className="space-y-4">
                 <div className="flex flex-col gap-1.5">
                   <Label>Tipo de retiro</Label>
                   <Select value={editValues.tipo} onValueChange={(v) => setEditValues((prev) => ({ ...prev, tipo: v as TipoRetiro }))}>
@@ -242,17 +273,51 @@ export default function RetiroDetailPage() {
                   )}
                 </div>
 
-                <Button type="submit" disabled={updating} className="w-full bg-brand-brown hover:bg-brand-dark text-white">
-                  {updating ? 'Guardando...' : 'Guardar cambios'}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+                <ImageCropperDialog
+                  open={cropOpen}
+                  file={rawFile}
+                  onClose={() => setCropOpen(false)}
+                  onCropped={(file, previewUrl) => {
+                    setImagenFile(file)
+                    setImagenPreview(previewUrl)
+                  }}
+                />
 
-          <Button variant="ghost" className="text-red-500 hover:text-red-700" onClick={handleEliminar} disabled={deleting}>
-            <Trash2 className="w-4 h-4 mr-2" />
-            Eliminar
-          </Button>
+                  <Button type="submit" disabled={updating} className="w-full bg-brand-brown hover:bg-brand-dark text-white">
+                    {updating ? 'Guardando...' : 'Guardar cambios'}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            <Button variant="ghost" className="text-red-500 hover:text-red-700" onClick={() => setConfirmDeleteOpen(true)} disabled={deleting}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Eliminar
+            </Button>
+          </div>
+        </div>
+
+        {/* Fila 2: título */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="font-title text-xl text-brand-dark">{retiro.nombre}</h1>
+          {!retiro.activo && <Badge className="bg-red-100 text-red-700">Inactivo</Badge>}
+        </div>
+
+        {/* Fila 3: metadata */}
+        <div className="flex items-center gap-2 flex-wrap text-sm text-brand-brown">
+          <Badge className="bg-brand-creamLight text-brand-brown">
+            {TIPO_RETIRO_LABEL[retiro.tipo]}
+          </Badge>
+          <span>·</span>
+          <span>{new Date(retiro.fecha_inicio + 'T00:00:00').toLocaleDateString('es-AR')}</span>
+          {retiro.fecha_fin && (
+            <>
+              <span>·</span>
+              <span>{new Date(retiro.fecha_fin + 'T00:00:00').toLocaleDateString('es-AR')}</span>
+            </>
+          )}
+          <span>·</span>
+          <span>{retiro.lugar}</span>
         </div>
       </div>
 
@@ -303,6 +368,27 @@ export default function RetiroDetailPage() {
           <ComprasTab retiroId={retiroId} />
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Eliminar retiro?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Se eliminará el retiro <strong>{retiro.nombre}</strong> y sus inscripciones asociadas. Esta acción no se puede deshacer.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleEliminar}
+            className="bg-red-500 hover:bg-red-700 text-white"
+            disabled={deleting}
+          >
+            Eliminar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
