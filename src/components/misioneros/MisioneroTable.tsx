@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   useReactTable,
@@ -10,9 +10,10 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { useMisioneros } from '@/lib/queries/misioneros';
+import { useMisioneros, useMisionerosRolesMap } from '@/lib/queries/misioneros';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -24,18 +25,6 @@ import {
 import type { Database } from '@/types/supabase';
 
 type Misionero = Database['public']['Tables']['misioneros']['Row'];
-
-const COLUMNS: ColumnDef<Misionero>[] = [
-  { accessorKey: 'apellido', header: 'Apellido' },
-  { accessorKey: 'nombre',   header: 'Nombre' },
-  { accessorKey: 'dni',      header: 'DNI' },
-  { accessorKey: 'whatsapp', header: 'WhatsApp' },
-  {
-    id: 'acciones',
-    header: '',
-    cell: ({ row }) => <AccionesCell id={row.original.id} />,
-  },
-];
 
 // Celda de acciones separada para mantener el hook fuera del array de columnas
 const AccionesCell = ({ id }: { id: string }) => {
@@ -54,16 +43,62 @@ const AccionesCell = ({ id }: { id: string }) => {
 
 export const MisioneroTable = () => {
   const { data: misioneros = [], isLoading } = useMisioneros();
+  const { data: rolesMap = {} } = useMisionerosRolesMap();
   const [globalFilter, setGlobalFilter] = useState('');
+
+  const globalFilterFn = useMemo(() => {
+    return (row: { original: Misionero }, _columnId: string, filterValue: string) => {
+      const query = filterValue?.toLowerCase().trim();
+      if (!query) return true;
+      const m = row.original;
+      const rolesText = (rolesMap[m.id] ?? []).map((r) => r.nombre).join(' ');
+      const hay = [m.nombre, m.apellido, m.dni, m.whatsapp ?? '', rolesText]
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(query);
+    };
+  }, [rolesMap]);
+
+  const columns: ColumnDef<Misionero>[] = [
+    { accessorKey: 'apellido', header: 'Apellido' },
+    { accessorKey: 'nombre',   header: 'Nombre' },
+    { accessorKey: 'dni',      header: 'DNI' },
+    { accessorKey: 'whatsapp', header: 'WhatsApp' },
+    {
+      id: 'roles',
+      header: 'Roles',
+      cell: ({ row }) => {
+        const roles = rolesMap[row.original.id] ?? [];
+        if (roles.length === 0) {
+          return <span className="text-xs text-brand-brown/60">Sin roles</span>;
+        }
+        return (
+          <div className="flex flex-wrap gap-1">
+            {roles.map((role) => (
+              <Badge key={role.id} className="bg-brand-creamLight text-brand-brown text-xs">
+                {role.nombre}
+              </Badge>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
+      id: 'acciones',
+      header: '',
+      cell: ({ row }) => <AccionesCell id={row.original.id} />,
+    },
+  ];
 
   const table = useReactTable({
     data: misioneros,
-    columns: COLUMNS,
+    columns,
     state: { globalFilter },
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn,
     initialState: { pagination: { pageSize: 20 } },
   });
 
@@ -95,7 +130,7 @@ export const MisioneroTable = () => {
           <TableBody>
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={COLUMNS.length} className="text-center text-brand-brown py-8">
+                <TableCell colSpan={columns.length} className="text-center text-brand-brown py-8">
                   No hay misioneros registrados
                 </TableCell>
               </TableRow>
@@ -123,13 +158,24 @@ export const MisioneroTable = () => {
           const m = row.original;
           return (
             <div key={m.id} className="bg-white border border-brand-creamLight rounded-xl p-4 flex items-center justify-between gap-3">
-              <div className="flex flex-col gap-0.5 min-w-0">
+              <div className="flex flex-col gap-1 min-w-0">
                 <p className="font-title text-brand-dark font-semibold truncate">
                   {m.apellido}, {m.nombre}
                 </p>
                 <p className="text-xs text-brand-brown">
                   DNI {m.dni} · WA {m.whatsapp ?? '—'}
                 </p>
+                <div className="flex flex-wrap gap-1">
+                  {(rolesMap[m.id] ?? []).length === 0 ? (
+                    <span className="text-xs text-brand-brown/60">Sin roles</span>
+                  ) : (
+                    (rolesMap[m.id] ?? []).map((role) => (
+                      <Badge key={role.id} className="bg-brand-creamLight text-brand-brown text-xs">
+                        {role.nombre}
+                      </Badge>
+                    ))
+                  )}
+                </div>
               </div>
               <AccionesCell id={m.id} />
             </div>

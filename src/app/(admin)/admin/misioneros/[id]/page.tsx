@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useMisionero, useUpdateMisionero } from '@/lib/queries/misioneros';
+import { useMisionero, useUpdateMisionero, useRolesMisioneroActivos, useMisioneroRoles, useSetMisioneroRoles } from '@/lib/queries/misioneros';
 import { MisioneroForm } from '@/components/misioneros/MisioneroForm';
 import { Button } from '@/components/ui/button';
 import type { MisioneroInput } from '@/lib/validations/misioneros';
@@ -11,9 +11,13 @@ export default function MisioneroDetailPage() {
   const router = useRouter();
   const { data: misionero, isLoading } = useMisionero(id);
   const { mutateAsync: updateMisionero } = useUpdateMisionero(id);
+  const { data: rolesActivos = [] } = useRolesMisioneroActivos();
+  const { data: selectedRoles = [] } = useMisioneroRoles(id);
+  const setMisioneroRoles = useSetMisioneroRoles();
 
-  const handleUpdate = async (value: MisioneroInput) => {
+  const handleUpdate = async (value: MisioneroInput, roleIds: string[]) => {
     await updateMisionero(value);
+    await setMisioneroRoles.mutateAsync({ misioneroId: id, roleIds });
     router.push('/admin/misioneros');
   };
 
@@ -38,6 +42,8 @@ export default function MisioneroDetailPage() {
           defaultValues={misionero}
           onSubmit={handleUpdate}
           submitLabel="Guardar cambios"
+          roles={rolesActivos}
+          defaultRoleIds={selectedRoles}
         />
       </div>
 

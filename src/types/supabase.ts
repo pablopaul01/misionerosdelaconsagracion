@@ -345,6 +345,48 @@ export type Database = {
         }
         Relationships: []
       }
+      roles_misionero: {
+        Row: {
+          activo: boolean | null
+          created_at: string | null
+          descripcion: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          activo?: boolean | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
+      misioneros_roles: {
+        Row: {
+          created_at: string | null
+          misionero_id: string
+          rol_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          misionero_id: string
+          rol_id: string
+        }
+        Update: {
+          created_at?: string | null
+          misionero_id?: string
+          rol_id?: string
+        }
+        Relationships: []
+      }
       papas_consagracion: {
         Row: {
           created_at: string | null
