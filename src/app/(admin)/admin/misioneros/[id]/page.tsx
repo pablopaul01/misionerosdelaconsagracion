@@ -39,7 +39,10 @@ export default function MisioneroDetailPage() {
       <div className="bg-white rounded-xl p-6 shadow-sm border border-brand-creamLight">
         <h2 className="font-title text-brand-brown mb-4">Datos del misionero</h2>
         <MisioneroForm
-          defaultValues={misionero}
+          defaultValues={{
+            ...misionero,
+            activo: misionero.activo ?? true,
+          }}
           onSubmit={handleUpdate}
           submitLabel="Guardar cambios"
           roles={rolesActivos}

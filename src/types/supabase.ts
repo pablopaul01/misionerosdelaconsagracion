@@ -320,6 +320,7 @@ export type Database = {
       }
       misioneros: {
         Row: {
+          activo: boolean | null
           apellido: string
           created_at: string | null
           dni: string
@@ -328,6 +329,7 @@ export type Database = {
           whatsapp: string
         }
         Insert: {
+          activo?: boolean | null
           apellido: string
           created_at?: string | null
           dni: string
@@ -336,6 +338,7 @@ export type Database = {
           whatsapp: string
         }
         Update: {
+          activo?: boolean | null
           apellido?: string
           created_at?: string | null
           dni?: string

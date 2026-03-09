@@ -75,6 +75,7 @@ export const MisioneroForm = ({
       apellido: defaultValues?.apellido ?? '',
       dni:      defaultValues?.dni      ?? '',
       whatsapp: defaultValues?.whatsapp ?? '',
+      activo:   defaultValues?.activo   ?? true,
     },
     validators: { onSubmit: misioneroSchema },
     onSubmit: async ({ value }) => {
@@ -149,6 +150,26 @@ export const MisioneroForm = ({
             onBlur={field.handleBlur}
             error={field.state.meta.errors[0] ? fieldError(field.state.meta.errors[0]) : undefined}
           />
+        )}
+      </form.Field>
+
+      <form.Field name="activo">
+        {(field) => (
+          <div className="flex flex-col gap-1.5">
+            <Label>Estado</Label>
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={field.state.value}
+                onCheckedChange={(checked) => field.handleChange(!!checked)}
+              />
+              <span className="text-sm text-brand-brown">
+                {field.state.value ? 'Activo' : 'Inactivo'}
+              </span>
+            </div>
+            {field.state.meta.errors[0] && (
+              <span className="text-sm text-red-600">{fieldError(field.state.meta.errors[0])}</span>
+            )}
+          </div>
         )}
       </form.Field>
 

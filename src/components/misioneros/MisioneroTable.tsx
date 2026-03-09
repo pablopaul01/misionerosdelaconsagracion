@@ -65,6 +65,15 @@ export const MisioneroTable = () => {
     { accessorKey: 'dni',      header: 'DNI' },
     { accessorKey: 'whatsapp', header: 'WhatsApp' },
     {
+      id: 'estado',
+      header: 'Estado',
+      cell: ({ row }) => (
+        <Badge className={row.original.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}>
+          {row.original.activo ? 'Activo' : 'Inactivo'}
+        </Badge>
+      ),
+    },
+    {
       id: 'roles',
       header: 'Roles',
       cell: ({ row }) => {
@@ -165,6 +174,9 @@ export const MisioneroTable = () => {
                 <p className="text-xs text-brand-brown">
                   DNI {m.dni} · WA {m.whatsapp ?? '—'}
                 </p>
+                <Badge className={m.activo ? 'bg-green-100 text-green-700 text-xs' : 'bg-gray-100 text-gray-600 text-xs'}>
+                  {m.activo ? 'Activo' : 'Inactivo'}
+                </Badge>
                 <div className="flex flex-wrap gap-1">
                   {(rolesMap[m.id] ?? []).length === 0 ? (
                     <span className="text-xs text-brand-brown/60">Sin roles</span>
