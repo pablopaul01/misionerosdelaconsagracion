@@ -24,7 +24,15 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:github.com)",
       "Bash(gh api repos/Gentleman-Programming/engram/releases/latest --jq '{tag_name: .tag_name, windows_assets: [.assets[] | select\\(.name | test\\(\"\"windows.*amd64|amd64.*windows\"\"; \"\"i\"\"\\)\\) | {name: .name, browser_download_url: .browser_download_url}]}')",
-      "WebFetch(domain:api.github.com)"
+      "WebFetch(domain:api.github.com)",
+      "Bash(claude mcp:*)",
+      "Bash(pnpm gen:types:*)",
+      "Bash(git checkout:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm build:*)",
+      "Bash(engram --help:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

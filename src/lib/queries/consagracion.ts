@@ -14,6 +14,7 @@ const QUERY_KEYS = {
   lecciones:      (formacionId: string) => ['lecciones-consagracion', formacionId] as const,
   inscripciones:  (formacionId: string) => ['inscripciones-consagracion', formacionId] as const,
   asistencias:    (formacionId: string) => ['asistencias-consagracion', formacionId] as const,
+  papas:          (formacionId: string) => ['papas-consagracion', formacionId] as const,
 };
 
 // --- Formaciones ---
@@ -25,7 +26,7 @@ export const useFormacionesConsagracion = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('formaciones_consagracion')
-        .select('*')
+        .select('*, papas_consagracion(*, misioneros(*))')
         .order('anio', { ascending: false });
       if (error) throw error;
       return data;
@@ -76,7 +77,7 @@ export const useLeccionesConsagracion = (formacionId: string) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lecciones_consagracion')
-        .select('*')
+        .select('*, disertante:misioneros!disertante_id(*)')
         .eq('formacion_id', formacionId)
         .order('numero');
       if (error) throw error;
@@ -90,10 +91,26 @@ export const useUpdateLeccion = (formacionId: string) => {
   const supabase = createClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, fecha }: { id: string; fecha: string }) => {
+    mutationFn: async ({ id, numero, tipo, fecha, disertante_id }: {
+      id: string;
+      numero?: number;
+      tipo?: 'leccion' | 'retiro';
+      fecha?: string;
+      disertante_id?: string | null;
+    }) => {
+      const updateData: {
+        numero?: number;
+        tipo?: 'leccion' | 'retiro';
+        fecha?: string | null;
+        disertante_id?: string | null;
+      } = {};
+      if (numero !== undefined) updateData.numero = numero;
+      if (tipo !== undefined) updateData.tipo = tipo;
+      if (fecha !== undefined) updateData.fecha = fecha || null;
+      if (disertante_id !== undefined) updateData.disertante_id = disertante_id || null;
       const { error } = await supabase
         .from('lecciones_consagracion')
-        .update({ fecha: fecha || null })
+        .update(updateData)
         .eq('id', id);
       if (error) throw error;
     },
@@ -125,7 +142,12 @@ export const useAddLeccion = (formacionId: string) => {
     mutationFn: async (input: LeccionConsagracionInput) => {
       const { data, error } = await supabase
         .from('lecciones_consagracion')
-        .insert({ ...input, fecha: input.fecha || null, formacion_id: formacionId })
+        .insert({
+          ...input,
+          fecha: input.fecha || null,
+          disertante_id: input.disertante_id || null,
+          formacion_id: formacionId,
+        })
         .select()
         .single();
       if (error) throw error;
@@ -333,5 +355,49 @@ export const useToggleAsistenciaConsagracion = (formacionId: string) => {
       }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.asistencias(formacionId) }),
+  });
+};
+
+// --- Papás de consagración ---
+
+export const usePapasConsagracion = (formacionId: string) => {
+  const supabase = createClient();
+  return useQuery({
+    queryKey: QUERY_KEYS.papas(formacionId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('papas_consagracion')
+        .select('*, misioneros(*)')
+        .eq('formacion_id', formacionId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!formacionId,
+  });
+};
+
+export const useTogglePapa = (formacionId: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ misioneroId, isAdding }: { misioneroId: string; isAdding: boolean }) => {
+      if (isAdding) {
+        const { error } = await supabase
+          .from('papas_consagracion')
+          .insert({ formacion_id: formacionId, misionero_id: misioneroId });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('papas_consagracion')
+          .delete()
+          .eq('formacion_id', formacionId)
+          .eq('misionero_id', misioneroId);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.papas(formacionId) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.formaciones });
+    },
   });
 };

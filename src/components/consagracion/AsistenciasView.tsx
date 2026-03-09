@@ -13,6 +13,7 @@ import {
 import { leccionConsagracionSchema } from '@/lib/validations/consagracion';
 import { TIPO_LECCION } from '@/lib/constants/consagracion';
 import { AsistenciaToggle } from './AsistenciaToggle';
+import { MisioneroSelect } from './MisioneroSelect';
 import { formatFechaCorta } from '@/lib/utils/dates';
 import { exportarListaAsistencia } from '@/lib/utils/exportExcel';
 import { FileDown } from 'lucide-react';
@@ -38,7 +39,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { Pencil } from 'lucide-react';
 
 interface AsistenciasViewProps {
   formacionId: string;
@@ -49,7 +57,7 @@ const NuevaLeccionForm = ({ formacionId, proximoNumero }: { formacionId: string;
   const [open, setOpen] = useState(false);
 
   const form = useForm({
-    defaultValues: { numero: proximoNumero, tipo: TIPO_LECCION.LECCION as 'leccion' | 'retiro', fecha: '' },
+    defaultValues: { numero: proximoNumero, tipo: TIPO_LECCION.LECCION as 'leccion' | 'retiro', fecha: '', disertante_id: '' },
     validators: { onSubmit: leccionConsagracionSchema },
     onSubmit: async ({ value }) => {
       await addLeccion(value);
@@ -123,6 +131,19 @@ const NuevaLeccionForm = ({ formacionId, proximoNumero }: { formacionId: string;
         )}
       </form.Field>
 
+      <form.Field name="disertante_id">
+        {(field) => (
+          <div className="flex flex-col gap-1.5 w-full sm:w-auto sm:min-w-[180px]">
+            <Label>Disertante</Label>
+            <MisioneroSelect
+              value={field.state.value}
+              onValueChange={field.handleChange}
+              placeholder="Sin asignar"
+            />
+          </div>
+        )}
+      </form.Field>
+
       <div className="flex gap-2">
         <form.Subscribe selector={(s) => s.isSubmitting}>
           {(isSubmitting) => (
@@ -137,6 +158,139 @@ const NuevaLeccionForm = ({ formacionId, proximoNumero }: { formacionId: string;
   );
 };
 
+interface LeccionData {
+  id: string;
+  numero: number;
+  tipo: 'leccion' | 'retiro';
+  fecha: string | null;
+  disertante_id: string | null;
+}
+
+interface EditarLeccionDialogProps {
+  leccion: LeccionData | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: Partial<LeccionData> & { id: string }) => Promise<void>;
+}
+
+const EditarLeccionDialog = ({ leccion, open, onOpenChange, onSave }: EditarLeccionDialogProps) => {
+  const form = useForm({
+    defaultValues: {
+      numero: leccion?.numero ?? 1,
+      tipo: (leccion?.tipo ?? TIPO_LECCION.LECCION) as 'leccion' | 'retiro',
+      fecha: leccion?.fecha ?? '',
+      disertante_id: leccion?.disertante_id ?? '',
+    },
+    validators: { onSubmit: leccionConsagracionSchema },
+    onSubmit: async ({ value }) => {
+      if (!leccion) return;
+      await onSave({ id: leccion.id, ...value });
+      onOpenChange(false);
+    },
+  });
+
+  // Reset form when leccion changes
+  if (leccion && form.state.values.numero !== leccion.numero) {
+    form.reset();
+    form.setFieldValue('numero', leccion.numero);
+    form.setFieldValue('tipo', leccion.tipo);
+    form.setFieldValue('fecha', leccion.fecha ?? '');
+    form.setFieldValue('disertante_id', leccion.disertante_id ?? '');
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-title text-brand-dark">
+            Editar {leccion?.tipo === 'retiro' ? 'Retiro' : 'Lección'} {leccion?.numero}
+          </DialogTitle>
+        </DialogHeader>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            form.handleSubmit();
+          }}
+          className="flex flex-col gap-4"
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <form.Field name="numero">
+              {(field) => (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Nº</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={35}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(Number(e.target.value))}
+                  />
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="tipo">
+              {(field) => (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Tipo</Label>
+                  <Select value={field.state.value} onValueChange={(v) => field.handleChange(v as 'leccion' | 'retiro')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={TIPO_LECCION.LECCION}>Lección</SelectItem>
+                      <SelectItem value={TIPO_LECCION.RETIRO}>Retiro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </form.Field>
+          </div>
+
+          <form.Field name="fecha">
+            {(field) => (
+              <div className="flex flex-col gap-1.5">
+                <Label>Fecha</Label>
+                <Input
+                  type="date"
+                  value={field.state.value ?? ''}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+              </div>
+            )}
+          </form.Field>
+
+          <form.Field name="disertante_id">
+            {(field) => (
+              <div className="flex flex-col gap-1.5">
+                <Label>Disertante</Label>
+                <MisioneroSelect
+                  value={field.state.value}
+                  onValueChange={field.handleChange}
+                  placeholder="Sin asignar"
+                />
+              </div>
+            )}
+          </form.Field>
+
+          <div className="flex gap-2 justify-end pt-2">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <form.Subscribe selector={(s) => s.isSubmitting}>
+              {(isSubmitting) => (
+                <Button type="submit" disabled={isSubmitting} className="bg-brand-brown text-white">
+                  {isSubmitting ? 'Guardando...' : 'Guardar'}
+                </Button>
+              )}
+            </form.Subscribe>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
   const { data: lecciones = [] } = useLeccionesConsagracion(formacionId);
   const { data: inscripciones = [] } = useInscripcionesConsagracion(formacionId);
@@ -144,8 +298,7 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
   const { mutateAsync: updateLeccion } = useUpdateLeccion(formacionId);
   const { mutateAsync: deleteLeccion } = useDeleteLeccion(formacionId);
 
-  const [editandoFecha, setEditandoFecha] = useState<string | null>(null);
-  const [nuevaFecha, setNuevaFecha] = useState('');
+  const [editandoLeccion, setEditandoLeccion] = useState<LeccionData | null>(null);
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [modoMobile, setModoMobile] = useState<'por-leccion' | 'por-participante'>('por-leccion');
   const [leccionSeleccionada, setLeccionSeleccionada] = useState<string | null>(null);
@@ -164,10 +317,15 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
 
   const proximoNumero = lecciones.length + 1;
 
-  const handleGuardarFecha = async (leccionId: string) => {
-    await updateLeccion({ id: leccionId, fecha: nuevaFecha });
-    setEditandoFecha(null);
-    setNuevaFecha('');
+  const handleGuardarLeccion = async (data: Partial<LeccionData> & { id: string }) => {
+    await updateLeccion({
+      id: data.id,
+      numero: data.numero,
+      tipo: data.tipo,
+      fecha: data.fecha || undefined,
+      disertante_id: data.disertante_id || undefined,
+    });
+    toast.success('Lección actualizada');
   };
 
   const handleEliminar = async (leccionId: string) => {
@@ -213,52 +371,56 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                   <th className="px-4 py-3 text-left font-title text-brand-dark sticky left-0 bg-brand-creamLight">
                     Participante
                   </th>
-                  {lecciones.map((leccion) => (
-                    <th key={leccion.id} className="px-2 py-3 text-center font-title text-brand-dark min-w-[80px]">
-                      <div className="flex flex-col items-center gap-1">
-                        <span>{leccion.tipo === TIPO_LECCION.RETIRO ? 'R' : ''}{leccion.numero}</span>
-                        {leccion.tipo === TIPO_LECCION.RETIRO && (
-                          <Badge className="bg-brand-gold text-brand-dark text-xs px-1">Retiro</Badge>
-                        )}
-                        {editandoFecha === leccion.id ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <Input
-                              type="date"
-                              value={nuevaFecha}
-                              onChange={(e) => setNuevaFecha(e.target.value)}
-                              className="h-6 text-xs w-28 px-1"
-                            />
-                            <div className="flex gap-1">
-                              <button className="text-xs text-brand-teal hover:underline" onClick={() => handleGuardarFecha(leccion.id)}>OK</button>
-                              <button className="text-xs text-brand-brown hover:underline" onClick={() => setEditandoFecha(null)}>✕</button>
-                            </div>
+                  {lecciones.map((leccion) => {
+                    const disertante = (leccion as typeof leccion & { disertante?: { id: string; nombre: string; apellido: string } | null }).disertante;
+                    return (
+                      <th key={leccion.id} className="px-2 py-3 text-center font-title text-brand-dark min-w-[80px]">
+                        <div className="flex flex-col items-center gap-1">
+                          <span>{leccion.tipo === TIPO_LECCION.RETIRO ? 'R' : ''}{leccion.numero}</span>
+                          {leccion.tipo === TIPO_LECCION.RETIRO && (
+                            <Badge className="bg-brand-gold text-brand-dark text-xs px-1">Retiro</Badge>
+                          )}
+                          <span className="text-xs font-normal text-brand-brown">
+                            {leccion.fecha ? formatFechaCorta(leccion.fecha) : '—'}
+                          </span>
+                          {disertante && (
+                            <span className="text-xs font-normal text-brand-teal">
+                              {disertante.apellido.charAt(0)}{disertante.nombre.charAt(0)}
+                            </span>
+                          )}
+                          <div className="flex gap-2 mt-1">
+                            <button
+                              className="text-xs text-brand-teal hover:text-brand-navy flex items-center gap-0.5"
+                              onClick={() => setEditandoLeccion({
+                                id: leccion.id,
+                                numero: leccion.numero,
+                                tipo: leccion.tipo as 'leccion' | 'retiro',
+                                fecha: leccion.fecha,
+                                disertante_id: leccion.disertante_id,
+                              })}
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <button className="text-xs text-red-400 hover:text-red-600">✕</button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Eliminar lección {leccion.numero}?</AlertDialogTitle>
+                                  <AlertDialogDescription>Solo se puede eliminar si no tiene asistencias registradas.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleEliminar(leccion.id)} className="bg-red-500 hover:bg-red-700 text-white">Eliminar</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
-                        ) : (
-                          <button
-                            className="text-xs font-normal text-brand-brown hover:underline"
-                            onClick={() => { setEditandoFecha(leccion.id); setNuevaFecha(leccion.fecha ?? ''); }}
-                          >
-                            {leccion.fecha ? formatFechaCorta(leccion.fecha) : '+ fecha'}
-                          </button>
-                        )}
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <button className="text-xs text-red-400 hover:text-red-600">✕ elim.</button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Eliminar lección {leccion.numero}?</AlertDialogTitle>
-                              <AlertDialogDescription>Solo se puede eliminar si no tiene asistencias registradas.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleEliminar(leccion.id)} className="bg-red-500 hover:bg-red-700 text-white">Eliminar</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </th>
-                  ))}
+                        </div>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -334,12 +496,16 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                       <SelectValue placeholder="Elegir lección..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {lecciones.map((l) => (
-                        <SelectItem key={l.id} value={l.id}>
-                          {l.tipo === TIPO_LECCION.RETIRO ? 'Retiro' : 'Lección'} {l.numero}
-                          {l.fecha ? ` — ${formatFechaCorta(l.fecha)}` : ''}
-                        </SelectItem>
-                      ))}
+                      {lecciones.map((l) => {
+                        const dis = (l as typeof l & { disertante?: { nombre: string; apellido: string } | null }).disertante;
+                        return (
+                          <SelectItem key={l.id} value={l.id}>
+                            {l.tipo === TIPO_LECCION.RETIRO ? 'Retiro' : 'Lección'} {l.numero}
+                            {l.fecha ? ` — ${formatFechaCorta(l.fecha)}` : ''}
+                            {dis ? ` (${dis.apellido.charAt(0)}${dis.nombre.charAt(0)})` : ''}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -352,7 +518,22 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                   ).length;
                   return (
                     <div className="flex flex-col gap-2">
-                      <p className="text-xs text-brand-brown text-right">{presentes}/{inscripciones.length} presentes</p>
+                      <div className="flex items-center justify-between">
+                        <button
+                          className="flex items-center gap-1.5 text-xs text-brand-teal hover:text-brand-navy min-h-[44px] px-2"
+                          onClick={() => setEditandoLeccion({
+                            id: leccion.id,
+                            numero: leccion.numero,
+                            tipo: leccion.tipo as 'leccion' | 'retiro',
+                            fecha: leccion.fecha,
+                            disertante_id: leccion.disertante_id,
+                          })}
+                        >
+                          <Pencil className="w-4 h-4" />
+                          Editar lección
+                        </button>
+                        <p className="text-xs text-brand-brown">{presentes}/{inscripciones.length} presentes</p>
+                      </div>
                       {inscripciones.map((insc) => {
                         const reg = asistenciasMap[`${leccionSeleccionada}-${insc.id}`];
                         return (
@@ -455,6 +636,14 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
           </div>
         </>
       )}
+
+      {/* Dialog para editar lección */}
+      <EditarLeccionDialog
+        leccion={editandoLeccion}
+        open={!!editandoLeccion}
+        onOpenChange={(open) => !open && setEditandoLeccion(null)}
+        onSave={handleGuardarLeccion}
+      />
     </div>
   );
 };

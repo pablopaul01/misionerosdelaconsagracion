@@ -1,0 +1,39 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Tech stack: Next.js 14 App Router, TypeScript 5, Tailwind CSS, shadcn/ui
+  State: Zustand 5 (global), TanStack Query 5 (server), TanStack Form 1 + Zod 4
+  Database: Supabase (PostgreSQL + Auth + RLS)
+  Architecture: Route groups (public/admin/secretario), role-based layouts
+  Testing: None configured
+  Style: ESLint (next/core-web-vitals), pnpm, Framer Motion 11
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected route groups and components
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+    - Reference existing patterns in src/lib/ and src/components/
+  tasks:
+    - Group tasks by phase (infrastructure, implementation, testing)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+  apply:
+    - Follow existing code patterns in src/
+    - Use TanStack Form v1 validators pattern (NO validatorAdapter)
+    - Use Zod 4 API (issues[0].message, not errors[0].message)
+    - Prefer editing existing files over creating new ones
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: "pnpm lint"
+    build_command: "pnpm build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas (large removals)
