@@ -10,7 +10,7 @@ import {
 
 export const contactoEmergenciaSchema = z.object({
   nombre: z.string().min(1, 'Nombre requerido'),
-  whatsapp: z.string().min(8, 'WhatsApp inválido').regex(/^\d+$/, 'Solo números'),
+  whatsapp: z.string().regex(/^\d{10}$/, 'Formato inválido. Ej: 3814038899'),
   relacion: z.string().min(1, 'Relación requerida'),
 });
 
@@ -77,7 +77,7 @@ export const inscripcionConversionSchema = z.object({
   dni: z.string().min(7, 'DNI inválido').max(8, 'DNI inválido').regex(/^\d+$/, 'Solo números'),
   estado_civil: z.string().min(1, 'El estado civil es requerido'),
   domicilio: z.string().min(1, 'El domicilio es requerido'),
-  telefono: z.string().min(8, 'Teléfono inválido').regex(/^\d+$/, 'Solo números'),
+  telefono: z.string().regex(/^\d{10}$/, 'Formato inválido. Ej: 3814038899'),
   contactos_emergencia: z.array(contactoEmergenciaSchema).length(3, 'Debe ingresar 3 contactos'),
   tiene_enfermedad: z.boolean(),
   enfermedad_detalle: z.string(),
@@ -134,13 +134,13 @@ export const inscripcionMatrimoniosSchema = z.object({
   apellido_esposo: z.string().min(1, 'El apellido es requerido'),
   dni_esposo: z.string().min(7, 'DNI inválido').max(8, 'DNI inválido').regex(/^\d+$/, 'Solo números'),
   fecha_nacimiento_esposo: z.string().min(1, 'La fecha de nacimiento es requerida'),
-  whatsapp_esposo: z.string().min(8, 'WhatsApp inválido').regex(/^\d+$/, 'Solo números'),
+  whatsapp_esposo: z.string().regex(/^\d{10}$/, 'Formato inválido. Ej: 3814038899'),
 
   nombre_esposa: z.string().min(1, 'El nombre es requerido'),
   apellido_esposa: z.string().min(1, 'El apellido es requerido'),
   dni_esposa: z.string().min(7, 'DNI inválido').max(8, 'DNI inválido').regex(/^\d+$/, 'Solo números'),
   fecha_nacimiento_esposa: z.string().min(1, 'La fecha de nacimiento es requerida'),
-  whatsapp_esposa: z.string().min(8, 'WhatsApp inválido').regex(/^\d+$/, 'Solo números'),
+  whatsapp_esposa: z.string().regex(/^\d{10}$/, 'Formato inválido. Ej: 3814038899'),
 
   estado_relacion: z.enum(['union_libre', 'casados', 'comprometidos', 'novios'] as const, {
     message: 'Seleccioná el estado de la relación',

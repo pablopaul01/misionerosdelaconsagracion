@@ -30,6 +30,8 @@ interface ConversionFormProps {
 export function ConversionForm({ retiroId }: ConversionFormProps) {
   const router = useRouter();
   const [openSections, setOpenSections] = useState<number[]>([1]);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [success, setSuccess] = useState(false);
   const createInscripcion = useCreateInscripcionConversion(retiroId);
 
   const toggleSection = (section: number) => {
@@ -40,17 +42,25 @@ export function ConversionForm({ retiroId }: ConversionFormProps) {
 
   const form = useForm({
     defaultValues: defaultInscripcionConversion,
-    validators: { onSubmit: inscripcionConversionSchema },
+    validators: { onChange: inscripcionConversionSchema },
     onSubmit: async ({ value }) => {
       try {
         await createInscripcion.mutateAsync(value);
-        toast.success('¡Inscripción enviada! Nos pondremos en contacto pronto.');
-        router.push('/retiros');
+        setSuccess(true);
       } catch {
         toast.error('Error al enviar inscripción');
       }
     },
   });
+
+  if (success) {
+    return (
+      <div className="text-center space-y-4">
+        <h2 className="font-title text-2xl text-brand-dark">¡Inscripción enviada!</h2>
+        <p className="text-brand-brown">Nos pondremos en contacto con vos pronto.</p>
+      </div>
+    )
+  }
 
   const isSectionComplete = (section: number, values: typeof defaultInscripcionConversion) => {
     if (section === 1) {
@@ -72,6 +82,8 @@ export function ConversionForm({ retiroId }: ConversionFormProps) {
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        setSubmitAttempted(true);
+        setOpenSections([1, 2, 3, 4]);
         form.handleSubmit();
       }}
       className="space-y-4"
@@ -136,6 +148,12 @@ export function ConversionForm({ retiroId }: ConversionFormProps) {
                         onChange={(e) => field.handleChange(e.target.value)}
                         className="min-h-[48px]"
                       />
+                      {field.state.meta.errors[0] && (
+                        <span className="text-sm text-red-500 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {fieldError(field.state.meta.errors[0])}
+                        </span>
+                      )}
                     </div>
                   )}
                 </form.Field>
@@ -174,6 +192,12 @@ export function ConversionForm({ retiroId }: ConversionFormProps) {
                           ))}
                         </SelectContent>
                       </Select>
+                      {field.state.meta.errors[0] && (
+                        <span className="text-sm text-red-500 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {fieldError(field.state.meta.errors[0])}
+                        </span>
+                      )}
                     </div>
                   )}
                 </form.Field>
@@ -187,6 +211,12 @@ export function ConversionForm({ retiroId }: ConversionFormProps) {
                         onChange={(e) => field.handleChange(e.target.value)}
                         className="min-h-[48px]"
                       />
+                      {field.state.meta.errors[0] && (
+                        <span className="text-sm text-red-500 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {fieldError(field.state.meta.errors[0])}
+                        </span>
+                      )}
                     </div>
                   )}
                 </form.Field>
@@ -227,6 +257,7 @@ export function ConversionForm({ retiroId }: ConversionFormProps) {
                     value={field.state.value}
                     onChange={field.handleChange}
                     error={field.state.meta.errors[0] ? fieldError(field.state.meta.errors[0]) : undefined}
+                    showErrors={submitAttempted}
                   />
                 )}
               </form.Field>

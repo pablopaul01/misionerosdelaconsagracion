@@ -187,13 +187,10 @@ export const useCreateInscripcionConversion = (retiroId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: InscripcionConversionInput) => {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('inscripciones_retiro_conversion')
-        .insert({ ...input, retiro_id: retiroId })
-        .select()
-        .single();
+        .insert({ ...input, retiro_id: retiroId });
       if (error) throw error;
-      return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inscripcionesConversion(retiroId) }),
   });
@@ -253,13 +250,10 @@ export const useCreateInscripcionMatrimonios = (retiroId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: InscripcionMatrimoniosInput) => {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('inscripciones_retiro_matrimonios')
-        .insert({ ...input, retiro_id: retiroId })
-        .select()
-        .single();
+        .insert({ ...input, retiro_id: retiroId });
       if (error) throw error;
-      return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inscripcionesMatrimonios(retiroId) }),
   });
@@ -319,13 +313,10 @@ export const useCreateInscripcionMisionero = (retiroId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (misioneroId: string) => {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('inscripciones_retiro_misioneros')
-        .insert({ retiro_id: retiroId, misionero_id: misioneroId })
-        .select()
-        .single();
+        .insert({ retiro_id: retiroId, misionero_id: misioneroId });
       if (error) throw error;
-      return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inscripcionesMisioneros(retiroId) }),
   });

@@ -16,6 +16,7 @@ export function MisionerosForm({ retiroId }: MisionerosFormProps) {
   const router = useRouter();
   const [dni, setDni] = useState('');
   const [misionero, setMisionero] = useState<{ id: string; nombre: string; apellido: string } | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const lookup = useLookupMisioneroPorDni();
   const createInscripcion = useCreateInscripcionMisionero(retiroId);
@@ -35,12 +36,20 @@ export function MisionerosForm({ retiroId }: MisionerosFormProps) {
     if (!misionero) return;
     try {
       await createInscripcion.mutateAsync(misionero.id);
-      toast.success('¡Inscripción realizada!');
-      router.push('/retiros');
+      setSuccess(true);
     } catch {
       toast.error('Error al inscribir');
     }
   };
+
+  if (success) {
+    return (
+      <div className="text-center space-y-4">
+        <h2 className="font-title text-2xl text-brand-dark">¡Inscripción realizada!</h2>
+        <p className="text-brand-brown">Tu inscripción quedó registrada correctamente.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

@@ -10,6 +10,7 @@ interface ContactosEmergenciaInputProps {
   value: ContactoEmergencia[];
   onChange: (contactos: ContactoEmergencia[]) => void;
   error?: string;
+  showErrors?: boolean;
 }
 
 const EMPTY_CONTACTO: ContactoEmergencia = {
@@ -22,6 +23,7 @@ export function ContactosEmergenciaInput({
   value,
   onChange,
   error,
+  showErrors = false,
 }: ContactosEmergenciaInputProps) {
   useEffect(() => {
     if (value.length === 0) {
@@ -39,13 +41,6 @@ export function ContactosEmergenciaInput({
 
   return (
     <div className="space-y-4">
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-        <p className="text-sm text-yellow-800">
-          <strong>Importante:</strong> Necesitamos 3 contactos (familiares o amigos) para enviarles una carta solicitando que oren por vos durante el retiro.
-          Los participantes no lo saben.
-        </p>
-      </div>
-
       <Label className="text-sm font-medium text-brand-dark">
         Contactos familiares / amigos (3 obligatorios)
       </Label>
@@ -53,6 +48,9 @@ export function ContactosEmergenciaInput({
       <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, index) => {
           const contacto = value[index] || EMPTY_CONTACTO;
+          const nombreError = showErrors && !contacto.nombre;
+          const whatsappError = showErrors && !contacto.whatsapp;
+          const relacionError = showErrors && !contacto.relacion;
           return (
             <div
               key={index}
@@ -73,6 +71,7 @@ export function ContactosEmergenciaInput({
                   placeholder="Nombre del contacto"
                   className="min-h-[48px]"
                 />
+                {nombreError && <p className="text-xs text-red-500">Nombre requerido</p>}
               </div>
 
               <div className="space-y-1.5">
@@ -88,6 +87,7 @@ export function ContactosEmergenciaInput({
                   placeholder="Solo números"
                   className="min-h-[48px]"
                 />
+                {whatsappError && <p className="text-xs text-red-500">WhatsApp requerido</p>}
               </div>
 
               <div className="space-y-1.5">
@@ -101,6 +101,7 @@ export function ContactosEmergenciaInput({
                   placeholder="Ej: Mamá, Papá, Hermano, Amigo..."
                   className="min-h-[48px]"
                 />
+                {relacionError && <p className="text-xs text-red-500">Relación requerida</p>}
               </div>
             </div>
           );

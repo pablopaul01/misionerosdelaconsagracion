@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from '@tanstack/react-form';
 import { useCreateInscripcionMatrimonios } from '@/lib/queries/retiros';
@@ -27,20 +28,29 @@ interface MatrimoniosFormProps {
 export function MatrimoniosForm({ retiroId }: MatrimoniosFormProps) {
   const router = useRouter();
   const createInscripcion = useCreateInscripcionMatrimonios(retiroId);
+  const [success, setSuccess] = useState(false);
 
   const form = useForm({
     defaultValues: defaultInscripcionMatrimonios,
-    validators: { onSubmit: inscripcionMatrimoniosSchema },
+    validators: { onChange: inscripcionMatrimoniosSchema },
     onSubmit: async ({ value }) => {
       try {
         await createInscripcion.mutateAsync(value);
-        toast.success('¡Pre-inscripción enviada! Nos pondremos en contacto para la entrevista.');
-        router.push('/retiros');
+        setSuccess(true);
       } catch {
         toast.error('Error al enviar pre-inscripción');
       }
     },
   });
+
+  if (success) {
+    return (
+      <div className="text-center space-y-4">
+        <h2 className="font-title text-2xl text-brand-dark">¡Pre-inscripción enviada!</h2>
+        <p className="text-brand-brown">Nos pondremos en contacto para coordinar la entrevista.</p>
+      </div>
+    )
+  }
 
   return (
     <form
@@ -63,6 +73,12 @@ export function MatrimoniosForm({ retiroId }: MatrimoniosFormProps) {
                     onChange={(e) => field.handleChange(e.target.value)}
                     className="min-h-[48px]"
                   />
+                  {field.state.meta.errors[0] && (
+                    <span className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {fieldError(field.state.meta.errors[0])}
+                    </span>
+                  )}
                 </div>
               )}
             </form.Field>
@@ -75,6 +91,12 @@ export function MatrimoniosForm({ retiroId }: MatrimoniosFormProps) {
                     onChange={(e) => field.handleChange(e.target.value)}
                     className="min-h-[48px]"
                   />
+                  {field.state.meta.errors[0] && (
+                    <span className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {fieldError(field.state.meta.errors[0])}
+                    </span>
+                  )}
                 </div>
               )}
             </form.Field>
@@ -90,6 +112,12 @@ export function MatrimoniosForm({ retiroId }: MatrimoniosFormProps) {
                     className="min-h-[48px]"
                     maxLength={8}
                   />
+                  {field.state.meta.errors[0] && (
+                    <span className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {fieldError(field.state.meta.errors[0])}
+                    </span>
+                  )}
                 </div>
               )}
             </form.Field>
@@ -103,6 +131,12 @@ export function MatrimoniosForm({ retiroId }: MatrimoniosFormProps) {
                     onChange={(e) => field.handleChange(e.target.value)}
                     className="min-h-[48px]"
                   />
+                  {field.state.meta.errors[0] && (
+                    <span className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {fieldError(field.state.meta.errors[0])}
+                    </span>
+                  )}
                 </div>
               )}
             </form.Field>
@@ -117,6 +151,12 @@ export function MatrimoniosForm({ retiroId }: MatrimoniosFormProps) {
                   onChange={(e) => field.handleChange(e.target.value)}
                   className="min-h-[48px]"
                 />
+                {field.state.meta.errors[0] && (
+                  <span className="text-sm text-red-500 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {fieldError(field.state.meta.errors[0])}
+                  </span>
+                )}
               </div>
             )}
           </form.Field>
@@ -136,6 +176,12 @@ export function MatrimoniosForm({ retiroId }: MatrimoniosFormProps) {
                     onChange={(e) => field.handleChange(e.target.value)}
                     className="min-h-[48px]"
                   />
+                  {field.state.meta.errors[0] && (
+                    <span className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {fieldError(field.state.meta.errors[0])}
+                    </span>
+                  )}
                 </div>
               )}
             </form.Field>
@@ -148,6 +194,12 @@ export function MatrimoniosForm({ retiroId }: MatrimoniosFormProps) {
                     onChange={(e) => field.handleChange(e.target.value)}
                     className="min-h-[48px]"
                   />
+                  {field.state.meta.errors[0] && (
+                    <span className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {fieldError(field.state.meta.errors[0])}
+                    </span>
+                  )}
                 </div>
               )}
             </form.Field>
@@ -163,6 +215,12 @@ export function MatrimoniosForm({ retiroId }: MatrimoniosFormProps) {
                     className="min-h-[48px]"
                     maxLength={8}
                   />
+                  {field.state.meta.errors[0] && (
+                    <span className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {fieldError(field.state.meta.errors[0])}
+                    </span>
+                  )}
                 </div>
               )}
             </form.Field>
@@ -176,6 +234,12 @@ export function MatrimoniosForm({ retiroId }: MatrimoniosFormProps) {
                     onChange={(e) => field.handleChange(e.target.value)}
                     className="min-h-[48px]"
                   />
+                  {field.state.meta.errors[0] && (
+                    <span className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {fieldError(field.state.meta.errors[0])}
+                    </span>
+                  )}
                 </div>
               )}
             </form.Field>
@@ -190,6 +254,12 @@ export function MatrimoniosForm({ retiroId }: MatrimoniosFormProps) {
                   onChange={(e) => field.handleChange(e.target.value)}
                   className="min-h-[48px]"
                 />
+                {field.state.meta.errors[0] && (
+                  <span className="text-sm text-red-500 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {fieldError(field.state.meta.errors[0])}
+                  </span>
+                )}
               </div>
             )}
           </form.Field>
@@ -230,6 +300,12 @@ export function MatrimoniosForm({ retiroId }: MatrimoniosFormProps) {
                 onChange={(e) => field.handleChange(e.target.value)}
                 className="min-h-[48px]"
               />
+              {field.state.meta.errors[0] && (
+                <span className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {fieldError(field.state.meta.errors[0])}
+                </span>
+              )}
             </div>
           )}
         </form.Field>
@@ -243,6 +319,12 @@ export function MatrimoniosForm({ retiroId }: MatrimoniosFormProps) {
                 onChange={(e) => field.handleChange(e.target.value)}
                 className="min-h-[48px]"
               />
+              {field.state.meta.errors[0] && (
+                <span className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {fieldError(field.state.meta.errors[0])}
+                </span>
+              )}
             </div>
           )}
         </form.Field>
