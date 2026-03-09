@@ -1,15 +1,24 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { misioneroSchema, type MisioneroInput } from '@/lib/validations/misioneros';
 import { fieldError } from '@/lib/utils/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+
+type RolMisionero = {
+  id: string;
+  nombre: string;
+};
 
 interface MisioneroFormProps {
   defaultValues?: Partial<MisioneroInput>;
-  onSubmit: (value: MisioneroInput) => Promise<void>;
+  roles?: RolMisionero[];
+  defaultRoleIds?: string[];
+  onSubmit: (value: MisioneroInput, roleIds: string[]) => Promise<void>;
   submitLabel?: string;
 }
 
@@ -49,21 +58,36 @@ const FormField = ({
 
 export const MisioneroForm = ({
   defaultValues,
+  roles = [],
+  defaultRoleIds = [],
   onSubmit,
   submitLabel = 'Guardar',
 }: MisioneroFormProps) => {
+  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>(defaultRoleIds);
+
+  useEffect(() => {
+    setSelectedRoleIds(defaultRoleIds);
+  }, [defaultRoleIds]);
+
   const form = useForm({
     defaultValues: {
       nombre:   defaultValues?.nombre   ?? '',
       apellido: defaultValues?.apellido ?? '',
       dni:      defaultValues?.dni      ?? '',
       whatsapp: defaultValues?.whatsapp ?? '',
+      activo:   defaultValues?.activo   ?? true,
     },
     validators: { onSubmit: misioneroSchema },
     onSubmit: async ({ value }) => {
-      await onSubmit(value);
+      await onSubmit(value, selectedRoleIds);
     },
   });
+
+  const toggleRole = (roleId: string) => {
+    setSelectedRoleIds((prev) =>
+      prev.includes(roleId) ? prev.filter((id) => id !== roleId) : [...prev, roleId]
+    );
+  };
 
   return (
     <form
@@ -128,6 +152,45 @@ export const MisioneroForm = ({
           />
         )}
       </form.Field>
+
+      <form.Field name="activo">
+        {(field) => (
+          <div className="flex flex-col gap-1.5">
+            <Label>Estado</Label>
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={field.state.value}
+                onCheckedChange={(checked) => field.handleChange(!!checked)}
+              />
+              <span className="text-sm text-brand-brown">
+                {field.state.value ? 'Activo' : 'Inactivo'}
+              </span>
+            </div>
+            {field.state.meta.errors[0] && (
+              <span className="text-sm text-red-600">{fieldError(field.state.meta.errors[0])}</span>
+            )}
+          </div>
+        )}
+      </form.Field>
+
+      <div className="flex flex-col gap-2">
+        <Label>Roles</Label>
+        {roles.length === 0 ? (
+          <p className="text-sm text-brand-brown">No hay roles disponibles</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {roles.map((role) => (
+              <label key={role.id} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={selectedRoleIds.includes(role.id)}
+                  onCheckedChange={() => toggleRole(role.id)}
+                />
+                {role.nombre}
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (

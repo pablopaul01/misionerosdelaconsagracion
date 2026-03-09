@@ -271,15 +271,17 @@ export const useConvertirAMisionero = (formacionId: string) => {
       apellido,
       dni,
       whatsapp,
+      activo,
     }: {
       nombre: string;
       apellido: string;
       dni: string;
       whatsapp: string;
+      activo: boolean;
     }) => {
       const { data, error } = await supabase
         .from('misioneros')
-        .insert({ nombre, apellido, dni, whatsapp })
+        .insert({ nombre, apellido, dni, whatsapp, activo })
         .select()
         .single();
       if (error) throw error;

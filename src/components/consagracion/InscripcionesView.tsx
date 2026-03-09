@@ -325,6 +325,7 @@ export const InscripcionesView = ({ formacionId, finalizada, onFinalizar, finali
   const [globalFilter, setGlobalFilter] = useState('');
   const [filtroConsagracion, setFiltroConsagracion] = useState<FiltroConsagracion>('todos');
   const [confirmando, setConfirmando] = useState<Inscripcion | null>(null);
+  const [convertirActivo, setConvertirActivo] = useState(true);
   const [convertidos, setConvertidos] = useState<Set<string>>(new Set());
   const [errorConversion, setErrorConversion] = useState('');
 
@@ -352,6 +353,7 @@ export const InscripcionesView = ({ formacionId, finalizada, onFinalizar, finali
         apellido: confirmando.apellido,
         dni:      confirmando.dni ?? '',
         whatsapp: confirmando.whatsapp ?? '',
+        activo:   convertirActivo,
       });
       setConvertidos((prev) => new Set(prev).add(confirmando.id));
       setConfirmando(null);
@@ -693,7 +695,11 @@ export const InscripcionesView = ({ formacionId, finalizada, onFinalizar, finali
                     className={`text-xs ${yaConvertido
                       ? 'text-brand-teal border-brand-teal opacity-60 cursor-default'
                       : 'text-brand-teal border-brand-teal hover:bg-brand-teal/10'}`}
-                    onClick={() => !yaConvertido && setConfirmando(ins)}
+                    onClick={() => {
+                      if (yaConvertido) return;
+                      setConvertirActivo(true);
+                      setConfirmando(ins);
+                    }}
                   >
                     {yaConvertido ? 'Misionero ✓' : '+ Misionero'}
                   </Button>
@@ -737,6 +743,15 @@ export const InscripcionesView = ({ formacionId, finalizada, onFinalizar, finali
               DNI <strong>{confirmando?.dni}</strong>. Si ya existe un misionero con ese DNI, el registro fallará.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="flex items-center gap-3">
+            <Checkbox
+              checked={convertirActivo}
+              onCheckedChange={(checked) => setConvertirActivo(!!checked)}
+            />
+            <span className="text-sm text-brand-brown">
+              {convertirActivo ? 'Crear como activo' : 'Crear como inactivo'}
+            </span>
+          </div>
           {errorConversion && <p className="text-sm text-red-600 px-1">{errorConversion}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
