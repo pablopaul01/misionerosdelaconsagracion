@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useLookupMisioneroPorDni, useCreateInscripcionMisionero } from '@/lib/queries/retiros';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +12,6 @@ interface MisionerosFormProps {
 }
 
 export function MisionerosForm({ retiroId }: MisionerosFormProps) {
-  const router = useRouter();
   const [dni, setDni] = useState('');
   const [misionero, setMisionero] = useState<{ id: string; nombre: string; apellido: string } | null>(null);
   const [success, setSuccess] = useState(false);

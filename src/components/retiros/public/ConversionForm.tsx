@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from '@tanstack/react-form';
 import { useCreateInscripcionConversion } from '@/lib/queries/retiros';
 import { inscripcionConversionSchema, defaultInscripcionConversion } from '@/lib/validations/retiros';
@@ -28,7 +27,6 @@ interface ConversionFormProps {
 }
 
 export function ConversionForm({ retiroId }: ConversionFormProps) {
-  const router = useRouter();
   const [openSections, setOpenSections] = useState<number[]>([1]);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [success, setSuccess] = useState(false);

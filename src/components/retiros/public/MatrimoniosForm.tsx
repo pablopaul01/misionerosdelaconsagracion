@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from '@tanstack/react-form';
 import { useCreateInscripcionMatrimonios } from '@/lib/queries/retiros';
 import { inscripcionMatrimoniosSchema, defaultInscripcionMatrimonios } from '@/lib/validations/retiros';
@@ -26,7 +25,6 @@ interface MatrimoniosFormProps {
 }
 
 export function MatrimoniosForm({ retiroId }: MatrimoniosFormProps) {
-  const router = useRouter();
   const createInscripcion = useCreateInscripcionMatrimonios(retiroId);
   const [success, setSuccess] = useState(false);
 
