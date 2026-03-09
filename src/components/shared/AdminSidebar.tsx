@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: '/admin/misioneros',   label: 'Misioneros' },
   { href: '/admin/formaciones',  label: 'Formaciones' },
   { href: '/admin/consagracion', label: 'Consagración' },
+  { href: '/admin/retiros',      label: 'Retiros' },
   { href: '/admin/usuarios',     label: 'Usuarios' },
 ] as const;
 

@@ -402,6 +402,390 @@ export type Database = {
         }
         Relationships: []
       }
+      retiros: {
+        Row: {
+          activo: boolean | null
+          costo: number | null
+          created_at: string | null
+          cupo: number | null
+          descripcion: string | null
+          fecha_fin: string
+          fecha_inicio: string
+          id: string
+          imagen_url: string | null
+          lugar: string
+          nombre: string
+          tipo: Database["public"]["Enums"]["tipo_retiro"]
+          updated_at: string | null
+        }
+        Insert: {
+          activo?: boolean | null
+          costo?: number | null
+          created_at?: string | null
+          cupo?: number | null
+          descripcion?: string | null
+          fecha_fin: string
+          fecha_inicio: string
+          id?: string
+          imagen_url?: string | null
+          lugar: string
+          nombre: string
+          tipo: Database["public"]["Enums"]["tipo_retiro"]
+          updated_at?: string | null
+        }
+        Update: {
+          activo?: boolean | null
+          costo?: number | null
+          created_at?: string | null
+          cupo?: number | null
+          descripcion?: string | null
+          fecha_fin?: string
+          fecha_inicio?: string
+          id?: string
+          imagen_url?: string | null
+          lugar?: string
+          nombre?: string
+          tipo?: Database["public"]["Enums"]["tipo_retiro"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inscripciones_retiro_conversion: {
+        Row: {
+          apellido: string
+          bautizado: boolean
+          created_at: string | null
+          dni: string
+          domicilio: string | null
+          enfermedad_detalle: string | null
+          en_espera: boolean
+          estado_civil: string | null
+          fecha_nacimiento: string | null
+          id: string
+          nombre: string
+          primer_retiro: boolean
+          retiro_id: string
+          tiene_dieta_especial: boolean
+          tiene_enfermedad: boolean
+          telefono: string
+        }
+        Insert: {
+          apellido: string
+          bautizado?: boolean
+          created_at?: string | null
+          dni: string
+          domicilio?: string | null
+          enfermedad_detalle?: string | null
+          en_espera?: boolean
+          estado_civil?: string | null
+          fecha_nacimiento?: string | null
+          id?: string
+          nombre: string
+          primer_retiro?: boolean
+          retiro_id: string
+          tiene_dieta_especial?: boolean
+          tiene_enfermedad?: boolean
+          telefono: string
+        }
+        Update: {
+          apellido?: string
+          bautizado?: boolean
+          created_at?: string | null
+          dni?: string
+          domicilio?: string | null
+          enfermedad_detalle?: string | null
+          en_espera?: boolean
+          estado_civil?: string | null
+          fecha_nacimiento?: string | null
+          id?: string
+          nombre?: string
+          primer_retiro?: boolean
+          retiro_id?: string
+          tiene_dieta_especial?: boolean
+          tiene_enfermedad?: boolean
+          telefono?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inscripciones_retiro_conversion_retiro_id_fkey"
+            columns: ["retiro_id"]
+            isOneToOne: false
+            referencedRelation: "retiros"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      inscripciones_retiro_matrimonios: {
+        Row: {
+          apellido_esposa: string
+          apellido_esposo: string
+          como_se_enteraron: string | null
+          created_at: string | null
+          domicilio: string | null
+          dni_esposa: string
+          dni_esposo: string
+          entrevista_fecha: string | null
+          entrevista_notas: string | null
+          entrevista_realizada: boolean
+          estado_relacion: Database["public"]["Enums"]["estado_relacion"]
+          fecha_nacimiento_esposa: string | null
+          fecha_nacimiento_esposo: string | null
+          id: string
+          nombre_esposa: string
+          nombre_esposo: string
+          retiro_id: string
+          whatsapp_esposa: string
+          whatsapp_esposo: string
+          en_espera: boolean
+        }
+        Insert: {
+          apellido_esposa: string
+          apellido_esposo: string
+          como_se_enteraron?: string | null
+          created_at?: string | null
+          domicilio?: string | null
+          dni_esposa: string
+          dni_esposo: string
+          entrevista_fecha?: string | null
+          entrevista_notas?: string | null
+          entrevista_realizada?: boolean
+          estado_relacion: Database["public"]["Enums"]["estado_relacion"]
+          fecha_nacimiento_esposa?: string | null
+          fecha_nacimiento_esposo?: string | null
+          id?: string
+          nombre_esposa: string
+          nombre_esposo: string
+          retiro_id: string
+          whatsapp_esposa: string
+          whatsapp_esposo: string
+          en_espera?: boolean
+        }
+        Update: {
+          apellido_esposa?: string
+          apellido_esposo?: string
+          como_se_enteraron?: string | null
+          created_at?: string | null
+          domicilio?: string | null
+          dni_esposa?: string
+          dni_esposo?: string
+          entrevista_fecha?: string | null
+          entrevista_notas?: string | null
+          entrevista_realizada?: boolean
+          estado_relacion?: Database["public"]["Enums"]["estado_relacion"]
+          fecha_nacimiento_esposa?: string | null
+          fecha_nacimiento_esposo?: string | null
+          id?: string
+          nombre_esposa?: string
+          nombre_esposo?: string
+          retiro_id?: string
+          whatsapp_esposa?: string
+          whatsapp_esposo?: string
+          en_espera?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inscripciones_retiro_matrimonios_retiro_id_fkey"
+            columns: ["retiro_id"]
+            isOneToOne: false
+            referencedRelation: "retiros"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      inscripciones_retiro_misioneros: {
+        Row: {
+          created_at: string | null
+          id: string
+          misionero_id: string
+          retiro_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          misionero_id: string
+          retiro_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          misionero_id?: string
+          retiro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inscripciones_retiro_misioneros_misionero_id_fkey"
+            columns: ["misionero_id"]
+            isOneToOne: false
+            referencedRelation: "misioneros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscripciones_retiro_misioneros_retiro_id_fkey"
+            columns: ["retiro_id"]
+            isOneToOne: false
+            referencedRelation: "retiros"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      roles_servidor_retiro: {
+        Row: {
+          activo: boolean | null
+          created_at: string | null
+          descripcion: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          activo?: boolean | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
+      servidores_retiro: {
+        Row: {
+          created_at: string | null
+          id: string
+          misionero_id: string
+          notas: string | null
+          retiro_id: string
+          rol_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          misionero_id: string
+          notas?: string | null
+          retiro_id: string
+          rol_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          misionero_id?: string
+          notas?: string | null
+          retiro_id?: string
+          rol_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servidores_retiro_misionero_id_fkey"
+            columns: ["misionero_id"]
+            isOneToOne: false
+            referencedRelation: "misioneros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servidores_retiro_retiro_id_fkey"
+            columns: ["retiro_id"]
+            isOneToOne: false
+            referencedRelation: "retiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servidores_retiro_rol_id_fkey"
+            columns: ["rol_id"]
+            isOneToOne: false
+            referencedRelation: "roles_servidor_retiro"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      pagos_retiro: {
+        Row: {
+          created_at: string | null
+          fecha: string
+          id: string
+          inscripcion_id: string
+          metodo: Database["public"]["Enums"]["metodo_pago"]
+          monto: number
+          notas: string | null
+          retiro_id: string
+          tipo_inscripcion: Database["public"]["Enums"]["tipo_retiro"]
+        }
+        Insert: {
+          created_at?: string | null
+          fecha: string
+          id?: string
+          inscripcion_id: string
+          metodo: Database["public"]["Enums"]["metodo_pago"]
+          monto: number
+          notas?: string | null
+          retiro_id: string
+          tipo_inscripcion: Database["public"]["Enums"]["tipo_retiro"]
+        }
+        Update: {
+          created_at?: string | null
+          fecha?: string
+          id?: string
+          inscripcion_id?: string
+          metodo?: Database["public"]["Enums"]["metodo_pago"]
+          monto?: number
+          notas?: string | null
+          retiro_id?: string
+          tipo_inscripcion?: Database["public"]["Enums"]["tipo_retiro"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagos_retiro_retiro_id_fkey"
+            columns: ["retiro_id"]
+            isOneToOne: false
+            referencedRelation: "retiros"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      compras_retiro: {
+        Row: {
+          cantidad: number | null
+          concepto: string
+          comprado: boolean
+          created_at: string | null
+          costo: number | null
+          id: string
+          retiro_id: string
+          unidad: string | null
+        }
+        Insert: {
+          cantidad?: number | null
+          concepto: string
+          comprado?: boolean
+          created_at?: string | null
+          costo?: number | null
+          id?: string
+          retiro_id: string
+          unidad?: string | null
+        }
+        Update: {
+          cantidad?: number | null
+          concepto?: string
+          comprado?: boolean
+          created_at?: string | null
+          costo?: number | null
+          id?: string
+          retiro_id?: string
+          unidad?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compras_retiro_retiro_id_fkey"
+            columns: ["retiro_id"]
+            isOneToOne: false
+            referencedRelation: "retiros"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -414,8 +798,11 @@ export type Database = {
     }
     Enums: {
       estado_civil_enum: "soltero_a" | "casado" | "divorciado" | "viudo"
+      estado_relacion: "union_libre" | "casados" | "comprometidos" | "novios"
+      metodo_pago: "efectivo" | "transferencia" | "tarjeta"
       tipo_formacion: "san_lorenzo" | "escuela_de_maria"
       tipo_leccion: "leccion" | "retiro"
+      tipo_retiro: "conversion" | "matrimonios" | "misioneros"
       user_role: "admin" | "secretario_consagracion"
     }
     CompositeTypes: {
@@ -545,8 +932,11 @@ export const Constants = {
   public: {
     Enums: {
       estado_civil_enum: ["soltero_a", "casado", "divorciado", "viudo"],
+      estado_relacion: ["union_libre", "casados", "comprometidos", "novios"],
+      metodo_pago: ["efectivo", "transferencia", "tarjeta"],
       tipo_formacion: ["san_lorenzo", "escuela_de_maria"],
       tipo_leccion: ["leccion", "retiro"],
+      tipo_retiro: ["conversion", "matrimonios", "misioneros"],
       user_role: ["admin", "secretario_consagracion"],
     },
   },
