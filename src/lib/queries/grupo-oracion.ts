@@ -44,10 +44,21 @@ export const useCrearGrupoOracion = () => {
   const supabase = createClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (fecha: string) => {
+    mutationFn: async (input: {
+      fecha: string;
+      predicaMenorMisioneroId?: string | null;
+      predicaMenorSanto?: string | null;
+      predicaMayorMisioneroId?: string | null;
+    }) => {
       const { data, error } = await supabase
         .from('grupos_oracion')
-        .insert({ fecha, activa: false })
+        .insert({
+          fecha: input.fecha,
+          activa: false,
+          predica_menor_misionero_id: input.predicaMenorMisioneroId ?? null,
+          predica_menor_santo: input.predicaMenorSanto ?? null,
+          predica_mayor_misionero_id: input.predicaMayorMisioneroId ?? null,
+        })
         .select()
         .single();
       if (error) throw error;
@@ -87,6 +98,65 @@ export const useDesactivarGrupoOracion = () => {
         .from('grupos_oracion')
         .update({ activa: false })
         .eq('id', grupoId);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.grupos }),
+  });
+};
+
+export const useUpdateGrupoOracion = (id: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      predicaMenorMisioneroId?: string | null;
+      predicaMenorSanto?: string | null;
+      predicaMayorMisioneroId?: string | null;
+    }) => {
+      const { error } = await supabase
+        .from('grupos_oracion')
+        .update({
+          predica_menor_misionero_id: input.predicaMenorMisioneroId ?? null,
+          predica_menor_santo: input.predicaMenorSanto ?? null,
+          predica_mayor_misionero_id: input.predicaMayorMisioneroId ?? null,
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.grupo(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.grupos });
+    },
+  });
+};
+
+export const useUpdateGrupoOracionFecha = (id: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (fecha: string) => {
+      const { error } = await supabase
+        .from('grupos_oracion')
+        .update({ fecha })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.grupo(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.grupos });
+    },
+  });
+};
+
+export const useDeleteGrupoOracion = () => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('grupos_oracion')
+        .delete()
+        .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.grupos }),
