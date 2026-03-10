@@ -10,10 +10,20 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { useMisioneros, useMisionerosRolesMap } from '@/lib/queries/misioneros';
+import { useMisioneros, useMisionerosRolesMap, useDeleteMisionero } from '@/lib/queries/misioneros';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Table,
   TableBody,
@@ -42,9 +52,12 @@ const AccionesCell = ({ id }: { id: string }) => {
 };
 
 export const MisioneroTable = () => {
+  const router = useRouter();
   const { data: misioneros = [], isLoading } = useMisioneros();
   const { data: rolesMap = {} } = useMisionerosRolesMap();
+  const { mutateAsync: deleteMisionero, isPending: eliminando } = useDeleteMisionero();
   const [globalFilter, setGlobalFilter] = useState('');
+  const [eliminarTarget, setEliminarTarget] = useState<Misionero | null>(null);
 
   const globalFilterFn = useMemo(() => {
     return (row: { original: Misionero }, _columnId: string, filterValue: string) => {
@@ -166,9 +179,9 @@ export const MisioneroTable = () => {
         {table.getRowModel().rows.map((row) => {
           const m = row.original;
           return (
-            <div key={m.id} className="bg-white border border-brand-creamLight rounded-xl p-4 flex items-center justify-between gap-3">
+            <div key={m.id} className="bg-white border border-brand-creamLight rounded-xl p-4 flex flex-col gap-3">
               <div className="flex flex-col gap-1 min-w-0">
-                <p className="font-title text-brand-dark font-semibold truncate">
+                <p className="font-title text-brand-dark font-semibold break-words">
                   {m.apellido}, {m.nombre}
                 </p>
                 <p className="text-xs text-brand-brown">
@@ -189,11 +202,60 @@ export const MisioneroTable = () => {
                   )}
                 </div>
               </div>
-              <AccionesCell id={m.id} />
+              <div className="flex items-center justify-between gap-3 pt-2 border-t border-brand-creamLight">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-brand-teal"
+                  onClick={() => router.push(`/admin/misioneros/${m.id}`)}
+                >
+                  Ver detalle
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-500"
+                  onClick={() => setEliminarTarget(m)}
+                >
+                  Eliminar
+                </Button>
+              </div>
             </div>
           );
         })}
       </div>
+
+      <AlertDialog
+        open={!!eliminarTarget}
+        onOpenChange={(open) => { if (!open) setEliminarTarget(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar misionero?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará a <strong>{eliminarTarget ? `${eliminarTarget.apellido}, ${eliminarTarget.nombre}` : ''}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 hover:bg-red-700 text-white"
+              onClick={async () => {
+                if (!eliminarTarget) return;
+                try {
+                  await deleteMisionero(eliminarTarget.id);
+                  setEliminarTarget(null);
+                } catch (e) {
+                  // no toast here to keep minimal; could add if needed
+                }
+              }}
+              disabled={eliminando}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Paginación */}
       <div className="flex items-center justify-between">

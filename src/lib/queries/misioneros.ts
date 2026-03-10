@@ -121,6 +121,23 @@ export const useUpdateMisionero = (id: string) => {
   });
 };
 
+export const useDeleteMisionero = () => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('misioneros')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+    },
+  });
+};
+
 type RolMisioneroInput = {
   nombre: string;
   descripcion: string;
