@@ -49,7 +49,7 @@ export default function AdminInscripcionesPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" onClick={() => router.back()} className="text-brand-brown shrink-0">
+        <Button variant="ghost" onClick={() => router.push('/admin/consagracion')} className="text-brand-brown shrink-0">
           ← Volver
         </Button>
         <h1 className="font-title text-xl text-brand-dark">
@@ -59,6 +59,7 @@ export default function AdminInscripcionesPage() {
 
       <InscripcionesView
         formacionId={formacion.id}
+        anio={Number(anio)}
         finalizada={formacion.finalizada}
         onFinalizar={() => {
           setFechaConsagracion(formacion.fecha_consagracion ?? new Date().toISOString().split('T')[0]);

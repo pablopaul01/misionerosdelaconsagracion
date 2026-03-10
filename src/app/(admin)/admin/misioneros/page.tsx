@@ -1,28 +1,19 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { MisioneroTable } from '@/components/misioneros/MisioneroTable';
-import { MisioneroForm } from '@/components/misioneros/MisioneroForm';
 import {
-  useCreateMisionero,
   useRolesMisionero,
-  useRolesMisioneroActivos,
   useCreateRolMisionero,
   useUpdateRolMisionero,
   useDeleteRolMisionero,
-  useSetMisioneroRoles,
 } from '@/lib/queries/misioneros';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,23 +35,15 @@ import { toast } from 'sonner';
 import { Trash2 } from 'lucide-react';
 
 export default function MisionerosPage() {
-  const [open, setOpen] = useState(false);
+  const router = useRouter();
   const [rolesOpen, setRolesOpen] = useState(false);
   const [rolAEliminar, setRolAEliminar] = useState<{ id: string; nombre: string } | null>(null);
   const [nuevoRol, setNuevoRol] = useState({ nombre: '', descripcion: '', activo: true });
-  const { mutateAsync: createMisionero } = useCreateMisionero();
-  const setMisioneroRoles = useSetMisioneroRoles();
   const { data: roles = [], isLoading: loadingRoles } = useRolesMisionero();
-  const { data: rolesActivos = [] } = useRolesMisioneroActivos();
   const createRol = useCreateRolMisionero();
   const updateRol = useUpdateRolMisionero();
   const deleteRol = useDeleteRolMisionero();
 
-  const handleSubmit = async (value: Parameters<typeof createMisionero>[0], roleIds: string[]) => {
-    const created = await createMisionero(value);
-    await setMisioneroRoles.mutateAsync({ misioneroId: created.id, roleIds });
-    setOpen(false);
-  };
 
   const handleCreateRol = async () => {
     if (!nuevoRol.nombre.trim()) {
@@ -187,23 +170,9 @@ export default function MisionerosPage() {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-brand-brown hover:bg-brand-dark text-white">
-                + Nuevo misionero
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="font-title text-brand-dark">Registrar misionero</DialogTitle>
-              </DialogHeader>
-              <MisioneroForm
-                onSubmit={handleSubmit}
-                submitLabel="Registrar"
-                roles={rolesActivos}
-              />
-            </DialogContent>
-          </Dialog>
+          <Button className="bg-brand-brown hover:bg-brand-dark text-white" onClick={() => router.push('/admin/misioneros/nuevo')}>
+            + Nuevo misionero
+          </Button>
         </div>
       </div>
 

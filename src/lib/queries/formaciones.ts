@@ -348,3 +348,18 @@ export const useInscribirMisionero = (formacionId: string) => {
     },
   });
 };
+
+export const useEliminarMisioneroDeFormacion = (formacionId: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('inscripciones_misioneros')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.misioneros(formacionId) }),
+  });
+};

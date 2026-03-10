@@ -193,12 +193,14 @@ export type Database = {
           comentario: string | null
           created_at: string | null
           domicilio: string | null
+          dni: string
           estado_civil: Database["public"]["Enums"]["estado_civil_enum"]
           formacion_id: string
           id: string
           nombre: string
           sacramentos: Json
           se_consagro: boolean | null
+          tipo_inscripcion: string | null
           whatsapp: string
         }
         Insert: {
@@ -206,12 +208,14 @@ export type Database = {
           comentario?: string | null
           created_at?: string | null
           domicilio?: string | null
+          dni: string
           estado_civil: Database["public"]["Enums"]["estado_civil_enum"]
           formacion_id: string
           id?: string
           nombre: string
           sacramentos?: Json
           se_consagro?: boolean | null
+          tipo_inscripcion?: string | null
           whatsapp: string
         }
         Update: {
@@ -219,12 +223,14 @@ export type Database = {
           comentario?: string | null
           created_at?: string | null
           domicilio?: string | null
+          dni?: string
           estado_civil?: Database["public"]["Enums"]["estado_civil_enum"]
           formacion_id?: string
           id?: string
           nombre?: string
           sacramentos?: Json
           se_consagro?: boolean | null
+          tipo_inscripcion?: string | null
           whatsapp?: string
         }
         Relationships: [
