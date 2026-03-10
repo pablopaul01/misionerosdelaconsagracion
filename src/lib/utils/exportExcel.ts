@@ -4,6 +4,7 @@ const XLSX = require('xlsx-js-style');
 interface InscriptoRow {
   apellido: string;
   nombre: string;
+  dni?: string;
 }
 
 const BORDER = { style: 'thin', color: { rgb: '000000' } };
@@ -29,28 +30,51 @@ export function exportarListaAsistencia(
   inscriptos: InscriptoRow[],
   titulo: string,
   tituloVisible: string,
+  includeFirma: boolean = true,
 ) {
-  const cols    = ['A', 'B', 'C', 'D'];
-  const headers = ['Nº', 'Apellido', 'Nombre', 'Firma'];
-  const filas   = inscriptos.map((i, idx) => [idx + 1, i.apellido, i.nombre, '']);
+  const cols    = includeFirma ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+  const headers = includeFirma
+    ? ['Nº', 'Apellido', 'Nombre', 'DNI', 'Firma']
+    : ['Nº', 'Apellido', 'Nombre', 'DNI'];
+  const filas   = inscriptos.map((i, idx) => (
+    includeFirma
+      ? [idx + 1, i.apellido, i.nombre, i.dni ?? '', '']
+      : [idx + 1, i.apellido, i.nombre, i.dni ?? '']
+  ));
 
   // fila 1 = título, fila 2 = encabezados, filas 3+ = datos
-  const aoa = [[tituloVisible, '', '', ''], headers, ...filas];
+  const aoa = [
+    includeFirma ? [tituloVisible, '', '', '', ''] : [tituloVisible, '', '', ''],
+    headers,
+    ...filas,
+  ];
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-  // Merge A1:D1 para el título
-  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
+  // Merge A1:E1 para el título
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: includeFirma ? 4 : 3 } },
+  ];
 
   const maxApellido = Math.max(...inscriptos.map((i) => i.apellido.length), 'Apellido'.length);
   const maxNombre   = Math.max(...inscriptos.map((i) => i.nombre.length),   'Nombre'.length);
 
-  ws['!cols'] = [
-    { wch: 5 },               // Nº
-    { wch: maxApellido + 2 }, // Apellido
-    { wch: maxNombre + 2 },   // Nombre
-    { wch: 35 },              // Firma
-  ];
+  const maxDni = Math.max(...inscriptos.map((i) => (i.dni ?? '').length), 'DNI'.length);
+
+  ws['!cols'] = includeFirma
+    ? [
+        { wch: 5 },               // Nº
+        { wch: maxApellido + 2 }, // Apellido
+        { wch: maxNombre + 2 },   // Nombre
+        { wch: maxDni + 2 },      // DNI
+        { wch: 35 },              // Firma
+      ]
+    : [
+        { wch: 5 },               // Nº
+        { wch: maxApellido + 2 }, // Apellido
+        { wch: maxNombre + 2 },   // Nombre
+        { wch: maxDni + 2 },      // DNI
+      ];
 
   ws['!rows'] = [
     { hpt: 26 },  // título

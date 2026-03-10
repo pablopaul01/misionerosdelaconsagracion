@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: '/admin/dashboard',    label: 'Dashboard' },
   { href: '/admin/misioneros',   label: 'Misioneros' },
   { href: '/admin/formaciones',  label: 'Formaciones' },
+  { href: '/admin/grupo-oracion', label: 'Grupo de oración' },
   { href: '/admin/consagracion', label: 'Consagración' },
   { href: '/admin/retiros',      label: 'Retiros' },
   { href: '/admin/usuarios',     label: 'Usuarios' },

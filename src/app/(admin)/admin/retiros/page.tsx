@@ -495,7 +495,7 @@ export default function RetirosPage() {
             <div className="flex flex-wrap gap-3 text-sm text-brand-brown">
               <span className="flex items-center gap-1">
                 <DollarSign className="w-4 h-4" />
-                {(retiro.costo ?? 0) > 0 ? `$${(retiro.costo ?? 0).toLocaleString('es-AR')}` : 'Gratis'}
+                {(retiro.costo ?? 0) > 0 ? (retiro.costo ?? 0).toLocaleString('es-AR') : 'Gratis'}
               </span>
               {retiro.cupo && (
                 <span className="flex items-center gap-1">

@@ -312,7 +312,8 @@ export default function RetiroInscripcionPage() {
       )}
 
       {tipoRetiro === 'matrimonios' && (
-        <div className="flex flex-col gap-4">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-brand-creamLight flex flex-col gap-4">
+          <h2 className="font-title text-brand-brown">Datos de la inscripción</h2>
           <div className="bg-brand-cream/50 p-4 rounded-lg">
             <h3 className="font-medium text-brand-dark mb-4">Datos del Esposo</h3>
             <div className="grid gap-4">
