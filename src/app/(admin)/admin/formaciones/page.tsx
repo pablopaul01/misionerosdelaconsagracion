@@ -160,11 +160,23 @@ export default function FormacionesPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<Formacion | null>(null);
   const [eliminando, setEliminando] = useState<Formacion | null>(null);
+  const [tipoFiltro, setTipoFiltro] = useState<'todos' | Formacion['tipo']>('todos');
+  const [anioFiltro, setAnioFiltro] = useState<'todos' | string>('todos');
   const router = useRouter();
 
   const { data: formaciones = [], isLoading } = useFormaciones();
   const { mutateAsync: createFormacion } = useCreateFormacion();
   const { mutateAsync: deleteFormacion, isPending: eliminandoPending } = useDeleteFormacion();
+
+  const aniosDisponibles = Array.from(
+    new Set(formaciones.map((f) => String(f.anio)))
+  ).sort((a, b) => b.localeCompare(a));
+
+  const formacionesFiltradas = formaciones.filter((f) => {
+    const coincideTipo = tipoFiltro === 'todos' || f.tipo === tipoFiltro;
+    const coincideAnio = anioFiltro === 'todos' || String(f.anio) === anioFiltro;
+    return coincideTipo && coincideAnio;
+  });
 
   const copyLink = (formacionId: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/asistencia`);
@@ -209,10 +221,44 @@ export default function FormacionesPage() {
         </Dialog>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col gap-1.5 min-w-[180px]">
+          <Label>Filtrar por tipo</Label>
+          <Select value={tipoFiltro} onValueChange={(v) => setTipoFiltro(v as 'todos' | Formacion['tipo'])}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {Object.values(TIPO_FORMACION).map((value) => (
+                <SelectItem key={value} value={value}>
+                  {TIPO_FORMACION_LABEL[value]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-1.5 min-w-[140px]">
+          <Label>Filtrar por año</Label>
+          <Select value={anioFiltro} onValueChange={setAnioFiltro}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {aniosDisponibles.map((anio) => (
+                <SelectItem key={anio} value={anio}>{anio}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {isLoading && <p className="text-brand-brown">Cargando...</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {formaciones.map((formacion) => (
+        {formacionesFiltradas.map((formacion) => (
           <div
             key={formacion.id}
             className="bg-white border border-brand-creamLight rounded-xl p-5 flex flex-col gap-3"
@@ -274,7 +320,7 @@ export default function FormacionesPage() {
           </div>
         ))}
 
-        {!isLoading && formaciones.length === 0 && (
+        {!isLoading && formacionesFiltradas.length === 0 && (
           <p className="text-brand-brown col-span-2">No hay formaciones creadas aún</p>
         )}
       </div>

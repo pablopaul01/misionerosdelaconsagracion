@@ -304,10 +304,27 @@ export default function RetirosPage() {
   const [eliminando, setEliminando] = useState<Retiro | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [tipoFiltro, setTipoFiltro] = useState<'todos' | TipoRetiro>('todos');
+  const [anioFiltro, setAnioFiltro] = useState<'todos' | string>('todos');
   const router = useRouter();
 
   const { data: retiros = [], isLoading } = useRetiros();
   const { mutateAsync: deleteRetiro, isPending: eliminandoPending } = useDeleteRetiro();
+
+  const aniosDisponibles = Array.from(
+    new Set(
+      retiros
+        .map((r) => r.fecha_inicio?.slice(0, 4))
+        .filter((year): year is string => !!year)
+    )
+  ).sort((a, b) => b.localeCompare(a));
+
+  const retirosFiltrados = retiros.filter((r) => {
+    const coincideTipo = tipoFiltro === 'todos' || r.tipo === tipoFiltro;
+    const anio = r.fecha_inicio?.slice(0, 4) ?? '';
+    const coincideAnio = anioFiltro === 'todos' || anio === anioFiltro;
+    return coincideTipo && coincideAnio;
+  });
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -366,10 +383,44 @@ export default function RetirosPage() {
         </Dialog>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col gap-1.5 min-w-[180px]">
+          <Label>Filtrar por tipo</Label>
+          <Select value={tipoFiltro} onValueChange={(v) => setTipoFiltro(v as 'todos' | TipoRetiro)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {Object.entries(TIPO_RETIRO).map(([, value]) => (
+                <SelectItem key={value} value={value}>
+                  {TIPO_RETIRO_LABEL[value as keyof typeof TIPO_RETIRO_LABEL]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-1.5 min-w-[140px]">
+          <Label>Filtrar por año</Label>
+          <Select value={anioFiltro} onValueChange={setAnioFiltro}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {aniosDisponibles.map((anio: string) => (
+                <SelectItem key={anio} value={anio}>{anio}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {isLoading && <p className="text-brand-brown">Cargando...</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {retiros.map((retiro) => (
+        {retirosFiltrados.map((retiro) => (
           <div
             key={retiro.id}
             className="bg-white border border-brand-creamLight rounded-xl p-5 flex flex-col gap-3"
@@ -475,7 +526,7 @@ export default function RetirosPage() {
           </div>
         ))}
 
-        {!isLoading && retiros.length === 0 && (
+        {!isLoading && retirosFiltrados.length === 0 && (
           <p className="text-brand-brown col-span-2">No hay retiros creados</p>
         )}
       </div>

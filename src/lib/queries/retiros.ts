@@ -322,6 +322,21 @@ export const useCreateInscripcionMisionero = (retiroId: string) => {
   });
 };
 
+export const useUpdateInscripcionMisionero = (retiroId: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, misioneroId }: { id: string; misioneroId: string }) => {
+      const { error } = await supabase
+        .from('inscripciones_retiro_misioneros')
+        .update({ misionero_id: misioneroId })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inscripcionesMisioneros(retiroId) }),
+  });
+};
+
 export const useLookupMisioneroPorDni = () => {
   const supabase = createClient();
   return useMutation({
