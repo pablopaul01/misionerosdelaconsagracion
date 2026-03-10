@@ -499,9 +499,11 @@ export type Database = {
         Row: {
           apellido: string
           bautizado: boolean
+          contactos_emergencia: Json | null
           created_at: string | null
           dni: string
           domicilio: string | null
+          dieta_especial_detalle: string | null
           enfermedad_detalle: string | null
           en_espera: boolean
           estado_civil: string | null
@@ -517,9 +519,11 @@ export type Database = {
         Insert: {
           apellido: string
           bautizado?: boolean
+          contactos_emergencia?: Json | null
           created_at?: string | null
           dni: string
           domicilio?: string | null
+          dieta_especial_detalle?: string | null
           enfermedad_detalle?: string | null
           en_espera?: boolean
           estado_civil?: string | null
@@ -535,9 +539,11 @@ export type Database = {
         Update: {
           apellido?: string
           bautizado?: boolean
+          contactos_emergencia?: Json | null
           created_at?: string | null
           dni?: string
           domicilio?: string | null
+          dieta_especial_detalle?: string | null
           enfermedad_detalle?: string | null
           en_espera?: boolean
           estado_civil?: string | null

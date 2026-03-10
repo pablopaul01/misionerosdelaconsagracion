@@ -85,6 +85,7 @@ export const inscripcionConversionSchema = z.object({
   dieta_especial_detalle: z.string(),
   primer_retiro: z.boolean(),
   bautizado: z.boolean(),
+  en_espera: z.boolean().optional(),
 }).refine(
   (data) => !data.tiene_enfermedad || (data.tiene_enfermedad && data.enfermedad_detalle.length > 0),
   { message: 'Especificá la enfermedad o alergia', path: ['enfermedad_detalle'] }
@@ -147,6 +148,10 @@ export const inscripcionMatrimoniosSchema = z.object({
   }),
   domicilio: z.string().min(1, 'El domicilio es requerido'),
   como_se_enteraron: z.string().min(1, 'Contanos cómo se enteraron del retiro'),
+  entrevista_realizada: z.boolean().optional(),
+  entrevista_fecha: z.string().optional(),
+  entrevista_notas: z.string().optional(),
+  en_espera: z.boolean().optional(),
 });
 
 export type InscripcionMatrimoniosInput = z.infer<typeof inscripcionMatrimoniosSchema>;
