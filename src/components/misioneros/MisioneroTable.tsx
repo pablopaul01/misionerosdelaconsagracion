@@ -245,7 +245,7 @@ export const MisioneroTable = () => {
                 try {
                   await deleteMisionero(eliminarTarget.id);
                   setEliminarTarget(null);
-                } catch (e) {
+                } catch {
                   // no toast here to keep minimal; could add if needed
                 }
               }}
