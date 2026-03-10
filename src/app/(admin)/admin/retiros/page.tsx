@@ -374,7 +374,7 @@ export default function RetirosPage() {
               + Nuevo retiro
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-title text-brand-dark">Nuevo Retiro</DialogTitle>
             </DialogHeader>

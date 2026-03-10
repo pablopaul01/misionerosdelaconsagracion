@@ -185,7 +185,7 @@ const InscripcionDialog = ({ open, onOpenChange, formacionId, inscripcion }: Ins
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-title text-brand-dark">
             {inscripcion ? 'Editar inscripto' : 'Nueva inscripción'}
@@ -305,6 +305,7 @@ interface InscripcionesViewProps {
   finalizada?: boolean;
   onFinalizar?: () => void;
   finalizando?: boolean;
+  fechaConsagracion?: string | null;
 }
 
 type FiltroConsagracion = 'todos' | 'consagrados' | 'no_completo' | 'pendiente';
@@ -316,7 +317,13 @@ const FILTRO_LABELS: Record<FiltroConsagracion, string> = {
   pendiente:    'Pendientes',
 };
 
-export const InscripcionesView = ({ formacionId, finalizada, onFinalizar, finalizando }: InscripcionesViewProps) => {
+export const InscripcionesView = ({
+  formacionId,
+  finalizada,
+  onFinalizar,
+  finalizando,
+  fechaConsagracion,
+}: InscripcionesViewProps) => {
   const { data: inscripciones = [], isLoading } = useInscripcionesConsagracion(formacionId);
   const { mutateAsync: convertir, isPending: convirtiendo } = useConvertirAMisionero(formacionId);
   const { mutateAsync: eliminar } = useDeleteInscripcionConsagracion(formacionId);
@@ -354,6 +361,7 @@ export const InscripcionesView = ({ formacionId, finalizada, onFinalizar, finali
         dni:      confirmando.dni ?? '',
         whatsapp: confirmando.whatsapp ?? '',
         activo:   convertirActivo,
+        fechaConsagracion,
       });
       setConvertidos((prev) => new Set(prev).add(confirmando.id));
       setConfirmando(null);

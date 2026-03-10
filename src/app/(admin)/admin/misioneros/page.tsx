@@ -107,7 +107,7 @@ export default function MisionerosPage() {
             <DialogTrigger asChild>
               <Button variant="outline">Gestionar roles</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-title text-brand-dark">Roles de misionero</DialogTitle>
               </DialogHeader>

@@ -194,7 +194,7 @@ export default function RetiroDetailPage() {
               <DialogTrigger asChild>
                 <Button variant="outline" onClick={openEdit}>Editar</Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-lg">
+              <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Editar retiro</DialogTitle>
                 </DialogHeader>
@@ -343,7 +343,7 @@ export default function RetiroDetailPage() {
         </span>
         <span className="flex items-center gap-2 text-brand-brown">
           <DollarSign className="w-4 h-4" />
-          {(retiro.costo ?? 0) > 0 ? `$${(retiro.costo ?? 0).toLocaleString('es-AR')}` : 'Gratis'}
+          {(retiro.costo ?? 0) > 0 ? (retiro.costo ?? 0).toLocaleString('es-AR') : 'Gratis'}
         </span>
         {retiro.cupo && (
           <span className="flex items-center gap-2 text-brand-brown">

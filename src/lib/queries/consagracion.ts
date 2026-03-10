@@ -246,10 +246,10 @@ export const useFinalizarFormacion = () => {
   const supabase = createClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, fechaConsagracion }: { id: string; fechaConsagracion: string }) => {
       const { error } = await supabase
         .from('formaciones_consagracion')
-        .update({ finalizada: true })
+        .update({ finalizada: true, fecha_consagracion: fechaConsagracion })
         .eq('id', id);
       if (error) throw error;
     },
@@ -272,16 +272,25 @@ export const useConvertirAMisionero = (formacionId: string) => {
       dni,
       whatsapp,
       activo,
+      fechaConsagracion,
     }: {
       nombre: string;
       apellido: string;
       dni: string;
       whatsapp: string;
       activo: boolean;
+      fechaConsagracion?: string | null;
     }) => {
       const { data, error } = await supabase
         .from('misioneros')
-        .insert({ nombre, apellido, dni, whatsapp, activo })
+        .insert({
+          nombre,
+          apellido,
+          dni,
+          whatsapp,
+          activo,
+          fecha_consagracion: fechaConsagracion || null,
+        })
         .select()
         .single();
       if (error) throw error;
