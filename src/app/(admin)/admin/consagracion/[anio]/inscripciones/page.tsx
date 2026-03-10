@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useFormacionConsagracion, useFinalizarFormacion } from '@/lib/queries/consagracion';
 import { InscripcionesView } from '@/components/consagracion/InscripcionesView';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,12 +26,17 @@ export default function AdminInscripcionesPage() {
 
   const [confirmarFinalizar, setConfirmarFinalizar] = useState(false);
   const [errorFinalizar, setErrorFinalizar] = useState('');
+  const [fechaConsagracion, setFechaConsagracion] = useState('');
 
   const handleFinalizar = async () => {
     if (!formacion) return;
     setErrorFinalizar('');
+    if (!fechaConsagracion) {
+      setErrorFinalizar('Seleccioná la fecha de consagración');
+      return;
+    }
     try {
-      await finalizar(formacion.id);
+      await finalizar({ id: formacion.id, fechaConsagracion });
       setConfirmarFinalizar(false);
     } catch (e) {
       setErrorFinalizar((e as Error)?.message ?? 'Error al finalizar');
@@ -53,8 +60,12 @@ export default function AdminInscripcionesPage() {
       <InscripcionesView
         formacionId={formacion.id}
         finalizada={formacion.finalizada}
-        onFinalizar={() => setConfirmarFinalizar(true)}
+        onFinalizar={() => {
+          setFechaConsagracion(formacion.fecha_consagracion ?? new Date().toISOString().split('T')[0]);
+          setConfirmarFinalizar(true);
+        }}
         finalizando={finalizando}
+        fechaConsagracion={formacion.fecha_consagracion}
       />
 
       <AlertDialog
@@ -69,6 +80,14 @@ export default function AdminInscripcionesPage() {
               después, pero la formación quedará marcada como finalizada.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="flex flex-col gap-1.5">
+            <Label>Fecha de consagración</Label>
+            <Input
+              type="date"
+              value={fechaConsagracion}
+              onChange={(e) => setFechaConsagracion(e.target.value)}
+            />
+          </div>
           {errorFinalizar && <p className="text-sm text-red-600 px-1">{errorFinalizar}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

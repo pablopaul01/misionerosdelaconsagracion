@@ -75,6 +75,10 @@ export const MisioneroForm = ({
       apellido: defaultValues?.apellido ?? '',
       dni:      defaultValues?.dni      ?? '',
       whatsapp: defaultValues?.whatsapp ?? '',
+      fecha_nacimiento: defaultValues?.fecha_nacimiento ?? '',
+      domicilio: defaultValues?.domicilio ?? '',
+      fecha_consagracion: defaultValues?.fecha_consagracion ?? '',
+      fecha_retiro_conversion: defaultValues?.fecha_retiro_conversion ?? '',
       activo:   defaultValues?.activo   ?? true,
     },
     validators: { onSubmit: misioneroSchema },
@@ -145,6 +149,63 @@ export const MisioneroForm = ({
             label="WhatsApp (sin +, solo números)"
             id="whatsapp"
             inputMode="numeric"
+            value={field.state.value}
+            onChange={field.handleChange}
+            onBlur={field.handleBlur}
+            error={field.state.meta.errors[0] ? fieldError(field.state.meta.errors[0]) : undefined}
+          />
+        )}
+      </form.Field>
+
+      <div className="grid grid-cols-2 gap-4">
+        <form.Field name="fecha_nacimiento">
+          {(field) => (
+            <FormField
+              label="Fecha de nacimiento"
+              id="fecha_nacimiento"
+              type="date"
+              value={field.state.value}
+              onChange={field.handleChange}
+              onBlur={field.handleBlur}
+              error={field.state.meta.errors[0] ? fieldError(field.state.meta.errors[0]) : undefined}
+            />
+          )}
+        </form.Field>
+
+        <form.Field name="fecha_consagracion">
+          {(field) => (
+            <FormField
+              label="Fecha de consagración"
+              id="fecha_consagracion"
+              type="date"
+              value={field.state.value}
+              onChange={field.handleChange}
+              onBlur={field.handleBlur}
+              error={field.state.meta.errors[0] ? fieldError(field.state.meta.errors[0]) : undefined}
+            />
+          )}
+        </form.Field>
+      </div>
+
+      <form.Field name="domicilio">
+        {(field) => (
+          <FormField
+            label="Domicilio"
+            id="domicilio"
+            value={field.state.value}
+            onChange={field.handleChange}
+            onBlur={field.handleBlur}
+            error={field.state.meta.errors[0] ? fieldError(field.state.meta.errors[0]) : undefined}
+          />
+        )}
+      </form.Field>
+
+      <form.Field name="fecha_retiro_conversion">
+        {(field) => (
+          <FormField
+            label="Fecha de retiro de conversión (opcional)"
+            id="fecha_retiro_conversion"
+            type="date"
             value={field.state.value}
             onChange={field.handleChange}
             onBlur={field.handleBlur}

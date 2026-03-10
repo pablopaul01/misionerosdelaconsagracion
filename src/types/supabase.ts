@@ -134,6 +134,7 @@ export type Database = {
         Row: {
           anio: number
           created_at: string | null
+          fecha_consagracion: string | null
           fecha_inicio: string
           finalizada: boolean
           id: string
@@ -141,6 +142,7 @@ export type Database = {
         Insert: {
           anio: number
           created_at?: string | null
+          fecha_consagracion?: string | null
           fecha_inicio: string
           finalizada?: boolean
           id?: string
@@ -148,6 +150,7 @@ export type Database = {
         Update: {
           anio?: number
           created_at?: string | null
+          fecha_consagracion?: string | null
           fecha_inicio?: string
           finalizada?: boolean
           id?: string
@@ -323,7 +326,11 @@ export type Database = {
           activo: boolean | null
           apellido: string
           created_at: string | null
+          domicilio: string | null
           dni: string
+          fecha_consagracion: string | null
+          fecha_nacimiento: string | null
+          fecha_retiro_conversion: string | null
           id: string
           nombre: string
           whatsapp: string
@@ -332,7 +339,11 @@ export type Database = {
           activo?: boolean | null
           apellido: string
           created_at?: string | null
+          domicilio?: string | null
           dni: string
+          fecha_consagracion?: string | null
+          fecha_nacimiento?: string | null
+          fecha_retiro_conversion?: string | null
           id?: string
           nombre: string
           whatsapp: string
@@ -341,7 +352,11 @@ export type Database = {
           activo?: boolean | null
           apellido?: string
           created_at?: string | null
+          domicilio?: string | null
           dni?: string
+          fecha_consagracion?: string | null
+          fecha_nacimiento?: string | null
+          fecha_retiro_conversion?: string | null
           id?: string
           nombre?: string
           whatsapp?: string

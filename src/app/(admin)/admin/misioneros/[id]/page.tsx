@@ -26,13 +26,17 @@ export default function MisioneroDetailPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-lg">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => router.back()} className="text-brand-brown">
-          ← Volver
-        </Button>
-        <h1 className="font-title text-2xl text-brand-dark">
-          {misionero.apellido}, {misionero.nombre}
-        </h1>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <Button variant="ghost" onClick={() => router.back()} className="text-brand-brown -ml-3">
+            ← Volver
+          </Button>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="font-title text-2xl text-brand-dark">
+            {misionero.apellido}, {misionero.nombre}
+          </h1>
+        </div>
       </div>
 
       {/* Formulario de edición con confirmación */}
@@ -41,6 +45,10 @@ export default function MisioneroDetailPage() {
         <MisioneroForm
           defaultValues={{
             ...misionero,
+            fecha_nacimiento: misionero.fecha_nacimiento ?? '',
+            domicilio: misionero.domicilio ?? '',
+            fecha_consagracion: misionero.fecha_consagracion ?? '',
+            fecha_retiro_conversion: misionero.fecha_retiro_conversion ?? '',
             activo: misionero.activo ?? true,
           }}
           onSubmit={handleUpdate}

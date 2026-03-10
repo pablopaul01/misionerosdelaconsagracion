@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import type { MisioneroInput } from '@/lib/validations/misioneros';
+import type { Database } from '@/types/supabase';
 
 // Claves de caché — nunca usar strings literales directamente
 const QUERY_KEYS = {
@@ -10,6 +11,34 @@ const QUERY_KEYS = {
   rolesActivos: ['roles-misionero', 'activos'] as const,
   misioneroRoles: (id: string) => ['misioneros', id, 'roles'] as const,
   misionerosRolesMap: ['misioneros', 'roles-map'] as const,
+};
+
+const normalizeMisioneroInsert = (input: MisioneroInput): Database['public']['Tables']['misioneros']['Insert'] => ({
+  nombre: input.nombre.trim(),
+  apellido: input.apellido.trim(),
+  dni: input.dni.trim(),
+  whatsapp: input.whatsapp.trim(),
+  activo: input.activo,
+  domicilio: input.domicilio.trim() || null,
+  fecha_nacimiento: input.fecha_nacimiento || null,
+  fecha_consagracion: input.fecha_consagracion || null,
+  fecha_retiro_conversion: input.fecha_retiro_conversion || null,
+});
+
+const normalizeMisioneroUpdate = (input: Partial<MisioneroInput>): Database['public']['Tables']['misioneros']['Update'] => {
+  const payload: Database['public']['Tables']['misioneros']['Update'] = {};
+
+  if (input.nombre !== undefined) payload.nombre = input.nombre.trim();
+  if (input.apellido !== undefined) payload.apellido = input.apellido.trim();
+  if (input.dni !== undefined) payload.dni = input.dni.trim();
+  if (input.whatsapp !== undefined) payload.whatsapp = input.whatsapp.trim();
+  if (input.activo !== undefined) payload.activo = input.activo;
+  if (input.domicilio !== undefined) payload.domicilio = input.domicilio.trim() || null;
+  if (input.fecha_nacimiento !== undefined) payload.fecha_nacimiento = input.fecha_nacimiento || null;
+  if (input.fecha_consagracion !== undefined) payload.fecha_consagracion = input.fecha_consagracion || null;
+  if (input.fecha_retiro_conversion !== undefined) payload.fecha_retiro_conversion = input.fecha_retiro_conversion || null;
+
+  return payload;
 };
 
 export const useMisioneros = () => {
@@ -56,7 +85,7 @@ export const useCreateMisionero = () => {
     mutationFn: async (input: MisioneroInput) => {
       const { data, error } = await supabase
         .from('misioneros')
-        .insert(input)
+        .insert(normalizeMisioneroInsert(input))
         .select()
         .single();
 
@@ -77,7 +106,7 @@ export const useUpdateMisionero = (id: string) => {
     mutationFn: async (input: Partial<MisioneroInput>) => {
       const { data, error } = await supabase
         .from('misioneros')
-        .update(input)
+        .update(normalizeMisioneroUpdate(input))
         .eq('id', id)
         .select()
         .single();
