@@ -165,8 +165,10 @@ export default function ConsagracionInscripcionPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        {CONSAGRACION_FIELDS.map((fieldConfig) => {
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-brand-creamLight">
+        <h2 className="font-title text-brand-brown mb-4">Datos de la inscripción</h2>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {CONSAGRACION_FIELDS.map((fieldConfig) => {
           const { name, label, type, required } = fieldConfig;
 
           if (type === 'select' && 'options' in fieldConfig) {
@@ -248,29 +250,30 @@ export default function ConsagracionInscripcionPage() {
             );
           }
 
-          return (
-            <div key={name} className="flex flex-col gap-1.5">
-              <Label>{label}{required && ' *'}</Label>
-              <Input
-                value={getValue(name as keyof FormValues)}
-                onChange={(e) => set(name as keyof FormValues, e.target.value)}
-                className="min-h-[48px]"
-              />
-            </div>
-          );
-        })}
+            return (
+              <div key={name} className="flex flex-col gap-1.5">
+                <Label>{label}{required && ' *'}</Label>
+                <Input
+                  value={getValue(name as keyof FormValues)}
+                  onChange={(e) => set(name as keyof FormValues, e.target.value)}
+                  className="min-h-[48px]"
+                />
+              </div>
+            );
+          })}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={() => router.push(`/admin/consagracion/${anio}/inscripciones`)}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={isPending} className="bg-brand-brown hover:bg-brand-dark text-white">
-            {isPending ? 'Guardando...' : isNew ? 'Crear' : 'Guardar cambios'}
-          </Button>
-        </div>
-      </form>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={() => router.push(`/admin/consagracion/${anio}/inscripciones`)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isPending} className="bg-brand-brown hover:bg-brand-dark text-white">
+              {isPending ? 'Guardando...' : isNew ? 'Crear' : 'Guardar cambios'}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

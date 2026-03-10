@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Copy, CheckCircle2 } from 'lucide-react';
+import { Check, Copy, CheckCircle2, MoreVertical } from 'lucide-react';
 import {
   useFormaciones,
   useCreateFormacion,
@@ -263,16 +263,12 @@ export default function FormacionesPage() {
             key={formacion.id}
             className="bg-white border border-brand-creamLight rounded-xl p-5 flex flex-col gap-3"
           >
-            {/* Cuerpo — clickeable para ir al detalle */}
-            <button
-              onClick={() => router.push(`/admin/formaciones/${formacion.id}`)}
-              className="text-left hover:opacity-80 transition-opacity"
-            >
-              <div className="flex items-center justify-between mb-1 gap-2">
+            <div className="flex items-start justify-between gap-2">
+              <div>
                 <span className="font-title text-brand-dark text-lg">
                   {TIPO_FORMACION_LABEL[formacion.tipo]}
                 </span>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 mt-1">
                   {formacion.finalizada && (
                     <span className="flex items-center gap-1 text-xs text-green-700 font-medium">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Finalizada
@@ -283,16 +279,26 @@ export default function FormacionesPage() {
                   </Badge>
                 </div>
               </div>
-              <p className="text-sm text-brand-brown">
-                Inicio: {new Date(formacion.fecha_inicio + 'T00:00:00').toLocaleDateString('es-AR')}
-              </p>
-              <p className="text-xs text-brand-brown/70">
-                {DIAS_SEMANA[formacion.dia_semana]}s
-              </p>
-            </button>
+              <ActionMenu
+                items={[
+                  { label: 'Editar', onClick: () => setEditTarget(formacion as Formacion) },
+                  {
+                    label: 'Eliminar',
+                    onClick: () => setEliminando(formacion as Formacion),
+                    tone: 'danger',
+                  },
+                ]}
+              />
+            </div>
 
-            {/* Acciones */}
-            <div className="flex items-center gap-3 flex-wrap">
+            <p className="text-sm text-brand-brown">
+              Inicio: {new Date(formacion.fecha_inicio + 'T00:00:00').toLocaleDateString('es-AR')}
+            </p>
+            <p className="text-xs text-brand-brown/70">
+              {DIAS_SEMANA[formacion.dia_semana]}s
+            </p>
+
+            <div className="flex items-center justify-between gap-3 flex-wrap pt-2 border-t border-brand-creamLight">
               <button
                 onClick={() => copyLink(formacion.id)}
                 className="flex items-center gap-1.5 text-sm text-brand-teal hover:text-brand-navy transition-colors"
@@ -304,17 +310,10 @@ export default function FormacionesPage() {
               </button>
 
               <button
-                onClick={() => setEditTarget(formacion as Formacion)}
+                onClick={() => router.push(`/admin/formaciones/${formacion.id}`)}
                 className="text-sm text-brand-brown hover:text-brand-dark transition-colors"
               >
-                Editar
-              </button>
-
-              <button
-                onClick={() => setEliminando(formacion as Formacion)}
-                className="text-sm text-red-400 hover:text-red-600 transition-colors"
-              >
-                Eliminar
+                Ver detalle
               </button>
             </div>
           </div>
@@ -357,6 +356,59 @@ export default function FormacionesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+function ActionMenu({
+  items,
+}: {
+  items: { label: string; onClick: () => void; tone?: 'danger' }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (event: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        type="button"
+        className="h-9 w-9 flex items-center justify-center rounded-md border border-brand-creamLight bg-white text-brand-brown"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-label="Abrir acciones"
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
+      {open && (
+        <div className="absolute right-0 bottom-full mb-2 w-44 bg-white border border-brand-creamLight rounded-lg shadow-lg z-50">
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-brand-creamLight ${
+                item.tone === 'danger' ? 'text-red-600' : 'text-brand-dark'
+              }`}
+              onClick={() => {
+                item.onClick();
+                setOpen(false);
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
