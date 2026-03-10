@@ -58,7 +58,12 @@ export default function SecretarioInscripcionesPage() {
         )}
       </div>
 
-      {formacionSeleccionada && <InscripcionesView formacionId={formacionSeleccionada.id} />}
+      {formacionSeleccionada && (
+        <InscripcionesView
+          formacionId={formacionSeleccionada.id}
+          anio={formacionSeleccionada.anio}
+        />
+      )}
     </div>
   );
 }

@@ -140,7 +140,7 @@ export function ServidoresTab({ retiroId }: ServidoresTabProps) {
               Gestionar roles
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
             <DialogHeader>
               <DialogTitle>Roles de servidores</DialogTitle>
             </DialogHeader>
@@ -178,7 +178,7 @@ export function ServidoresTab({ retiroId }: ServidoresTabProps) {
                 </Button>
               </div>
 
-              <div className="space-y-3 max-h-80 overflow-y-auto">
+              <div className="space-y-3">
                 {loadingRoles ? (
                   <p className="text-sm text-brand-brown">Cargando roles...</p>
                 ) : roles.length === 0 ? (
@@ -187,15 +187,15 @@ export function ServidoresTab({ retiroId }: ServidoresTabProps) {
                   roles.map((rol) => (
                     <div
                       key={rol.id}
-                      className="border border-brand-creamLight rounded-lg p-3 flex items-start justify-between gap-3"
+                      className="border border-brand-creamLight rounded-lg p-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
                     >
-                      <div>
-                        <p className="font-medium text-brand-dark">{rol.nombre}</p>
+                      <div className="min-w-0">
+                        <p className="font-medium text-brand-dark break-words">{rol.nombre}</p>
                         {rol.descripcion && (
-                          <p className="text-sm text-brand-brown/80">{rol.descripcion}</p>
+                          <p className="text-sm text-brand-brown/80 break-words">{rol.descripcion}</p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                         <Badge className={rol.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}>
                           {rol.activo ? 'Activo' : 'Inactivo'}
                         </Badge>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   useReactTable,
   getCoreRowModel,
@@ -12,31 +13,14 @@ import {
 import {
   useInscripcionesConsagracion,
   useConvertirAMisionero,
-  useCreateInscripcionConsagracion,
-  useUpdateInscripcionConsagracion,
   useDeleteInscripcionConsagracion,
   useMarcarConsagracion,
 } from '@/lib/queries/consagracion';
-import { ESTADO_CIVIL_LABEL, ESTADO_CIVIL } from '@/lib/constants/consagracion';
+import { ESTADO_CIVIL_LABEL } from '@/lib/constants/consagracion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -56,7 +40,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import type { Database } from '@/types/supabase';
-import type { InscripcionConsagracionInput } from '@/lib/validations/consagracion';
 
 type Inscripcion = Database['public']['Tables']['inscripciones_consagracion']['Row'] & {
   dni?: string;
@@ -70,13 +53,6 @@ const SACRAMENTOS_LABEL: Record<string, string> = {
   matrimonio:   'Matrimonio',
 };
 
-const SACRAMENTOS_OPTIONS = [
-  { value: 'bautismo',     label: 'Bautismo' },
-  { value: 'comunion',     label: 'Comunión' },
-  { value: 'confirmacion', label: 'Confirmación' },
-  { value: 'matrimonio',   label: 'Matrimonio' },
-];
-
 const TIPO_LABEL: Record<string, string> = {
   primera_vez: 'Primera vez',
   renovacion:  'Renovación',
@@ -84,224 +60,12 @@ const TIPO_LABEL: Record<string, string> = {
 
 // ── Form values type ──────────────────────────────────────────────
 
-type FormValues = {
-  nombre: string;
-  apellido: string;
-  dni: string;
-  domicilio: string;
-  whatsapp: string;
-  estado_civil: string;
-  tipo_inscripcion: string;
-  sacramentos: string[];
-  comentario: string;
-};
-
-const EMPTY_FORM: FormValues = {
-  nombre: '', apellido: '', dni: '', domicilio: '', whatsapp: '',
-  estado_civil: '', tipo_inscripcion: '', sacramentos: [], comentario: '',
-};
-
-const inscripcionToForm = (ins: Inscripcion): FormValues => ({
-  nombre:           ins.nombre,
-  apellido:         ins.apellido,
-  dni:              ins.dni ?? '',
-  domicilio:        ins.domicilio ?? '',
-  whatsapp:         ins.whatsapp ?? '',
-  estado_civil:     ins.estado_civil ?? '',
-  tipo_inscripcion: ins.tipo_inscripcion ?? '',
-  sacramentos:      (ins.sacramentos as string[]) ?? [],
-  comentario:       ins.comentario ?? '',
-});
-
-// ── Dialog form ───────────────────────────────────────────────────
-
-interface InscripcionDialogProps {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  formacionId: string;
-  inscripcion: Inscripcion | null; // null = crear
-}
-
-const InscripcionDialog = ({ open, onOpenChange, formacionId, inscripcion }: InscripcionDialogProps) => {
-  const { mutateAsync: crear, isPending: creando } = useCreateInscripcionConsagracion(formacionId);
-  const { mutateAsync: actualizar, isPending: actualizando } = useUpdateInscripcionConsagracion(formacionId);
-
-  const [form, setForm] = useState<FormValues>(() =>
-    inscripcion ? inscripcionToForm(inscripcion) : EMPTY_FORM
-  );
-  const [error, setError] = useState('');
-
-  const handleOpenChange = (v: boolean) => {
-    if (v) setForm(inscripcion ? inscripcionToForm(inscripcion) : EMPTY_FORM);
-    setError('');
-    onOpenChange(v);
-  };
-
-  const set = (key: keyof FormValues, value: FormValues[keyof FormValues]) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
-
-  const toggleSacramento = (value: string) =>
-    setForm((prev) => ({
-      ...prev,
-      sacramentos: prev.sacramentos.includes(value)
-        ? prev.sacramentos.filter((s) => s !== value)
-        : [...prev.sacramentos, value],
-    }));
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!form.nombre || !form.apellido || !form.dni || !form.whatsapp || !form.estado_civil || !form.tipo_inscripcion) {
-      setError('Completá los campos obligatorios (*)');
-      return;
-    }
-
-    const input: InscripcionConsagracionInput = {
-      nombre:           form.nombre.trim(),
-      apellido:         form.apellido.trim(),
-      dni:              form.dni.trim(),
-      domicilio:        form.domicilio.trim(),
-      whatsapp:         form.whatsapp.trim(),
-      estado_civil:     form.estado_civil as InscripcionConsagracionInput['estado_civil'],
-      tipo_inscripcion: form.tipo_inscripcion as InscripcionConsagracionInput['tipo_inscripcion'],
-      sacramentos:      form.sacramentos,
-      comentario:       form.comentario.trim(),
-    };
-
-    try {
-      if (inscripcion) {
-        await actualizar({ id: inscripcion.id, input });
-      } else {
-        await crear(input);
-      }
-      onOpenChange(false);
-    } catch (e) {
-      setError((e as Error)?.message ?? 'Error al guardar');
-    }
-  };
-
-  const isPending = creando || actualizando;
-
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-title text-brand-dark">
-            {inscripcion ? 'Editar inscripto' : 'Nueva inscripción'}
-          </DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label>Apellido *</Label>
-              <Input value={form.apellido} onChange={(e) => set('apellido', e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Nombre *</Label>
-              <Input value={form.nombre} onChange={(e) => set('nombre', e.target.value)} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label>DNI *</Label>
-              <Input value={form.dni} onChange={(e) => set('dni', e.target.value)} inputMode="numeric" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>WhatsApp *</Label>
-              <Input value={form.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} inputMode="numeric" />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label>Domicilio</Label>
-            <Input value={form.domicilio} onChange={(e) => set('domicilio', e.target.value)} />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label>Estado civil *</Label>
-            <Select value={form.estado_civil} onValueChange={(v) => set('estado_civil', v)}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-              <SelectContent>
-                {Object.values(ESTADO_CIVIL).map((v) => (
-                  <SelectItem key={v} value={v}>{ESTADO_CIVIL_LABEL[v]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label>Tipo de inscripción *</Label>
-            <div className="flex gap-4">
-              {[
-                { value: 'primera_vez', label: 'Primera vez' },
-                { value: 'renovacion',  label: 'Renovación' },
-              ].map((opt) => (
-                <label key={opt.value} className="flex items-center gap-2 cursor-pointer text-sm">
-                  <input
-                    type="radio"
-                    name="tipo_inscripcion"
-                    value={opt.value}
-                    checked={form.tipo_inscripcion === opt.value}
-                    onChange={() => set('tipo_inscripcion', opt.value)}
-                    className="accent-brand-teal"
-                  />
-                  {opt.label}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label>Sacramentos recibidos</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {SACRAMENTOS_OPTIONS.map((opt) => (
-                <label key={opt.value} className="flex items-center gap-2 cursor-pointer text-sm">
-                  <Checkbox
-                    checked={form.sacramentos.includes(opt.value)}
-                    onCheckedChange={() => toggleSacramento(opt.value)}
-                  />
-                  {opt.label}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label>Comentario</Label>
-            <Textarea
-              value={form.comentario}
-              onChange={(e) => set('comentario', e.target.value)}
-              rows={2}
-            />
-          </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={isPending}
-              className="bg-brand-brown hover:bg-brand-dark text-white"
-            >
-              {isPending ? 'Guardando...' : inscripcion ? 'Guardar cambios' : 'Crear'}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
 
 // ── Main component ────────────────────────────────────────────────
 
 interface InscripcionesViewProps {
   formacionId: string;
+  anio: number;
   finalizada?: boolean;
   onFinalizar?: () => void;
   finalizando?: boolean;
@@ -319,11 +83,13 @@ const FILTRO_LABELS: Record<FiltroConsagracion, string> = {
 
 export const InscripcionesView = ({
   formacionId,
+  anio,
   finalizada,
   onFinalizar,
   finalizando,
   fechaConsagracion,
 }: InscripcionesViewProps) => {
+  const router = useRouter();
   const { data: inscripciones = [], isLoading } = useInscripcionesConsagracion(formacionId);
   const { mutateAsync: convertir, isPending: convirtiendo } = useConvertirAMisionero(formacionId);
   const { mutateAsync: eliminar } = useDeleteInscripcionConsagracion(formacionId);
@@ -335,9 +101,6 @@ export const InscripcionesView = ({
   const [convertirActivo, setConvertirActivo] = useState(true);
   const [convertidos, setConvertidos] = useState<Set<string>>(new Set());
   const [errorConversion, setErrorConversion] = useState('');
-
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<Inscripcion | null>(null);
 
   const [eliminando, setEliminando] = useState<Inscripcion | null>(null);
   const [errorEliminar, setErrorEliminar] = useState('');
@@ -381,8 +144,8 @@ export const InscripcionesView = ({
     }
   };
 
-  const openCreate = () => { setEditTarget(null); setDialogOpen(true); };
-  const openEdit   = (ins: Inscripcion) => { setEditTarget(ins); setDialogOpen(true); };
+  const openCreate = () => router.push(`/admin/consagracion/${anio}/inscripciones/nuevo`);
+  const openEdit   = (ins: Inscripcion) => router.push(`/admin/consagracion/${anio}/inscripciones/${ins.id}`);
 
   const COLUMNS: ColumnDef<Inscripcion>[] = [
     { accessorKey: 'apellido', header: 'Apellido' },
@@ -728,15 +491,6 @@ export const InscripcionesView = ({
           </Button>
         </div>
       )}
-
-      {/* Dialog crear / editar */}
-      <InscripcionDialog
-        key={editTarget?.id ?? 'new'}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        formacionId={formacionId}
-        inscripcion={editTarget}
-      />
 
       {/* AlertDialog convertir a misionero */}
       <AlertDialog

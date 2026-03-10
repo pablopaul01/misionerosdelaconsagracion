@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   useFormacion,
@@ -9,6 +9,7 @@ import {
   useUpdateFormacion,
   useFinalizarFormacionMisioneros,
   useMarcarCompletoMisionero,
+  useEliminarMisioneroDeFormacion,
 } from '@/lib/queries/formaciones';
 import { useMisioneros } from '@/lib/queries/misioneros';
 import { ClaseList } from '@/components/formaciones/ClaseList';
@@ -17,7 +18,7 @@ import { formatFechaCorta } from '@/lib/utils/dates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, MoreVertical } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -47,6 +48,7 @@ export default function FormacionDetailPage() {
   const { mutateAsync: inscribir } = useInscribirMisionero(id);
   const { mutateAsync: finalizar, isPending: finalizando } = useFinalizarFormacionMisioneros();
   const { mutate: marcarCompleto } = useMarcarCompletoMisionero(id);
+  const { mutateAsync: eliminarInscripcion } = useEliminarMisioneroDeFormacion(id);
 
   const { mutateAsync: updateFormacion } = useUpdateFormacion(id);
   const [misioneroSeleccionado, setMisioneroSeleccionado] = useState('');
@@ -54,6 +56,8 @@ export default function FormacionDetailPage() {
   const [nuevaFechaInicio, setNuevaFechaInicio] = useState('');
   const [confirmarFinalizar, setConfirmarFinalizar] = useState(false);
   const [errorFinalizar, setErrorFinalizar] = useState('');
+  const [eliminarTarget, setEliminarTarget] = useState<{ id: string; nombre: string } | null>(null);
+  const [errorEliminar, setErrorEliminar] = useState('');
 
   const handleFinalizar = async () => {
     setErrorFinalizar('');
@@ -79,6 +83,17 @@ export default function FormacionDetailPage() {
     if (!nuevaFechaInicio) return;
     await updateFormacion({ fecha_inicio: nuevaFechaInicio });
     setEditandoFechaInicio(false);
+  };
+
+  const handleEliminarInscripcion = async () => {
+    if (!eliminarTarget) return;
+    setErrorEliminar('');
+    try {
+      await eliminarInscripcion(eliminarTarget.id);
+      setEliminarTarget(null);
+    } catch (e) {
+      setErrorEliminar((e as Error)?.message ?? 'Error al eliminar');
+    }
   };
 
   if (isLoading) return <p className="text-brand-brown">Cargando...</p>;
@@ -233,30 +248,29 @@ export default function FormacionDetailPage() {
                     <span className="font-medium text-brand-dark truncate">
                       {insc.misioneros?.apellido}, {insc.misioneros?.nombre}
                     </span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        title={insc.completo === true ? 'Completó — click para desmarcar' : 'Marcar como completó'}
-                        onClick={() => marcarCompleto({ id: insc.id, completo: insc.completo === true ? null : true })}
-                        className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
-                          insc.completo === true
-                            ? 'bg-green-600 text-white'
-                            : 'bg-transparent text-green-700 border border-green-600 hover:bg-green-50'
-                        }`}
-                      >
-                        ✓
-                      </button>
-                      <button
-                        title={insc.completo === false ? 'No completó — click para desmarcar' : 'Marcar como no completó'}
-                        onClick={() => marcarCompleto({ id: insc.id, completo: insc.completo === false ? null : false })}
-                        className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
-                          insc.completo === false
-                            ? 'bg-red-500 text-white'
-                            : 'bg-transparent text-red-500 border border-red-400 hover:bg-red-50'
-                        }`}
-                      >
-                        ✗
-                      </button>
-                    </div>
+                    <ActionMenu
+                      items={[
+                        {
+                          label: insc.completo === true ? 'Desmarcar completado' : 'Marcar completado',
+                          onClick: () => marcarCompleto({ id: insc.id, completo: insc.completo === true ? null : true }),
+                        },
+                        {
+                          label: insc.completo === false ? 'Desmarcar no completado' : 'Marcar no completado',
+                          onClick: () => marcarCompleto({ id: insc.id, completo: insc.completo === false ? null : false }),
+                        },
+                        {
+                          label: 'Eliminar',
+                          onClick: () => {
+                            setErrorEliminar('');
+                            setEliminarTarget({
+                              id: insc.id,
+                              nombre: `${insc.misioneros?.apellido ?? ''}, ${insc.misioneros?.nombre ?? ''}`.trim(),
+                            });
+                          },
+                          tone: 'danger',
+                        },
+                      ]}
+                    />
                   </div>
                   {/* Fila 2: DNI + link a asistencias */}
                   <div className="flex items-center justify-between gap-2">
@@ -307,6 +321,83 @@ export default function FormacionDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!eliminarTarget}
+        onOpenChange={(open) => { if (!open) { setEliminarTarget(null); setErrorEliminar(''); } }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar inscripción?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará la inscripción de <strong>{eliminarTarget?.nombre}</strong> de esta formación.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {errorEliminar && <p className="text-sm text-red-600 px-1">{errorEliminar}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 hover:bg-red-700 text-white"
+              onClick={handleEliminarInscripcion}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function ActionMenu({
+  items,
+}: {
+  items: { label: string; onClick: () => void; tone?: 'danger' }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (event: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        type="button"
+        className="h-9 w-9 flex items-center justify-center rounded-md border border-brand-creamLight bg-white text-brand-brown"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-label="Abrir acciones"
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
+      {open && (
+        <div className="absolute right-0 bottom-full mb-2 w-48 bg-white border border-brand-creamLight rounded-lg shadow-lg z-50">
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-brand-creamLight ${
+                item.tone === 'danger' ? 'text-red-600' : 'text-brand-dark'
+              }`}
+              onClick={() => {
+                item.onClick();
+                setOpen(false);
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
