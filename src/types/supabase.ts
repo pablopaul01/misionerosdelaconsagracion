@@ -95,6 +95,45 @@ export type Database = {
           },
         ]
       }
+      asistencias_grupo_oracion: {
+        Row: {
+          asistio: boolean | null
+          created_at: string | null
+          grupo_id: string
+          id: string
+          misionero_id: string
+        }
+        Insert: {
+          asistio?: boolean | null
+          created_at?: string | null
+          grupo_id: string
+          id?: string
+          misionero_id: string
+        }
+        Update: {
+          asistio?: boolean | null
+          created_at?: string | null
+          grupo_id?: string
+          id?: string
+          misionero_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asistencias_grupo_oracion_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos_oracion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asistencias_grupo_oracion_misionero_id_fkey"
+            columns: ["misionero_id"]
+            isOneToOne: false
+            referencedRelation: "misioneros"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       clases: {
         Row: {
           activa: boolean
@@ -184,6 +223,27 @@ export type Database = {
           finalizada?: boolean
           id?: string
           tipo?: Database["public"]["Enums"]["tipo_formacion"]
+        }
+        Relationships: []
+      }
+      grupos_oracion: {
+        Row: {
+          activa: boolean
+          created_at: string | null
+          fecha: string
+          id: string
+        }
+        Insert: {
+          activa?: boolean
+          created_at?: string | null
+          fecha: string
+          id?: string
+        }
+        Update: {
+          activa?: boolean
+          created_at?: string | null
+          fecha?: string
+          id?: string
         }
         Relationships: []
       }
