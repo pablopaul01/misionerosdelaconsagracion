@@ -21,14 +21,7 @@ import { METODO_PAGO_LABEL } from '@/lib/constants/retiros';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,16 +43,11 @@ import { toast } from 'sonner';
 import { Trash2, Users, UserCheck, DollarSign, Plus, Pencil, MoreVertical } from 'lucide-react';
 import type { Database } from '@/types/supabase';
 import type { PagoInput } from '@/lib/validations/retiros';
-import { ContactosEmergenciaInput } from '@/components/retiros/ContactosEmergenciaInput';
-import { Checkbox } from '@/components/ui/checkbox';
 
 type TipoRetiro = Database['public']['Enums']['tipo_retiro'];
 type MetodoPago = Database['public']['Enums']['metodo_pago'];
 type ConversionRow = Database['public']['Tables']['inscripciones_retiro_conversion']['Row'];
 type MatrimonioRow = Database['public']['Tables']['inscripciones_retiro_matrimonios']['Row'];
-type MisioneroInscripcion = Database['public']['Tables']['inscripciones_retiro_misioneros']['Row'] & {
-  misioneros?: Database['public']['Tables']['misioneros']['Row'] | null;
-};
 
 interface InscripcionesTabProps {
   retiroId: string;
