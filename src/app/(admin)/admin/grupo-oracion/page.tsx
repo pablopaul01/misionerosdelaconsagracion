@@ -7,6 +7,7 @@ import {
   useActivarGrupoOracion,
   useDesactivarGrupoOracion,
   useAsistenciasGrupoOracionCounts,
+  useDeleteGrupoOracion,
 } from '@/lib/queries/grupo-oracion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,19 +19,32 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Check, Copy, MoreVertical } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { exportarListaAsistencia } from '@/lib/utils/exportExcel';
+import { useMisioneros } from '@/lib/queries/misioneros';
 
 export default function GrupoOracionPage() {
   const { data: grupos = [], isLoading } = useGruposOracion();
   const { mutateAsync: crearGrupo, isPending: creando } = useCrearGrupoOracion();
   const { mutateAsync: activarGrupo, isPending: activando } = useActivarGrupoOracion();
   const { mutateAsync: desactivarGrupo, isPending: desactivando } = useDesactivarGrupoOracion();
+  const { mutateAsync: eliminarGrupo, isPending: eliminando } = useDeleteGrupoOracion();
   const router = useRouter();
   const supabase = createClient();
+  const { data: misioneros = [] } = useMisioneros();
   const [fecha, setFecha] = useState('');
   const [copied, setCopied] = useState(false);
   const [desde, setDesde] = useState('');
@@ -39,11 +53,14 @@ export default function GrupoOracionPage() {
   const [anioFiltro, setAnioFiltro] = useState('todos');
   const [page, setPage] = useState(1);
   const pageSize = 20;
+  const [eliminarTarget, setEliminarTarget] = useState<{ id: string; fecha: string } | null>(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [busquedaDebounced, setBusquedaDebounced] = useState('');
 
   const handleCrear = async () => {
     if (!fecha) return;
     try {
-      await crearGrupo(fecha);
+      await crearGrupo({ fecha });
       setFecha('');
       toast.success('Grupo de oración creado');
     } catch {
@@ -88,19 +105,71 @@ export default function GrupoOracionPage() {
     new Set(grupos.map((g) => g.fecha?.slice(0, 4)).filter(Boolean)),
   ).sort((a, b) => b.localeCompare(a));
 
-  const gruposFiltrados = grupos.filter((grupo) => {
+  const misionerosMap = Object.fromEntries(misioneros.map((m) => [m.id, `${m.apellido}, ${m.nombre}`]));
+
+  const gruposConPredicas = grupos.filter((grupo) => (
+    !!grupo.predica_menor_misionero_id ||
+    !!grupo.predica_mayor_misionero_id ||
+    !!grupo.predica_menor_santo
+  ));
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBusquedaDebounced(busqueda);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [busqueda]);
+
+  const busquedaNormalizada = busquedaDebounced.trim().toLowerCase();
+
+  const gruposFiltrados = gruposConPredicas.filter((grupo) => {
     if (desde && grupo.fecha < desde) return false;
     if (hasta && grupo.fecha > hasta) return false;
     if (anioFiltro !== 'todos' && grupo.fecha.slice(0, 4) !== anioFiltro) return false;
-    return true;
+
+    if (!busquedaNormalizada) return true;
+
+    const menorText = (grupo.predica_menor_misionero_id
+      ? misionerosMap[grupo.predica_menor_misionero_id] ?? ''
+      : '').toLowerCase();
+    const mayorText = (grupo.predica_mayor_misionero_id
+      ? misionerosMap[grupo.predica_mayor_misionero_id] ?? ''
+      : '').toLowerCase();
+    const santoText = (grupo.predica_menor_santo ?? '').toLowerCase();
+
+    return (
+      mayorText.includes(busquedaNormalizada) ||
+      menorText.includes(busquedaNormalizada) ||
+      santoText.includes(busquedaNormalizada)
+    );
   });
-  const totalPages = Math.max(1, Math.ceil(gruposFiltrados.length / pageSize));
+  const getMatchRank = (grupo: typeof gruposFiltrados[number]) => {
+    if (!busquedaNormalizada) return 0;
+    const mayorText = (grupo.predica_mayor_misionero_id
+      ? misionerosMap[grupo.predica_mayor_misionero_id] ?? ''
+      : '').toLowerCase();
+    const menorText = (grupo.predica_menor_misionero_id
+      ? misionerosMap[grupo.predica_menor_misionero_id] ?? ''
+      : '').toLowerCase();
+    const santoText = (grupo.predica_menor_santo ?? '').toLowerCase();
+
+    if (mayorText.includes(busquedaNormalizada)) return 0;
+    if (menorText.includes(busquedaNormalizada)) return 1;
+    if (santoText.includes(busquedaNormalizada)) return 2;
+    return 3;
+  };
+
+  const gruposOrdenados = busquedaNormalizada
+    ? [...gruposFiltrados].sort((a, b) => getMatchRank(a) - getMatchRank(b))
+    : gruposFiltrados;
+
+  const totalPages = Math.max(1, Math.ceil(gruposOrdenados.length / pageSize));
   const pageSafe = Math.min(page, totalPages);
-  const gruposPaginados = gruposFiltrados.slice((pageSafe - 1) * pageSize, pageSafe * pageSize);
+  const gruposPaginados = gruposOrdenados.slice((pageSafe - 1) * pageSize, pageSafe * pageSize);
 
   useEffect(() => {
     setPage(1);
-  }, [desde, hasta, anioFiltro]);
+  }, [desde, hasta, anioFiltro, busquedaDebounced]);
 
   const { data: counts = {} } = useAsistenciasGrupoOracionCounts(gruposPaginados.map((g) => g.id));
 
@@ -140,6 +209,17 @@ export default function GrupoOracionPage() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <div className="bg-white rounded-xl border border-brand-creamLight p-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-brand-dark">Buscador universal</span>
+            <Input
+              placeholder="Buscar misionero o santo..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+          </div>
+        </div>
 
         <details className="bg-white rounded-xl border border-brand-creamLight p-4">
           <summary className="cursor-pointer text-sm font-medium text-brand-dark">Filtros</summary>
@@ -203,9 +283,28 @@ export default function GrupoOracionPage() {
                 <span className="text-xs text-brand-brown mt-2">
                   Asistencias: {counts[grupo.id] ?? 0}
                 </span>
+                {grupo.predica_menor_misionero_id || grupo.predica_mayor_misionero_id || grupo.predica_menor_santo ? (
+                  <div className="text-xs text-brand-brown/80 mt-2 space-y-1">
+                    <p>
+                      Menor: {grupo.predica_menor_misionero_id ? (misionerosMap[grupo.predica_menor_misionero_id] ?? 'Asignada') : 'Sin asignar'}
+                      {grupo.predica_menor_santo ? ` · Santo: ${grupo.predica_menor_santo}` : ''}
+                    </p>
+                    <p>Mayor: {grupo.predica_mayor_misionero_id ? (misionerosMap[grupo.predica_mayor_misionero_id] ?? 'Asignada') : 'Sin asignar'}</p>
+                  </div>
+                ) : (
+                  <Badge className="bg-brand-creamLight text-brand-brown mt-2 w-fit">Sin predicas</Badge>
+                )}
               </div>
               <ActionMenu
                 items={[
+                  {
+                    label: 'Editar',
+                    onClick: () => router.push(`/admin/grupo-oracion/${grupo.id}/editar`),
+                  },
+                  {
+                    label: 'Asignar predicas',
+                    onClick: () => router.push(`/admin/grupo-oracion/${grupo.id}/predicas`),
+                  },
                   {
                     label: grupo.activa ? 'Desactivar' : 'Activar',
                     onClick: () => (grupo.activa ? desactivarGrupo(grupo.id) : activarGrupo(grupo.id)),
@@ -223,6 +322,17 @@ export default function GrupoOracionPage() {
                     label: 'Exportar Excel',
                     onClick: () => handleExportar(grupo.id, grupo.fecha),
                   },
+                  {
+                    label: 'Eliminar',
+                    onClick: () => {
+                      if ((counts[grupo.id] ?? 0) > 0) {
+                        toast.error('No se puede eliminar: tiene asistencias registradas');
+                        return;
+                      }
+                      setEliminarTarget({ id: grupo.id, fecha: grupo.fecha });
+                    },
+                    tone: 'danger',
+                  },
                 ]}
                 disabled={grupo.activa ? desactivando : activando}
               />
@@ -231,7 +341,7 @@ export default function GrupoOracionPage() {
         ))}
 
         {!isLoading && gruposFiltrados.length === 0 && (
-          <p className="text-brand-brown">No hay grupos creados</p>
+          <p className="text-brand-brown">No hay coincidencias</p>
         )}
       </div>
 
@@ -256,6 +366,39 @@ export default function GrupoOracionPage() {
           </Button>
         </div>
       )}
+
+      <AlertDialog
+        open={!!eliminarTarget}
+        onOpenChange={(open) => { if (!open) setEliminarTarget(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar grupo?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Se eliminará el grupo del {eliminarTarget ? new Date(eliminarTarget.fecha + 'T00:00:00').toLocaleDateString('es-AR') : ''}.
+          </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 hover:bg-red-700 text-white"
+              onClick={async () => {
+                if (!eliminarTarget) return;
+                try {
+                  await eliminarGrupo(eliminarTarget.id);
+                  setEliminarTarget(null);
+                  toast.success('Grupo eliminado');
+                } catch (e) {
+                  toast.error((e as Error)?.message ?? 'Error al eliminar');
+                }
+              }}
+              disabled={eliminando}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

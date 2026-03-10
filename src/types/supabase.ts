@@ -232,18 +232,27 @@ export type Database = {
           created_at: string | null
           fecha: string
           id: string
+          predica_mayor_misionero_id: string | null
+          predica_menor_misionero_id: string | null
+          predica_menor_santo: string | null
         }
         Insert: {
           activa?: boolean
           created_at?: string | null
           fecha: string
           id?: string
+          predica_mayor_misionero_id?: string | null
+          predica_menor_misionero_id?: string | null
+          predica_menor_santo?: string | null
         }
         Update: {
           activa?: boolean
           created_at?: string | null
           fecha?: string
           id?: string
+          predica_mayor_misionero_id?: string | null
+          predica_menor_misionero_id?: string | null
+          predica_menor_santo?: string | null
         }
         Relationships: []
       }
