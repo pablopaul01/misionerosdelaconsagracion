@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import type { MisioneroInput } from '@/lib/validations/misioneros';
+import { STORAGE_BUCKETS, STORAGE_PATHS } from '@/lib/constants/storage';
 import type { Database } from '@/types/supabase';
 
 // Claves de caché — nunca usar strings literales directamente
@@ -134,6 +135,63 @@ export const useDeleteMisionero = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+    },
+  });
+};
+
+export const useUpdateMisioneroImagen = () => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ misioneroId, imagenUrl }: { misioneroId: string; imagenUrl: string | null }) => {
+      const { error } = await supabase
+        .from('misioneros')
+        .update({ imagen_url: imagenUrl })
+        .eq('id', misioneroId);
+      if (error) throw error;
+    },
+    onSuccess: (_, { misioneroId }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.detail(misioneroId) });
+    },
+  });
+};
+
+export const useUploadImagenMisionero = () => {
+  const supabase = createClient();
+  return useMutation({
+    mutationFn: async ({ file, misioneroId }: { file: File; misioneroId: string }) => {
+      const fileExt = file.name.split('.').pop() ?? 'jpg';
+      const fileName = `${misioneroId}-${Date.now()}.${fileExt}`;
+      const filePath = `${STORAGE_PATHS.misionerosAvatar}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(STORAGE_BUCKETS.misioneros)
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from(STORAGE_BUCKETS.misioneros)
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    },
+  });
+};
+
+export const useDeleteImagenMisionero = () => {
+  const supabase = createClient();
+  return useMutation({
+    mutationFn: async ({ publicUrl }: { publicUrl: string }) => {
+      const marker = `/storage/v1/object/public/${STORAGE_BUCKETS.misioneros}/`;
+      const index = publicUrl.indexOf(marker);
+      if (index === -1) {
+        throw new Error('URL de imagen invalida');
+      }
+      const filePath = publicUrl.slice(index + marker.length);
+      const { error } = await supabase.storage.from(STORAGE_BUCKETS.misioneros).remove([filePath]);
+      if (error) throw error;
     },
   });
 };

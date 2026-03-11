@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { href: '/admin/consagracion', label: 'Consagración' },
   { href: '/admin/retiros',      label: 'Retiros' },
   { href: '/admin/usuarios',     label: 'Usuarios' },
+  { href: '/admin/configuraciones', label: 'Configuraciones' },
 ] as const;
 
 interface AdminSidebarProps {

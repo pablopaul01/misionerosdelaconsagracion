@@ -169,6 +169,24 @@ export type Database = {
           },
         ]
       }
+      configuraciones: {
+        Row: {
+          created_at: string | null
+          id: string
+          misioneros_imagen_visualizacion: "avatar_grande" | "banner_real" | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          misioneros_imagen_visualizacion?: "avatar_grande" | "banner_real" | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          misioneros_imagen_visualizacion?: "avatar_grande" | "banner_real" | null
+        }
+        Relationships: []
+      }
       formaciones_consagracion: {
         Row: {
           anio: number
@@ -407,6 +425,7 @@ export type Database = {
           fecha_nacimiento: string | null
           fecha_retiro_conversion: string | null
           id: string
+          imagen_url: string | null
           nombre: string
           whatsapp: string
         }
@@ -420,6 +439,7 @@ export type Database = {
           fecha_nacimiento?: string | null
           fecha_retiro_conversion?: string | null
           id?: string
+          imagen_url?: string | null
           nombre: string
           whatsapp: string
         }
@@ -433,6 +453,7 @@ export type Database = {
           fecha_nacimiento?: string | null
           fecha_retiro_conversion?: string | null
           id?: string
+          imagen_url?: string | null
           nombre?: string
           whatsapp?: string
         }

@@ -7,10 +7,10 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
-  flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
 import { useMisioneros, useMisionerosRolesMap, useDeleteMisionero } from '@/lib/queries/misioneros';
+import { useConfiguracion } from '@/lib/queries/configuracion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,39 +25,27 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+  DEFAULT_MISIONEROS_IMAGEN_VISUALIZACION,
+  MISIONEROS_IMAGEN_VISUALIZACION,
+} from '@/lib/constants/configuracion';
 import type { Database } from '@/types/supabase';
 
 type Misionero = Database['public']['Tables']['misioneros']['Row'];
 
-// Celda de acciones separada para mantener el hook fuera del array de columnas
-const AccionesCell = ({ id }: { id: string }) => {
-  const router = useRouter();
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="text-brand-teal"
-      onClick={() => router.push(`/admin/misioneros/${id}`)}
-    >
-      Ver detalle
-    </Button>
-  );
-};
+const getInitials = (nombre: string, apellido: string) =>
+  `${apellido?.[0] ?? ''}${nombre?.[0] ?? ''}`.toUpperCase();
 
 export const MisioneroTable = () => {
   const router = useRouter();
   const { data: misioneros = [], isLoading } = useMisioneros();
   const { data: rolesMap = {} } = useMisionerosRolesMap();
+  const { data: configuracion } = useConfiguracion();
   const { mutateAsync: deleteMisionero, isPending: eliminando } = useDeleteMisionero();
   const [globalFilter, setGlobalFilter] = useState('');
   const [eliminarTarget, setEliminarTarget] = useState<Misionero | null>(null);
+  const visualizacionImagen = configuracion?.misioneros_imagen_visualizacion
+    ?? DEFAULT_MISIONEROS_IMAGEN_VISUALIZACION;
+  const isBannerRealView = visualizacionImagen === MISIONEROS_IMAGEN_VISUALIZACION.bannerReal;
 
   const globalFilterFn = useMemo(() => {
     return (row: { original: Misionero }, _columnId: string, filterValue: string) => {
@@ -77,39 +65,6 @@ export const MisioneroTable = () => {
     { accessorKey: 'nombre',   header: 'Nombre' },
     { accessorKey: 'dni',      header: 'DNI' },
     { accessorKey: 'whatsapp', header: 'WhatsApp' },
-    {
-      id: 'estado',
-      header: 'Estado',
-      cell: ({ row }) => (
-        <Badge className={row.original.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}>
-          {row.original.activo ? 'Activo' : 'Inactivo'}
-        </Badge>
-      ),
-    },
-    {
-      id: 'roles',
-      header: 'Roles',
-      cell: ({ row }) => {
-        const roles = rolesMap[row.original.id] ?? [];
-        if (roles.length === 0) {
-          return <span className="text-xs text-brand-brown/60">Sin roles</span>;
-        }
-        return (
-          <div className="flex flex-wrap gap-1">
-            {roles.map((role) => (
-              <Badge key={role.id} className="bg-brand-creamLight text-brand-brown text-xs">
-                {role.nombre}
-              </Badge>
-            ))}
-          </div>
-        );
-      },
-    },
-    {
-      id: 'acciones',
-      header: '',
-      cell: ({ row }) => <AccionesCell id={row.original.id} />,
-    },
   ];
 
   const table = useReactTable({
@@ -135,72 +90,66 @@ export const MisioneroTable = () => {
         className="max-w-sm"
       />
 
-      {/* ── Desktop: tabla ── */}
-      <div className="hidden md:block rounded-lg border border-brand-creamLight overflow-hidden">
-        <Table>
-          <TableHeader className="bg-brand-creamLight">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="text-brand-dark font-title">
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="text-center text-brand-brown py-8">
-                  No hay misioneros registrados
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className="hover:bg-brand-cream/50">
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* ── Mobile: cards ── */}
-      <div className="md:hidden flex flex-col gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {table.getRowModel().rows.length === 0 && (
-          <p className="text-center text-brand-brown py-6">No hay misioneros registrados</p>
+          <p className="text-center text-brand-brown py-6 md:col-span-2 xl:col-span-3">No hay misioneros registrados</p>
         )}
         {table.getRowModel().rows.map((row) => {
           const m = row.original;
           return (
             <div key={m.id} className="bg-white border border-brand-creamLight rounded-xl p-4 flex flex-col gap-3">
-              <div className="flex flex-col gap-1 min-w-0">
-                <p className="font-title text-brand-dark font-semibold break-words">
-                  {m.apellido}, {m.nombre}
-                </p>
-                <p className="text-xs text-brand-brown">
-                  DNI {m.dni} · WA {m.whatsapp ?? '—'}
-                </p>
+              {isBannerRealView ? (
+                <div className="flex flex-col gap-3">
+                  <div className="w-full aspect-square overflow-hidden rounded-lg bg-brand-creamLight text-brand-brown">
+                    {m.imagen_url ? (
+                      <img src={m.imagen_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="aspect-square w-full flex items-center justify-center">
+                        <span className="text-xl font-semibold">{getInitials(m.nombre, m.apellido)}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <p className="font-title text-brand-dark font-semibold break-words">
+                      {m.apellido}, {m.nombre}
+                    </p>
+                    <p className="text-xs text-brand-brown">
+                      DNI {m.dni} · WA {m.whatsapp ?? '—'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <div className="w-20 h-20 rounded-full bg-brand-creamLight text-brand-brown flex items-center justify-center overflow-hidden">
+                    {m.imagen_url ? (
+                      <img src={m.imagen_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-lg font-semibold">{getInitials(m.nombre, m.apellido)}</span>
+                    )}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <p className="font-title text-brand-dark font-semibold break-words">
+                      {m.apellido}, {m.nombre}
+                    </p>
+                    <p className="text-xs text-brand-brown">
+                      DNI {m.dni} · WA {m.whatsapp ?? '—'}
+                    </p>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-2 flex-wrap">
                 <Badge className={m.activo ? 'bg-green-100 text-green-700 text-xs' : 'bg-gray-100 text-gray-600 text-xs'}>
                   {m.activo ? 'Activo' : 'Inactivo'}
                 </Badge>
-                <div className="flex flex-wrap gap-1">
-                  {(rolesMap[m.id] ?? []).length === 0 ? (
-                    <span className="text-xs text-brand-brown/60">Sin roles</span>
-                  ) : (
-                    (rolesMap[m.id] ?? []).map((role) => (
-                      <Badge key={role.id} className="bg-brand-creamLight text-brand-brown text-xs">
-                        {role.nombre}
-                      </Badge>
-                    ))
-                  )}
-                </div>
+                {(rolesMap[m.id] ?? []).length === 0 ? (
+                  <span className="text-xs text-brand-brown/60">Sin roles</span>
+                ) : (
+                  (rolesMap[m.id] ?? []).map((role) => (
+                    <Badge key={role.id} className="bg-brand-creamLight text-brand-brown text-xs">
+                      {role.nombre}
+                    </Badge>
+                  ))
+                )}
               </div>
               <div className="flex items-center justify-between gap-3 pt-2 border-t border-brand-creamLight">
                 <Button
