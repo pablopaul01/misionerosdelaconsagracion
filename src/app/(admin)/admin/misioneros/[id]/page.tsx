@@ -64,9 +64,12 @@ export default function MisioneroDetailPage() {
         await deleteImagen({ publicUrl: currentImagenUrl });
         await updateImagen({ misioneroId: id, imagenUrl: null });
       }
-      router.push('/admin/misioneros');
-    } catch {
-      toast.error('No se pudo actualizar el misionero');
+      toast.success('Misionero actualizado correctamente');
+      router.replace('/admin/misioneros');
+      router.refresh();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : null;
+      toast.error(errorMessage ?? 'No se pudo actualizar el misionero');
     }
   };
 

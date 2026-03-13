@@ -47,9 +47,12 @@ export default function NuevoMisioneroPage() {
         const imagenUrl = await uploadImagen({ file: avatarFile, misioneroId: created.id });
         await updateImagen({ misioneroId: created.id, imagenUrl });
       }
-      router.push('/admin/misioneros');
-    } catch {
-      toast.error('No se pudo registrar el misionero');
+      toast.success('Misionero registrado correctamente');
+      router.replace('/admin/misioneros');
+      router.refresh();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : null;
+      toast.error(errorMessage ?? 'No se pudo registrar el misionero');
     }
   };
 
