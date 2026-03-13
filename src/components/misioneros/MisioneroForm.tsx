@@ -22,6 +22,12 @@ interface MisioneroFormProps {
   submitLabel?: string;
 }
 
+const EMPTY_ROLE_IDS: string[] = [];
+
+const hasSameRoleIds = (current: string[], incoming: string[]) => (
+  current.length === incoming.length && current.every((roleId, index) => roleId === incoming[index])
+);
+
 // Campo de texto genérico reutilizable dentro del formulario
 const FormField = ({
   label,
@@ -59,14 +65,14 @@ const FormField = ({
 export const MisioneroForm = ({
   defaultValues,
   roles = [],
-  defaultRoleIds = [],
+  defaultRoleIds = EMPTY_ROLE_IDS,
   onSubmit,
   submitLabel = 'Guardar',
 }: MisioneroFormProps) => {
   const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>(defaultRoleIds);
 
   useEffect(() => {
-    setSelectedRoleIds(defaultRoleIds);
+    setSelectedRoleIds((current) => (hasSameRoleIds(current, defaultRoleIds) ? current : defaultRoleIds));
   }, [defaultRoleIds]);
 
   const form = useForm({
