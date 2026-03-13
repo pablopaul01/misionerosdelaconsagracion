@@ -48,8 +48,7 @@ export default function NuevoMisioneroPage() {
         await updateImagen({ misioneroId: created.id, imagenUrl });
       }
       toast.success('Misionero registrado correctamente');
-      router.replace('/admin/misioneros');
-      router.refresh();
+      router.push('/admin/misioneros');
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : null;
       toast.error(errorMessage ?? 'No se pudo registrar el misionero');
