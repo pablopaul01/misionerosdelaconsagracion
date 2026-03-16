@@ -107,12 +107,6 @@ export default function GrupoOracionPage() {
 
   const misionerosMap = Object.fromEntries(misioneros.map((m) => [m.id, `${m.apellido}, ${m.nombre}`]));
 
-  const gruposConPredicas = grupos.filter((grupo) => (
-    !!grupo.predica_menor_misionero_id ||
-    !!grupo.predica_mayor_misionero_id ||
-    !!grupo.predica_menor_santo
-  ));
-
   useEffect(() => {
     const timer = setTimeout(() => {
       setBusquedaDebounced(busqueda);
@@ -122,7 +116,7 @@ export default function GrupoOracionPage() {
 
   const busquedaNormalizada = busquedaDebounced.trim().toLowerCase();
 
-  const gruposFiltrados = gruposConPredicas.filter((grupo) => {
+  const gruposFiltrados = grupos.filter((grupo) => {
     if (desde && grupo.fecha < desde) return false;
     if (hasta && grupo.fecha > hasta) return false;
     if (anioFiltro !== 'todos' && grupo.fecha.slice(0, 4) !== anioFiltro) return false;
