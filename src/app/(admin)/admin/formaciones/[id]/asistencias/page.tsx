@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
-import { useFormacion, useToggleAsistenciaMisionero } from '@/lib/queries/formaciones';
+import { useFormacion, useToggleAsistenciaMisionero, useEliminarAsistenciaMisionero } from '@/lib/queries/formaciones';
 import { TIPO_FORMACION_LABEL } from '@/lib/constants/formaciones';
 import { formatFechaCorta } from '@/lib/utils/dates';
 import { cn } from '@/lib/utils';
@@ -85,18 +85,37 @@ interface AsistenciaCeldaProps {
 
 const AsistenciaCelda = ({ formacionId, claseId, misioneroId, reg, className }: AsistenciaCeldaProps) => {
   const { mutate, isPending } = useToggleAsistenciaMisionero(formacionId);
+  const { mutate: eliminar, isPending: eliminando } = useEliminarAsistenciaMisionero(formacionId);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [motivo, setMotivo] = useState('');
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  const handleClick = () => {
-    if (reg?.asistio === false) {
-      // Ya está ausente → click alterna a asistió directamente
-      mutate({ claseId, misioneroId, asistio: true, asistenciaId: reg.id });
-    } else if (reg?.asistio === true || reg === undefined) {
-      // Asistió o sin registrar → marcar como ausente con motivo
-      setMotivo('');
-      setDialogOpen(true);
-    }
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
+  const pending = isPending || eliminando;
+
+  const handleAsistio = () => {
+    mutate({ claseId, misioneroId, asistio: true, asistenciaId: reg?.id });
+    setMenuOpen(false);
+  };
+
+  const handleNoAsistio = () => {
+    setMotivo('');
+    setMenuOpen(false);
+    setDialogOpen(true);
+  };
+
+  const handleQuitar = () => {
+    if (reg?.id) eliminar(reg.id);
+    setMenuOpen(false);
   };
 
   const confirmarAusencia = () => {
@@ -106,27 +125,50 @@ const AsistenciaCelda = ({ formacionId, claseId, misioneroId, reg, className }: 
 
   return (
     <>
-      <button
-        onClick={handleClick}
-        disabled={isPending}
-        title={
-          reg === undefined
-            ? 'Sin registrar — click para marcar'
-            : reg.asistio
-              ? 'Asistió — click para cambiar'
-              : `No asistió${reg.motivo_ausencia ? `: ${reg.motivo_ausencia}` : ''} — click para editar`
-        }
-        className={cn(
-          'w-8 h-8 rounded-full text-sm font-bold transition-colors flex items-center justify-center',
-          reg?.asistio === true  && 'bg-green-100 text-green-700 hover:bg-green-200',
-          reg?.asistio === false && 'bg-red-100 text-red-600 hover:bg-red-200',
-          reg === undefined      && 'bg-gray-100 text-gray-400 hover:bg-gray-200',
-          isPending              && 'opacity-50 cursor-wait',
-          className,
+      <div className="relative" ref={menuRef}>
+        <button
+          onClick={() => !pending && setMenuOpen((v) => !v)}
+          disabled={pending}
+          className={cn(
+            'w-8 h-8 rounded-full text-sm font-bold transition-colors flex items-center justify-center',
+            reg?.asistio === true  && 'bg-green-100 text-green-700 hover:bg-green-200',
+            reg?.asistio === false && 'bg-red-100 text-red-600 hover:bg-red-200',
+            reg === undefined      && 'bg-gray-100 text-gray-400 hover:bg-gray-200',
+            pending                && 'opacity-50 cursor-wait',
+            className,
+          )}
+        >
+          {reg === undefined ? '·' : reg.asistio ? '✓' : '✗'}
+        </button>
+
+        {menuOpen && (
+          <div className="absolute z-50 right-0 bottom-full mb-1 w-44 bg-white border border-brand-creamLight rounded-lg shadow-lg overflow-hidden">
+            <button
+              type="button"
+              onClick={handleAsistio}
+              className="w-full text-left px-3 py-2 text-sm text-green-700 hover:bg-green-50 flex items-center gap-2"
+            >
+              <span className="font-bold">✓</span> Asistió
+            </button>
+            <button
+              type="button"
+              onClick={handleNoAsistio}
+              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+            >
+              <span className="font-bold">✗</span> No asistió
+            </button>
+            {reg && (
+              <button
+                type="button"
+                onClick={handleQuitar}
+                className="w-full text-left px-3 py-2 text-sm text-brand-brown hover:bg-brand-creamLight flex items-center gap-2 border-t border-brand-creamLight"
+              >
+                <span>—</span> Quitar registro
+              </button>
+            )}
+          </div>
         )}
-      >
-        {reg === undefined ? '·' : reg.asistio ? '✓' : '✗'}
-      </button>
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-sm">

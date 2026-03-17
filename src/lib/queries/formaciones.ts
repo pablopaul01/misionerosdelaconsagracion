@@ -258,6 +258,22 @@ export const useToggleAsistenciaMisionero = (formacionId: string) => {
   });
 };
 
+export const useEliminarAsistenciaMisionero = (formacionId: string) => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (asistenciaId: string) => {
+      const { error } = await supabase
+        .from('asistencias_misioneros')
+        .delete()
+        .eq('id', asistenciaId);
+      if (error) throw error;
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['asistencias-formacion', formacionId] }),
+  });
+};
+
 /** Desactiva todas las clases de la formación */
 export const useDesactivarClases = (formacionId: string) => {
   const supabase = createClient();
