@@ -18,7 +18,7 @@ import { formatFechaCorta } from '@/lib/utils/dates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, MoreVertical } from 'lucide-react';
+import { CheckCircle2, Loader2, MoreVertical } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -45,13 +45,15 @@ export default function FormacionDetailPage() {
   const { data: formacion, isLoading } = useFormacion(id);
   const { data: inscriptos = [] } = useMisionerosDeFormacion(id);
   const { data: todosMisioneros = [] } = useMisioneros();
-  const { mutateAsync: inscribir } = useInscribirMisionero(id);
+  const { mutateAsync: inscribir, isPending: inscribiendo } = useInscribirMisionero(id);
   const { mutateAsync: finalizar, isPending: finalizando } = useFinalizarFormacionMisioneros();
   const { mutate: marcarCompleto } = useMarcarCompletoMisionero(id);
   const { mutateAsync: eliminarInscripcion } = useEliminarMisioneroDeFormacion(id);
 
   const { mutateAsync: updateFormacion } = useUpdateFormacion(id);
   const [misioneroSeleccionado, setMisioneroSeleccionado] = useState('');
+  const [confirmarInscribir, setConfirmarInscribir] = useState(false);
+  const [errorInscribir, setErrorInscribir] = useState('');
   const [editandoFechaInicio, setEditandoFechaInicio] = useState(false);
   const [nuevaFechaInicio, setNuevaFechaInicio] = useState('');
   const [confirmarFinalizar, setConfirmarFinalizar] = useState(false);
@@ -75,8 +77,14 @@ export default function FormacionDetailPage() {
 
   const handleInscribir = async () => {
     if (!misioneroSeleccionado) return;
-    await inscribir(misioneroSeleccionado);
-    setMisioneroSeleccionado('');
+    setErrorInscribir('');
+    try {
+      await inscribir(misioneroSeleccionado);
+      setMisioneroSeleccionado('');
+      setConfirmarInscribir(false);
+    } catch (e) {
+      setErrorInscribir((e as Error)?.message ?? 'Error al inscribir');
+    }
   };
 
   const handleGuardarFechaInicio = async () => {
@@ -178,7 +186,7 @@ export default function FormacionDetailPage() {
         <TabsContent value="misioneros" className="mt-4">
           <div className="flex flex-col gap-4">
             {/* Inscribir misionero */}
-            <div className="flex gap-3 items-end bg-brand-cream p-4 rounded-lg">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-end bg-brand-cream p-4 rounded-lg">
               <div className="flex-1 flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-brand-dark">Inscribir misionero</span>
                 <Select value={misioneroSeleccionado} onValueChange={setMisioneroSeleccionado}>
@@ -195,11 +203,15 @@ export default function FormacionDetailPage() {
                 </Select>
               </div>
 
-              <AlertDialog>
+              <AlertDialog
+                open={confirmarInscribir}
+                onOpenChange={(open) => { if (!inscribiendo) { setConfirmarInscribir(open); setErrorInscribir(''); } }}
+              >
                 <AlertDialogTrigger asChild>
                   <Button
                     disabled={!misioneroSeleccionado}
                     className="bg-brand-brown hover:bg-brand-dark text-white"
+                    onClick={() => setConfirmarInscribir(true)}
                   >
                     Inscribir
                   </Button>
@@ -211,13 +223,17 @@ export default function FormacionDetailPage() {
                       El misionero quedará inscripto en esta formación.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
+                  {errorInscribir && <p className="text-sm text-red-600 px-1">{errorInscribir}</p>}
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogCancel disabled={inscribiendo}>Cancelar</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={handleInscribir}
+                      onClick={(e) => { e.preventDefault(); handleInscribir(); }}
+                      disabled={inscribiendo}
                       className="bg-brand-brown hover:bg-brand-dark text-white"
                     >
-                      Confirmar
+                      {inscribiendo ? (
+                        <><Loader2 className="w-4 h-4 animate-spin mr-2" />Inscribiendo...</>
+                      ) : 'Confirmar'}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
