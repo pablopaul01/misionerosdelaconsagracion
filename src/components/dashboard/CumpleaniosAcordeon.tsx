@@ -13,8 +13,8 @@ type MisioneroCumple = {
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
 function formatCumple(fechaNacimiento: string): string {
-  const d = new Date(fechaNacimiento);
-  return `${d.getDate()} ${MESES[d.getMonth()]}`;
+  const [, mes, dia] = fechaNacimiento.split('-');
+  return `${parseInt(dia)} ${MESES[parseInt(mes) - 1]}`;
 }
 
 export function CumpleaniosAcordeon({ misioneros }: { misioneros: MisioneroCumple[] }) {
