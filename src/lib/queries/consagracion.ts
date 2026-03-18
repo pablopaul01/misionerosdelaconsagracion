@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
+import { CALENDARIO_ORIGEN } from '@/lib/constants/calendario';
+import {
+  desactivarActividadSincronizada,
+  upsertActividadSincronizada,
+} from '@/lib/queries/calendario-sync';
 import type {
   InscripcionConsagracionInput,
   FormacionConsagracionInput,
@@ -62,6 +67,17 @@ export const useCreateFormacionConsagracion = () => {
         .select()
         .single();
       if (error) throw error;
+
+      await upsertActividadSincronizada(supabase, {
+        origenTipo: CALENDARIO_ORIGEN.CONSAGRACION_FORMACION,
+        origenId: data.id,
+        origenUpdatedAt: data.created_at ?? new Date().toISOString(),
+        titulo: `Consagracion ${data.anio}`,
+        descripcion: 'Inicio de formacion de consagracion.',
+        tipo: 'consagracion',
+        fechaInicio: data.fecha_inicio,
+      });
+
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.formaciones }),
@@ -108,11 +124,31 @@ export const useUpdateLeccion = (formacionId: string) => {
       if (tipo !== undefined) updateData.tipo = tipo;
       if (fecha !== undefined) updateData.fecha = fecha || null;
       if (disertante_id !== undefined) updateData.disertante_id = disertante_id || null;
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('lecciones_consagracion')
         .update(updateData)
-        .eq('id', id);
+        .eq('id', id)
+        .select('id, numero, tipo, fecha, created_at')
+        .single();
       if (error) throw error;
+
+      if (data.tipo === 'retiro' && data.fecha) {
+        await upsertActividadSincronizada(supabase, {
+          origenTipo: CALENDARIO_ORIGEN.CONSAGRACION_RETIRO,
+          origenId: data.id,
+          origenUpdatedAt: new Date().toISOString(),
+          titulo: `Retiro de consagracion #${data.numero}`,
+          descripcion: 'Retiro dentro de la formacion de consagracion.',
+          tipo: 'retiro',
+          fechaInicio: data.fecha,
+        });
+      } else {
+        await desactivarActividadSincronizada(
+          supabase,
+          CALENDARIO_ORIGEN.CONSAGRACION_RETIRO,
+          data.id,
+        );
+      }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lecciones(formacionId) }),
   });
@@ -151,6 +187,19 @@ export const useAddLeccion = (formacionId: string) => {
         .select()
         .single();
       if (error) throw error;
+
+      if (data.tipo === 'retiro' && data.fecha) {
+        await upsertActividadSincronizada(supabase, {
+          origenTipo: CALENDARIO_ORIGEN.CONSAGRACION_RETIRO,
+          origenId: data.id,
+          origenUpdatedAt: data.created_at ?? new Date().toISOString(),
+          titulo: `Retiro de consagracion #${data.numero}`,
+          descripcion: 'Retiro dentro de la formacion de consagracion.',
+          tipo: 'retiro',
+          fechaInicio: data.fecha,
+        });
+      }
+
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.lecciones(formacionId) }),

@@ -169,6 +169,75 @@ export type Database = {
           },
         ]
       }
+      calendario_actividades: {
+        Row: {
+          created_at: string | null
+          dedupe_key: string | null
+          descripcion: string | null
+          estado: "activo" | "cancelado"
+          fecha_fin: string | null
+          fecha_inicio: string
+          id: string
+          nota_admin: string | null
+          origen_id: string | null
+          origen_tipo:
+            | "manual"
+            | "consagracion_formacion"
+            | "consagracion_retiro"
+            | "retiro"
+            | "formacion_misioneros"
+          origen_updated_at: string | null
+          sincronizado: boolean
+          tipo: string
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dedupe_key?: string | null
+          descripcion?: string | null
+          estado?: "activo" | "cancelado"
+          fecha_fin?: string | null
+          fecha_inicio: string
+          id?: string
+          nota_admin?: string | null
+          origen_id?: string | null
+          origen_tipo:
+            | "manual"
+            | "consagracion_formacion"
+            | "consagracion_retiro"
+            | "retiro"
+            | "formacion_misioneros"
+          origen_updated_at?: string | null
+          sincronizado?: boolean
+          tipo: string
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dedupe_key?: string | null
+          descripcion?: string | null
+          estado?: "activo" | "cancelado"
+          fecha_fin?: string | null
+          fecha_inicio?: string
+          id?: string
+          nota_admin?: string | null
+          origen_id?: string | null
+          origen_tipo?:
+            | "manual"
+            | "consagracion_formacion"
+            | "consagracion_retiro"
+            | "retiro"
+            | "formacion_misioneros"
+          origen_updated_at?: string | null
+          sincronizado?: boolean
+          tipo?: string
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       configuraciones: {
         Row: {
           created_at: string | null

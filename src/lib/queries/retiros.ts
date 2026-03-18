@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
+import { CALENDARIO_ORIGEN } from '@/lib/constants/calendario';
+import { upsertActividadSincronizada } from '@/lib/queries/calendario-sync';
 import type {
   RetiroInput,
   InscripcionConversionInput,
@@ -124,6 +126,18 @@ export const useCreateRetiro = () => {
         .select()
         .single();
       if (error) throw error;
+
+      await upsertActividadSincronizada(supabase, {
+        origenTipo: CALENDARIO_ORIGEN.RETIRO,
+        origenId: data.id,
+        origenUpdatedAt: data.updated_at ?? data.created_at ?? new Date().toISOString(),
+        titulo: data.nombre,
+        descripcion: data.descripcion,
+        tipo: data.tipo,
+        fechaInicio: data.fecha_inicio,
+        fechaFin: data.fecha_fin,
+      });
+
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.retiros }),
@@ -142,6 +156,18 @@ export const useUpdateRetiro = () => {
         .select()
         .single();
       if (error) throw error;
+
+      await upsertActividadSincronizada(supabase, {
+        origenTipo: CALENDARIO_ORIGEN.RETIRO,
+        origenId: data.id,
+        origenUpdatedAt: data.updated_at ?? data.created_at ?? new Date().toISOString(),
+        titulo: data.nombre,
+        descripcion: data.descripcion,
+        tipo: data.tipo,
+        fechaInicio: data.fecha_inicio,
+        fechaFin: data.fecha_fin,
+      });
+
       return data;
     },
     onSuccess: (_, { id }) => {
