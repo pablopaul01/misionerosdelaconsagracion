@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { href: '/admin/grupo-oracion', label: 'Grupo de oración' },
   { href: '/admin/consagracion', label: 'Consagración' },
   { href: '/admin/retiros',      label: 'Retiros' },
+  { href: '/admin/calendario',   label: 'Calendario' },
   { href: '/admin/usuarios',     label: 'Usuarios' },
   { href: '/admin/configuraciones', label: 'Configuraciones' },
 ] as const;

@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
+import { CALENDARIO_ORIGEN } from '@/lib/constants/calendario';
+import { upsertActividadSincronizada } from '@/lib/queries/calendario-sync';
 import type { FormacionInput, ClaseInput } from '@/lib/validations/formaciones';
 
 const QUERY_KEYS = {
@@ -59,6 +61,17 @@ export const useCreateFormacion = () => {
         .single();
 
       if (error) throw error;
+
+      await upsertActividadSincronizada(supabase, {
+        origenTipo: CALENDARIO_ORIGEN.FORMACION_MISIONEROS,
+        origenId: data.id,
+        origenUpdatedAt: data.created_at ?? new Date().toISOString(),
+        titulo: `Formacion ${data.anio} - ${data.tipo}`,
+        descripcion: 'Inicio de formacion para misioneros.',
+        tipo: 'formacion',
+        fechaInicio: data.fecha_inicio,
+      });
+
       return data;
     },
     onSuccess: () => {
@@ -72,11 +85,23 @@ export const useUpdateFormacion = (id: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: { fecha_inicio: string }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('formaciones_misioneros')
         .update(input)
-        .eq('id', id);
+        .eq('id', id)
+        .select('id, anio, tipo, fecha_inicio, created_at')
+        .single();
       if (error) throw error;
+
+      await upsertActividadSincronizada(supabase, {
+        origenTipo: CALENDARIO_ORIGEN.FORMACION_MISIONEROS,
+        origenId: data.id,
+        origenUpdatedAt: new Date().toISOString(),
+        titulo: `Formacion ${data.anio} - ${data.tipo}`,
+        descripcion: 'Inicio de formacion para misioneros.',
+        tipo: 'formacion',
+        fechaInicio: data.fecha_inicio,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.detail(id) });
@@ -90,11 +115,23 @@ export const useUpdateFormacionCompleta = (id: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: FormacionInput) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('formaciones_misioneros')
         .update(input)
-        .eq('id', id);
+        .eq('id', id)
+        .select('id, anio, tipo, fecha_inicio, created_at')
+        .single();
       if (error) throw error;
+
+      await upsertActividadSincronizada(supabase, {
+        origenTipo: CALENDARIO_ORIGEN.FORMACION_MISIONEROS,
+        origenId: data.id,
+        origenUpdatedAt: new Date().toISOString(),
+        titulo: `Formacion ${data.anio} - ${data.tipo}`,
+        descripcion: 'Inicio de formacion para misioneros.',
+        tipo: 'formacion',
+        fechaInicio: data.fecha_inicio,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.detail(id) });
