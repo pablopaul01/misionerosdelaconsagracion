@@ -33,27 +33,43 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient();
 
-  const { data: misionero, error: misioneroError } = await admin
-    .from('misioneros')
-    .select('id')
-    .eq('dni', parsed.data.dni)
-    .eq('activo', true)
-    .maybeSingle();
+  let misionero;
+  try {
+    const result = await admin
+      .from('misioneros')
+      .select('id')
+      .eq('dni', parsed.data.dni)
+      .eq('activo', true)
+      .maybeSingle();
 
-  if (misioneroError || !misionero) {
-    return NextResponse.json({ actividades: [], message: MESSAGE_NEUTRAL });
+    if (result.error) {
+      return NextResponse.json({ error: 'No se pudo consultar el calendario' }, { status: 500 });
+    }
+    misionero = result.data;
+  } catch {
+    return NextResponse.json({ error: 'No se pudo consultar el calendario' }, { status: 500 });
   }
 
-  const { data: actividades, error: actividadesError } = await admin
-    .from('calendario_actividades')
-    .select('id, titulo, descripcion, fecha_inicio, fecha_fin, tipo, origen_tipo')
-    .eq('estado', 'activo')
-    .gte('fecha_inicio', parsed.data.desde)
-    .lte('fecha_inicio', parsed.data.hasta)
-    .order('fecha_inicio', { ascending: true })
-    .limit(CALENDARIO_MAX_RESULTADOS);
+  if (!misionero) {
+    return NextResponse.json({ actividades: [], message: MESSAGE_NEUTRAL }, { status: 404 });
+  }
 
-  if (actividadesError) {
+  let actividades;
+  try {
+    const result = await admin
+      .from('calendario_actividades')
+      .select('id, titulo, descripcion, fecha_inicio, fecha_fin, tipo, origen_tipo')
+      .eq('estado', 'activo')
+      .gte('fecha_inicio', parsed.data.desde)
+      .lte('fecha_inicio', parsed.data.hasta)
+      .order('fecha_inicio', { ascending: true })
+      .limit(CALENDARIO_MAX_RESULTADOS);
+
+    if (result.error) {
+      return NextResponse.json({ error: 'No se pudo consultar el calendario' }, { status: 500 });
+    }
+    actividades = result.data;
+  } catch {
     return NextResponse.json({ error: 'No se pudo consultar el calendario' }, { status: 500 });
   }
 

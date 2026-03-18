@@ -184,11 +184,18 @@ export const useCalendarioMisionero = (params: MisioneroCalendarioParams) => {
         body: JSON.stringify(body),
       });
 
-      const payload: MisioneroCalendarioResponse = await response.json();
-
       if (!response.ok) {
-        throw new Error(payload.message ?? 'No se pudo consultar el calendario');
+        const text = await response.text().catch(() => '');
+        let message = 'No se pudo consultar el calendario';
+        try {
+          message = JSON.parse(text).message ?? message;
+        } catch {
+          // text is not JSON, use default
+        }
+        throw new Error(message);
       }
+
+      const payload: MisioneroCalendarioResponse = await response.json();
 
       return payload;
     },

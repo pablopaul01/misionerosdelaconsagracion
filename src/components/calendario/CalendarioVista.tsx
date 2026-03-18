@@ -145,6 +145,7 @@ const transformToCalendarEvents = (actividades: ActividadCalendario[]): EventInp
       backgroundColor: colors.bg,
       borderColor: colors.border,
       textColor: colors.text,
+      allDay: false,
       extendedProps: {
         tipo: actividad.tipo,
         origen_tipo: actividad.origen_tipo,

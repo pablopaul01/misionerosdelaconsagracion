@@ -24,5 +24,5 @@ export const CALENDARIO_ORIGEN_LABEL: Record<CalendarioOrigen, string> = {
 };
 
 export const CALENDARIO_MAX_RANGE_DIAS = 120;
-export const CALENDARIO_DEFAULT_RANGE_DIAS = 45;
+export const CALENDARIO_DEFAULT_RANGE_DIAS = 120;
 export const CALENDARIO_MAX_RESULTADOS = 100;
