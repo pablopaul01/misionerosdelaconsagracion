@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ActividadManualInput, ActividadUpdateInput } from '@/lib/validations/calendario';
+import { CALENDARIO_DEFAULT_RANGE_DIAS } from '@/lib/constants/calendario';
 
 type ActividadCalendario = {
   id: string;
@@ -133,5 +134,64 @@ export const useDeleteActividadCalendario = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calendario-admin'] });
     },
+  });
+};
+
+// Public calendario hook for missionarios
+type MisioneroCalendarioParams = {
+  dni: string;
+  desde?: string;
+  hasta?: string;
+};
+
+type MisioneroCalendarioResponse = {
+  actividades: ActividadCalendario[];
+  message?: string | null;
+};
+
+const MISIONERO_QUERY_KEYS = {
+  list: (params: MisioneroCalendarioParams) => ['calendario-misionero', params] as const,
+};
+
+const getDefaultDateRange = () => {
+  const hoy = new Date();
+  const hasta = new Date(hoy);
+  hasta.setDate(hasta.getDate() + CALENDARIO_DEFAULT_RANGE_DIAS);
+
+  return {
+    desde: hoy.toISOString().split('T')[0],
+    hasta: hasta.toISOString().split('T')[0],
+  };
+};
+
+export const useCalendarioMisionero = (params: MisioneroCalendarioParams) => {
+  return useQuery({
+    queryKey: MISIONERO_QUERY_KEYS.list(params),
+    queryFn: async () => {
+      const { dni, ...rest } = params;
+      const defaults = getDefaultDateRange();
+      const body = {
+        dni,
+        desde: rest.desde || defaults.desde,
+        hasta: rest.hasta || defaults.hasta,
+      };
+
+      const response = await fetch('/api/calendario/misionero', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const payload: MisioneroCalendarioResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.message ?? 'No se pudo consultar el calendario');
+      }
+
+      return payload;
+    },
+    enabled: !!params.dni.trim(),
   });
 };
