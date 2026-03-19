@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { CalendarDays, Loader2, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { CalendarDays, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,31 +15,44 @@ import {
 import { CALENDARIO_ORIGEN_LABEL } from '@/lib/constants/calendario';
 import { useCalendarioMisionero } from '@/lib/queries/calendario';
 import { CalendarioVista } from '@/components/calendario/CalendarioVista';
-import { CalendarioEventCard } from '@/components/calendario/CalendarioEventCard';
 import type { ActividadCalendario } from '@/types/calendario';
 
 import '@/styles/calendario-fullcalendar.css';
 
 export const dynamic = 'force-dynamic';
 
+type Estado = 'login' | 'calendario';
+
 export default function CalendarioMisioneroPage() {
   const [dni, setDni] = useState('');
-  const [desde, setDesde] = useState('');
-  const [hasta, setHasta] = useState('');
-  const [hasSearched, setHasSearched] = useState(false);
-  const [selectedActividad, setSelectedActividad] = useState<ActividadCalendario | null>(null);
-  const [showEventDialog, setShowEventDialog] = useState(false);
+  const [submittedDni, setSubmittedDni] = useState('');
+  const [estado, setEstado] = useState<Estado>('login');
+  const [loginError, setLoginError] = useState('');
 
-  const { data, isLoading, isError, error } = useCalendarioMisionero({
-    dni,
-    desde,
-    hasta,
+  const { data, isLoading, isError, isSuccess } = useCalendarioMisionero({
+    dni: submittedDni,
+    desde: '',
+    hasta: '',
   });
+
+  const [showEventDialog, setShowEventDialog] = useState(false);
+  const [selectedActividad, setSelectedActividad] = useState<ActividadCalendario | null>(null);
+
+  useEffect(() => {
+    if (!submittedDni) return;
+    if (isSuccess) {
+      setEstado('calendario');
+      setLoginError('');
+    } else if (isError) {
+      setSubmittedDni('');
+      setLoginError('El DNI ingresado no corresponde a ningún misionero registrado.');
+    }
+  }, [isSuccess, isError, submittedDni]);
 
   const handleBuscar = () => {
     if (!dni.trim()) return;
-    setHasSearched(true);
-    setSelectedActividad(null);
+    setLoginError('');
+    setSubmittedDni(dni);
   };
 
   const handleEventClick = (eventId: string) => {
@@ -49,128 +63,135 @@ export default function CalendarioMisioneroPage() {
     }
   };
 
-  const actividades = data?.actividades ?? [];
-  const mensaje = data?.message;
+  const handleVolver = () => {
+    setEstado('login');
+    setDni('');
+    setSubmittedDni('');
+    setLoginError('');
+  };
 
-  return (
-    <main className="min-h-screen bg-gradient-to-b from-brand-cream via-brand-cream to-white px-4 py-10">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <section className="rounded-2xl border border-brand-creamLight bg-white/95 p-5 shadow-sm md:p-8">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-xl bg-brand-dark p-2 text-brand-cream">
-              <CalendarDays className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="font-title text-2xl text-brand-dark">Calendario de actividades</h1>
-              <p className="text-sm text-brand-brown">Consulta tus proximas actividades con tu DNI.</p>
-            </div>
+  const actividades = data?.actividades ?? [];
+
+  // ── PANTALLA DE LOGIN ────────────────────────────────────────────────────────
+  if (estado === 'login') {
+    return (
+      <main className="min-h-screen bg-brand-cream flex flex-col items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md flex flex-col items-center gap-6">
+          <Image
+            src="/logomisioneros.png"
+            alt="Logo"
+            width={160}
+            height={160}
+            className="object-contain"
+          />
+          <div className="text-center">
+            <h1 className="font-title text-brand-dark text-xl tracking-wide mb-2">
+              Calendario de actividades
+            </h1>
+            <p className="text-sm text-brand-brown">
+              Consultá las proximas actividades con tu DNI
+            </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="md:col-span-1">
-              <Label htmlFor="dni">DNI</Label>
+          <div className="bg-white rounded-2xl shadow-sm p-6 w-full flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="dni">Ingresá tu DNI</Label>
               <Input
                 id="dni"
-                value={dni}
-                onChange={(event) => setDni(event.target.value.replace(/[^\d]/g, ''))}
+                type="text"
                 inputMode="numeric"
                 placeholder="Ej: 35123456"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleBuscar();
-                  }
-                }}
+                value={dni}
+                onChange={(e) => setDni(e.target.value.replace(/[^\d]/g, ''))}
+                onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
+                className="text-lg"
+                disabled={isLoading}
               />
             </div>
-            <div>
-              <Label htmlFor="desde">Desde (opcional)</Label>
-              <Input
-                id="desde"
-                type="date"
-                value={desde}
-                onChange={(event) => setDesde(event.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="hasta">Hasta (opcional)</Label>
-              <Input
-                id="hasta"
-                type="date"
-                value={hasta}
-                onChange={(event) => setHasta(event.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="mt-5">
+            {loginError && (
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                {loginError}
+              </p>
+            )}
             <Button
-              className="w-full bg-brand-brown text-white hover:bg-brand-dark md:w-auto"
-              disabled={isLoading || !dni.trim()}
               onClick={handleBuscar}
+              disabled={!dni.trim() || isLoading}
+              className="bg-brand-brown hover:bg-brand-dark text-white font-title tracking-wide"
             >
               {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Verificando...
+                </>
               ) : (
-                <Search className="mr-2 h-4 w-4" />
+                'Ver actividades'
               )}
-              {isLoading ? 'Buscando...' : 'Consultar actividades'}
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // ── PANTALLA DE CALENDARIO ───────────────────────────────────────────────────
+  return (
+    <main className="min-h-screen bg-brand-cream px-4 py-10">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+        <section className="rounded-2xl border border-brand-creamLight bg-white/95 p-5 shadow-sm md:p-8">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-brand-dark p-2 text-brand-cream">
+                <CalendarDays className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="font-title text-2xl text-brand-dark">Calendario de actividades</h1>
+                <p className="text-sm text-brand-brown">DNI: {submittedDni}</p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={handleVolver}
+              className="text-brand-brown hover:text-brand-dark text-sm"
+            >
+              Cambiar DNI
             </Button>
           </div>
 
-          {isError && (
-            <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-              {error instanceof Error ? error.message : 'No se pudo consultar el calendario'}
+          {data?.message && (
+            <p className="mt-4 rounded-lg bg-brand-cream p-3 text-sm text-brand-brown">
+              {data.message}
             </p>
-          )}
-          {mensaje && (
-            <p className="mt-4 rounded-lg bg-brand-cream p-3 text-sm text-brand-brown">{mensaje}</p>
           )}
         </section>
 
-        {hasSearched && (
-          <>
-            {isLoading ? (
-              <section className="flex min-h-[400px] items-center justify-center rounded-2xl border border-brand-creamLight bg-white/95 p-8">
-                <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="h-8 w-8 animate-spin text-brand-brown" />
-                  <p className="text-sm text-brand-brown">Cargando calendario...</p>
-                </div>
-              </section>
-            ) : actividades.length === 0 ? (
-              <section className="flex min-h-[200px] items-center justify-center rounded-2xl border border-brand-creamLight bg-white/95 p-8">
-                <div className="text-center">
-                  <CalendarDays className="mx-auto h-12 w-12 text-brand-brown/40" />
-                  <p className="mt-4 text-lg text-brand-brown">No encontramos actividades para los datos ingresados.</p>
-                  <p className="mt-2 text-sm text-brand-brown/60">
-                    Verificá que el DNI sea correcto o probá con otro rango de fechas.
-                  </p>
-                </div>
-              </section>
-            ) : (
-              <>
-                <section className="rounded-2xl border border-brand-creamLight bg-white/95 p-4 shadow-sm md:p-6">
-                  <CalendarioVista
-                    eventos={actividades}
-                    isLoading={isLoading}
-                    onEventClick={handleEventClick}
-                  />
-                </section>
-
-                <section className="rounded-2xl border border-brand-creamLight bg-white/95 p-5 shadow-sm md:p-6">
-                  <h2 className="mb-4 font-title text-xl text-brand-dark">Todas las actividades</h2>
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {actividades.map((actividad) => (
-                      <CalendarioEventCard
-                        key={actividad.id}
-                        actividad={actividad}
-                        onClick={handleEventClick}
-                      />
-                    ))}
-                  </div>
-                </section>
-              </>
-            )}
-          </>
+        {isLoading ? (
+          <section className="flex min-h-[400px] items-center justify-center rounded-2xl border border-brand-creamLight bg-white/95 p-8">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-brand-brown" />
+              <p className="text-sm text-brand-brown">Cargando calendario...</p>
+            </div>
+          </section>
+        ) : actividades.length === 0 ? (
+          <section className="flex min-h-[200px] items-center justify-center rounded-2xl border border-brand-creamLight bg-white/95 p-8">
+            <div className="text-center">
+              <CalendarDays className="mx-auto h-12 w-12 text-brand-brown/40" />
+              <p className="mt-4 text-lg text-brand-brown">
+                No encontramos actividades para los datos ingresados.
+              </p>
+              <p className="mt-2 text-sm text-brand-brown/60">
+                Verificá que el DNI sea correcto o probá con otro rango de fechas.
+              </p>
+            </div>
+          </section>
+        ) : (
+          <section className="rounded-2xl border border-brand-creamLight bg-white/95 p-4 shadow-sm md:p-6">
+            <CalendarioVista
+              eventos={actividades}
+              isLoading={isLoading}
+              soloMes
+              onEventClick={handleEventClick}
+            />
+          </section>
         )}
       </div>
 

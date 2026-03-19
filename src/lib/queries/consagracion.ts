@@ -7,6 +7,7 @@ import {
 } from '@/lib/queries/calendario-sync';
 import type {
   InscripcionConsagracionInput,
+  ContactoConsagracionInput,
   FormacionConsagracionInput,
   LeccionConsagracionInput,
 } from '@/lib/validations/consagracion';
@@ -81,6 +82,38 @@ export const useCreateFormacionConsagracion = () => {
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.formaciones }),
+  });
+};
+
+export const useUpdateFormacionConsagracion = () => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, anio, fecha_inicio }: { id: string; anio: number; fecha_inicio: string }) => {
+      const { data, error } = await supabase
+        .from('formaciones_consagracion')
+        .update({ anio, fecha_inicio })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+
+      await upsertActividadSincronizada(supabase, {
+        origenTipo: CALENDARIO_ORIGEN.CONSAGRACION_FORMACION,
+        origenId: data.id,
+        origenUpdatedAt: new Date().toISOString(),
+        titulo: `Consagracion ${data.anio}`,
+        descripcion: 'Inicio de formacion de consagracion.',
+        tipo: 'consagracion',
+        fechaInicio: data.fecha_inicio,
+      });
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.formaciones });
+      queryClient.invalidateQueries({ queryKey: ['formacion-consagracion'] });
+    },
   });
 };
 
@@ -229,7 +262,7 @@ export const useCreateInscripcionConsagracion = (formacionId: string) => {
   const supabase = createClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: InscripcionConsagracionInput) => {
+    mutationFn: async (input: InscripcionConsagracionInput | ContactoConsagracionInput) => {
       const { data, error } = await supabase
         .from('inscripciones_consagracion')
         .insert({ ...input, formacion_id: formacionId })
@@ -246,7 +279,7 @@ export const useUpdateInscripcionConsagracion = (formacionId: string) => {
   const supabase = createClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, input }: { id: string; input: Partial<InscripcionConsagracionInput> }) => {
+    mutationFn: async ({ id, input }: { id: string; input: InscripcionConsagracionInput | ContactoConsagracionInput }) => {
       const { error } = await supabase
         .from('inscripciones_consagracion')
         .update(input)

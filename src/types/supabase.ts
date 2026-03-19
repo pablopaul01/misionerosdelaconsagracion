@@ -349,8 +349,9 @@ export type Database = {
           comentario: string | null
           created_at: string | null
           domicilio: string | null
-          dni: string
-          estado_civil: Database["public"]["Enums"]["estado_civil_enum"]
+          dni: string | null
+          estado_civil: Database["public"]["Enums"]["estado_civil_enum"] | null
+          estado_inscripcion: 'contactar' | 'inscripto'
           formacion_id: string
           id: string
           nombre: string
@@ -364,8 +365,9 @@ export type Database = {
           comentario?: string | null
           created_at?: string | null
           domicilio?: string | null
-          dni: string
-          estado_civil: Database["public"]["Enums"]["estado_civil_enum"]
+          dni?: string | null
+          estado_civil?: Database["public"]["Enums"]["estado_civil_enum"] | null
+          estado_inscripcion?: 'contactar' | 'inscripto'
           formacion_id: string
           id?: string
           nombre: string
@@ -379,8 +381,9 @@ export type Database = {
           comentario?: string | null
           created_at?: string | null
           domicilio?: string | null
-          dni?: string
-          estado_civil?: Database["public"]["Enums"]["estado_civil_enum"]
+          dni?: string | null
+          estado_civil?: Database["public"]["Enums"]["estado_civil_enum"] | null
+          estado_inscripcion?: 'contactar' | 'inscripto'
           formacion_id?: string
           id?: string
           nombre?: string

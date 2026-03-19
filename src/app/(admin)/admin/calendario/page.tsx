@@ -1,6 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
+const ITEMS_POR_PAGINA = 12;
 import { CalendarDays, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   CALENDARIO_ESTADO,
@@ -86,6 +88,7 @@ export default function AdminCalendarioPage() {
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
 
+  const [pagina, setPagina] = useState(1);
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<ActividadCalendario | null>(null);
   const [toDelete, setToDelete] = useState<ActividadCalendario | null>(null);
@@ -103,6 +106,11 @@ export default function AdminCalendarioPage() {
   );
 
   const { data: actividades = [], isLoading } = useCalendarioAdmin(filters);
+
+  useEffect(() => { setPagina(1); }, [filters]);
+
+  const totalPaginas = Math.ceil(actividades.length / ITEMS_POR_PAGINA);
+  const actividadesPaginadas = actividades.slice((pagina - 1) * ITEMS_POR_PAGINA, pagina * ITEMS_POR_PAGINA);
   const createActividad = useCreateActividadCalendario();
   const updateActividad = useUpdateActividadCalendario();
   const deleteActividad = useDeleteActividadCalendario();
@@ -331,8 +339,9 @@ export default function AdminCalendarioPage() {
       {isLoading ? (
         <p className="text-brand-brown">Cargando calendario...</p>
       ) : (
+        <>
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          {actividades.map((actividad) => (
+          {actividadesPaginadas.map((actividad) => (
             <article key={actividad.id} className="rounded-xl border border-brand-creamLight bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -377,6 +386,33 @@ export default function AdminCalendarioPage() {
             </article>
           ))}
         </div>
+
+        {totalPaginas > 1 && (
+          <div className="flex items-center justify-between gap-3 pt-2">
+            <p className="text-sm text-brand-brown">
+              {actividades.length} actividades · página {pagina} de {totalPaginas}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPagina((p) => p - 1)}
+                disabled={pagina === 1}
+              >
+                ← Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPagina((p) => p + 1)}
+                disabled={pagina === totalPaginas}
+              >
+                Siguiente →
+              </Button>
+            </div>
+          </div>
+        )}
+        </>
       )}
 
       <AlertDialog open={!!toDelete} onOpenChange={(open) => !open && setToDelete(null)}>

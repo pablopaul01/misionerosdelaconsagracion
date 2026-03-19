@@ -26,6 +26,18 @@ export const ESTADO_CIVIL_LABEL: Record<EstadoCivil, string> = {
   viudo:      'Viudo/a',
 };
 
+export const INSCRIPCION_ESTADO = {
+  CONTACTAR: 'contactar',
+  INSCRIPTO:  'inscripto',
+} as const;
+
+export type InscripcionEstado = (typeof INSCRIPCION_ESTADO)[keyof typeof INSCRIPCION_ESTADO];
+
+export const INSCRIPCION_ESTADO_LABEL: Record<InscripcionEstado, string> = {
+  contactar: 'A contactar',
+  inscripto:  'Inscripto',
+};
+
 export const SACRAMENTOS = [
   { value: 'bautismo',      label: 'Bautismo' },
   { value: 'comunion',      label: 'Primera Comunión' },

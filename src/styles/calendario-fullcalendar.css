@@ -95,8 +95,16 @@
 }
 
 .fc .fc-list-event-time {
-  color: #8b5a2b;
-  font-weight: 500;
+  display: none;
+}
+
+.fc .fc-list-event-title {
+  width: 100%;
+}
+
+.fc .fc-list-event-title .fc-event-main {
+  display: flex;
+  width: 100%;
 }
 
 .fc-col-header-cell-cushion {

@@ -25,7 +25,7 @@ export const consultaCalendarioDniSchema = z
     const baseHasta = hasta ?? defaultHasta.toISOString().slice(0, 10);
 
     const desdeDate = new Date(`${baseDesde}T00:00:00.000Z`);
-    const hastaDate = new Date(`${baseHasta}T23:59:59.999Z`);
+    const hastaDate = new Date(`${baseHasta}T00:00:00.000Z`);
 
     if (hastaDate < desdeDate) {
       throw new z.ZodError([
@@ -37,7 +37,7 @@ export const consultaCalendarioDniSchema = z
       ]);
     }
 
-    const dias = Math.ceil((hastaDate.getTime() - desdeDate.getTime()) / 86_400_000);
+    const dias = Math.round((hastaDate.getTime() - desdeDate.getTime()) / 86_400_000);
     if (dias > CALENDARIO_MAX_RANGE_DIAS) {
       throw new z.ZodError([
         {

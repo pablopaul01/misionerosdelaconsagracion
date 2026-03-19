@@ -7,6 +7,7 @@ import {
   CONSAGRACION_FIELDS,
   type InscripcionConsagracionInput,
 } from '@/lib/validations/consagracion';
+import { INSCRIPCION_ESTADO } from '@/lib/constants/consagracion';
 import { fieldError } from '@/lib/utils/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,7 +55,7 @@ export const InscripcionForm = ({ formacionId, onSuccess }: InscripcionFormProps
     validators: { onSubmit: inscripcionConsagracionSchema },
     onSubmit: ({ value }) => {
       // Guardar el value para confirmar antes de persistir
-      setPendingSubmit(value);
+      setPendingSubmit({ ...value, estado_inscripcion: INSCRIPCION_ESTADO.INSCRIPTO });
     },
   });
 
@@ -88,7 +89,7 @@ export const InscripcionForm = ({ formacionId, onSuccess }: InscripcionFormProps
 
         if (type === 'select' && 'options' in fieldConfig) {
           return (
-            <form.Field key={name} name={name as keyof InscripcionConsagracionInput}>
+            <form.Field key={name} name={name}>
               {(field) => (
                 <div className="flex flex-col gap-1.5">
                   <Label>{label}{required && ' *'}</Label>
@@ -118,7 +119,7 @@ export const InscripcionForm = ({ formacionId, onSuccess }: InscripcionFormProps
 
         if (type === 'radio' && 'options' in fieldConfig) {
           return (
-            <form.Field key={name} name={name as keyof InscripcionConsagracionInput}>
+            <form.Field key={name} name={name}>
               {(field) => (
                 <div className="flex flex-col gap-2">
                   <Label>{label}{required && ' *'}</Label>
@@ -181,7 +182,7 @@ export const InscripcionForm = ({ formacionId, onSuccess }: InscripcionFormProps
 
         if (type === 'textarea') {
           return (
-            <form.Field key={name} name={name as keyof InscripcionConsagracionInput}>
+            <form.Field key={name} name={name}>
               {(field) => (
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor={name}>{label}</Label>
@@ -200,7 +201,7 @@ export const InscripcionForm = ({ formacionId, onSuccess }: InscripcionFormProps
 
         // type: text | tel
         return (
-          <form.Field key={name} name={name as keyof InscripcionConsagracionInput}>
+          <form.Field key={name} name={name}>
             {(field) => (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor={name}>{label}{required && ' *'}</Label>

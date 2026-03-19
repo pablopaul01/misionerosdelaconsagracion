@@ -357,10 +357,62 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
         )}
       </div>
 
-      {lecciones.length === 0 || inscripciones.length === 0 ? (
-        <p className="text-brand-brown text-sm">
-          {lecciones.length === 0 ? 'No hay lecciones creadas aún.' : 'No hay inscriptos aún.'}
-        </p>
+      {lecciones.length === 0 ? (
+        <p className="text-brand-brown text-sm">No hay lecciones creadas aún.</p>
+      ) : inscripciones.length === 0 ? (
+        <>
+          <div className="flex flex-col gap-2">
+            {lecciones.map((leccion) => {
+              const disertante = (leccion as typeof leccion & { disertante?: { id: string; nombre: string; apellido: string } | null }).disertante;
+              return (
+                <div key={leccion.id} className="bg-white border border-brand-creamLight rounded-xl flex items-center justify-between px-4 py-3 gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="font-title text-brand-dark text-sm font-semibold w-6 text-center">{leccion.numero}</span>
+                    {leccion.tipo === TIPO_LECCION.RETIRO && (
+                      <Badge className="bg-brand-gold text-brand-dark text-xs px-1">Retiro</Badge>
+                    )}
+                    {leccion.fecha && (
+                      <span className="text-xs text-brand-brown">{formatFechaCorta(leccion.fecha)}</span>
+                    )}
+                    {disertante && (
+                      <span className="text-xs text-brand-teal">{disertante.apellido}, {disertante.nombre.charAt(0)}.</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <button
+                      className="text-brand-teal hover:text-brand-navy"
+                      onClick={() => setEditandoLeccion({
+                        id: leccion.id,
+                        numero: leccion.numero,
+                        tipo: leccion.tipo as 'leccion' | 'retiro',
+                        fecha: leccion.fecha,
+                        disertante_id: leccion.disertante_id,
+                      })}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button className="text-red-400 hover:text-red-600 text-sm">✕</button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Eliminar lección {leccion.numero}?</AlertDialogTitle>
+                          <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleEliminar(leccion.id)} className="bg-red-500 hover:bg-red-700 text-white">Eliminar</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-brand-brown text-sm">No hay inscriptos aún.</p>
+        </>
       ) : (
         <>
           {/* ── Desktop: tabla ── */}
