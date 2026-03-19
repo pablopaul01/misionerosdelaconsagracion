@@ -279,7 +279,7 @@ export const useUpdateInscripcionConsagracion = (formacionId: string) => {
   const supabase = createClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, input }: { id: string; input: Partial<InscripcionConsagracionInput> }) => {
+    mutationFn: async ({ id, input }: { id: string; input: InscripcionConsagracionInput | ContactoConsagracionInput }) => {
       const { error } = await supabase
         .from('inscripciones_consagracion')
         .update(input)

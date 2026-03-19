@@ -171,7 +171,7 @@ export const InscripcionesView = ({
     {
       accessorKey: 'estado_civil',
       header: 'Estado civil',
-      cell: ({ row }) => ESTADO_CIVIL_LABEL[row.original.estado_civil] ?? row.original.estado_civil,
+      cell: ({ row }) => row.original.estado_civil ? (ESTADO_CIVIL_LABEL[row.original.estado_civil] ?? row.original.estado_civil) : '—',
     },
     {
       accessorKey: 'tipo_inscripcion',
@@ -434,7 +434,7 @@ export const InscripcionesView = ({
               </div>
 
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-brand-brown">
-                <span>{ESTADO_CIVIL_LABEL[ins.estado_civil] ?? ins.estado_civil}</span>
+                <span>{ins.estado_civil ? (ESTADO_CIVIL_LABEL[ins.estado_civil] ?? ins.estado_civil) : '—'}</span>
                 {ins.tipo_inscripcion && <span>{TIPO_LABEL[ins.tipo_inscripcion] ?? ins.tipo_inscripcion}</span>}
               </div>
 

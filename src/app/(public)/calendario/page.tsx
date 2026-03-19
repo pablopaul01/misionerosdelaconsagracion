@@ -138,14 +138,23 @@ export default function CalendarioMisioneroPage() {
     <main className="min-h-screen bg-brand-cream px-4 py-10">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <section className="rounded-2xl border border-brand-creamLight bg-white/95 p-5 shadow-sm md:p-8">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-brand-dark p-2 text-brand-cream">
-              <CalendarDays className="h-5 w-5" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-brand-dark p-2 text-brand-cream">
+                <CalendarDays className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="font-title text-2xl text-brand-dark">Calendario de actividades</h1>
+                <p className="text-sm text-brand-brown">DNI: {submittedDni}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="font-title text-2xl text-brand-dark">Calendario de actividades</h1>
-              <p className="text-sm text-brand-brown">DNI: {submittedDni}</p>
-            </div>
+            <Button
+              variant="ghost"
+              onClick={handleVolver}
+              className="text-brand-brown hover:text-brand-dark text-sm"
+            >
+              Cambiar DNI
+            </Button>
           </div>
 
           {data?.message && (

@@ -260,7 +260,7 @@ export function CalendarioVista({ eventos, isLoading, soloMes, onDateClick, onEv
       >
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
+          initialView={getInitialView()}
           headerToolbar={soloMes
             ? { left: 'prev,next today', center: 'title', right: '' }
             : getToolbarConfig()}
