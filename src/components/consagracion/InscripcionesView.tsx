@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   useReactTable,
@@ -112,14 +112,14 @@ export const InscripcionesView = ({
   const [eliminando, setEliminando] = useState<Inscripcion | null>(null);
   const [errorEliminar, setErrorEliminar] = useState('');
 
-  const datosFiltrados = (() => {
+  const datosFiltrados = useMemo(() => {
     const all = inscripciones as Inscripcion[];
     if (filtroConsagracion === 'contactar')   return all.filter((i) => i.estado_inscripcion === INSCRIPCION_ESTADO.CONTACTAR);
     if (filtroConsagracion === 'consagrados') return all.filter((i) => i.estado_inscripcion === INSCRIPCION_ESTADO.INSCRIPTO && i.se_consagro === true);
     if (filtroConsagracion === 'no_completo') return all.filter((i) => i.estado_inscripcion === INSCRIPCION_ESTADO.INSCRIPTO && i.se_consagro === false);
     if (filtroConsagracion === 'pendiente')   return all.filter((i) => i.estado_inscripcion === INSCRIPCION_ESTADO.INSCRIPTO && i.se_consagro === null);
     return all;
-  })();
+  }, [inscripciones, filtroConsagracion]);
 
   const totalConsagrados = (inscripciones as Inscripcion[]).filter((i) => i.se_consagro === true).length;
   const totalContactar   = (inscripciones as Inscripcion[]).filter((i) => i.estado_inscripcion === INSCRIPCION_ESTADO.CONTACTAR).length;
