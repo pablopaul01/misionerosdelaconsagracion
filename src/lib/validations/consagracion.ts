@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ESTADO_CIVIL } from '@/lib/constants/consagracion';
+import { ESTADO_CIVIL, INSCRIPCION_ESTADO } from '@/lib/constants/consagracion';
 
 // Configuración de campos — agregar aquí para extender el formulario sin tocar el componente
 export const CONSAGRACION_FIELDS = [
@@ -31,16 +31,26 @@ export const CONSAGRACION_FIELDS = [
   { name: 'comentario', label: 'Comentario / Sugerencia', type: 'textarea', required: false },
 ] as const;
 
+// Schema completo (estado inscripto)
 export const inscripcionConsagracionSchema = z.object({
-  nombre:            z.string().min(1, 'El nombre es requerido'),
-  apellido:          z.string().min(1, 'El apellido es requerido'),
-  dni:               z.string().min(7, 'DNI inválido').max(8, 'DNI inválido').regex(/^\d+$/, 'Solo números'),
-  domicilio:         z.string(),
-  whatsapp:          z.string().min(8, 'Número inválido').regex(/^\d+$/, 'Solo números'),
-  estado_civil:      z.enum(['soltero_a', 'casado', 'divorciado', 'viudo']),
-  tipo_inscripcion:  z.enum(['primera_vez', 'renovacion'], { message: 'Seleccioná una opción' }),
-  sacramentos:       z.array(z.string()),
-  comentario:        z.string(),
+  nombre:             z.string().min(1, 'El nombre es requerido'),
+  apellido:           z.string().min(1, 'El apellido es requerido'),
+  dni:                z.string().min(7, 'DNI inválido').max(8, 'DNI inválido').regex(/^\d+$/, 'Solo números'),
+  domicilio:          z.string(),
+  whatsapp:           z.string().min(8, 'Número inválido').regex(/^\d+$/, 'Solo números'),
+  estado_civil:       z.enum(['soltero_a', 'casado', 'divorciado', 'viudo']),
+  tipo_inscripcion:   z.enum(['primera_vez', 'renovacion'], { message: 'Seleccioná una opción' }),
+  sacramentos:        z.array(z.string()),
+  comentario:         z.string(),
+  estado_inscripcion: z.literal(INSCRIPCION_ESTADO.INSCRIPTO).default(INSCRIPCION_ESTADO.INSCRIPTO),
+});
+
+// Schema parcial para estado "contactar" (solo datos de contacto)
+export const contactoConsagracionSchema = z.object({
+  nombre:             z.string().min(1, 'El nombre es requerido'),
+  apellido:           z.string().min(1, 'El apellido es requerido'),
+  whatsapp:           z.string().min(8, 'Número inválido').regex(/^\d+$/, 'Solo números'),
+  estado_inscripcion: z.literal(INSCRIPCION_ESTADO.CONTACTAR).default(INSCRIPCION_ESTADO.CONTACTAR),
 });
 
 export const formacionConsagracionSchema = z.object({
@@ -56,5 +66,6 @@ export const leccionConsagracionSchema = z.object({
 });
 
 export type InscripcionConsagracionInput = z.infer<typeof inscripcionConsagracionSchema>;
+export type ContactoConsagracionInput = z.infer<typeof contactoConsagracionSchema>;
 export type FormacionConsagracionInput = z.infer<typeof formacionConsagracionSchema>;
 export type LeccionConsagracionInput = z.infer<typeof leccionConsagracionSchema>;

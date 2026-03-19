@@ -24,6 +24,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 interface CalendarioVistaProps {
   eventos: ActividadCalendario[];
   isLoading?: boolean;
+  soloMes?: boolean;
   onDateClick?: (date: string) => void;
   onEventClick?: (eventId: string) => void;
 }
@@ -145,7 +146,7 @@ const transformToCalendarEvents = (actividades: ActividadCalendario[]): EventInp
       backgroundColor: colors.bg,
       borderColor: colors.border,
       textColor: colors.text,
-      allDay: false,
+      allDay: true,
       extendedProps: {
         tipo: actividad.tipo,
         origen_tipo: actividad.origen_tipo,
@@ -156,7 +157,7 @@ const transformToCalendarEvents = (actividades: ActividadCalendario[]): EventInp
   });
 };
 
-export function CalendarioVista({ eventos, isLoading, onDateClick, onEventClick }: CalendarioVistaProps) {
+export function CalendarioVista({ eventos, isLoading, soloMes, onDateClick, onEventClick }: CalendarioVistaProps) {
   const [dayEventsSheet, setDayEventsSheet] = useState<{ open: boolean; date: string; events: ActividadCalendario[] }>({
     open: false,
     date: '',
@@ -193,7 +194,26 @@ export function CalendarioVista({ eventos, isLoading, onDateClick, onEventClick 
       extendedProps: { tipo: string; origen_tipo: string };
       start: Date | null;
     };
+    view: { type: string };
   }) => {
+    const isListView = eventInfo.view.type.startsWith('list');
+
+    if (isListView) {
+      return (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-1 sm:gap-2 py-1 pr-1">
+          <div className="flex flex-col min-w-0">
+            <span className="font-title text-brand-dark text-sm font-medium truncate">
+              {eventInfo.event.title}
+            </span>
+            <span className="text-xs text-brand-brown/70 truncate">{eventInfo.event.extendedProps.tipo}</span>
+          </div>
+          <span className="self-start shrink-0 text-xs text-brand-teal border border-brand-teal/40 rounded hover:bg-brand-teal/10 transition-colors px-2 py-0.5">
+            Ver detalle
+          </span>
+        </div>
+      );
+    }
+
     const formattedDate = eventInfo.event.start
       ? new Date(eventInfo.event.start).toLocaleDateString('es-AR', {
           day: 'numeric',
@@ -240,8 +260,10 @@ export function CalendarioVista({ eventos, isLoading, onDateClick, onEventClick 
       >
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
-          initialView={getInitialView()}
-          headerToolbar={getToolbarConfig()}
+          initialView="dayGridMonth"
+          headerToolbar={soloMes
+            ? { left: 'prev,next today', center: 'title', right: '' }
+            : getToolbarConfig()}
           events={calendarEvents}
           dateClick={handleDateClick}
           eventClick={handleEventClick}

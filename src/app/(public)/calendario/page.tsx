@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { CalendarDays, Loader2, ArrowLeft } from 'lucide-react';
+import { CalendarDays, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,20 +21,16 @@ import '@/styles/calendario-fullcalendar.css';
 
 export const dynamic = 'force-dynamic';
 
-type Estado = 'login' | 'calendario' | 'no-encontrado';
-
-interface MisioneroInfo {
-  nombre: string;
-  apellido: string;
-}
+type Estado = 'login' | 'calendario';
 
 export default function CalendarioMisioneroPage() {
   const [dni, setDni] = useState('');
+  const [submittedDni, setSubmittedDni] = useState('');
   const [estado, setEstado] = useState<Estado>('login');
-  const [misioneroInfo, setMisioneroInfo] = useState<MisioneroInfo | null>(null);
+  const [loginError, setLoginError] = useState('');
 
-  const { data, isLoading, isError, error } = useCalendarioMisionero({
-    dni,
+  const { data, isLoading, isError, isSuccess } = useCalendarioMisionero({
+    dni: submittedDni,
     desde: '',
     hasta: '',
   });
@@ -42,10 +38,21 @@ export default function CalendarioMisioneroPage() {
   const [showEventDialog, setShowEventDialog] = useState(false);
   const [selectedActividad, setSelectedActividad] = useState<ActividadCalendario | null>(null);
 
+  useEffect(() => {
+    if (!submittedDni) return;
+    if (isSuccess) {
+      setEstado('calendario');
+      setLoginError('');
+    } else if (isError) {
+      setSubmittedDni('');
+      setLoginError('El DNI ingresado no corresponde a ningún misionero registrado.');
+    }
+  }, [isSuccess, isError, submittedDni]);
+
   const handleBuscar = () => {
     if (!dni.trim()) return;
-    setEstado('calendario');
-    setMisioneroInfo(null);
+    setLoginError('');
+    setSubmittedDni(dni);
   };
 
   const handleEventClick = (eventId: string) => {
@@ -59,7 +66,8 @@ export default function CalendarioMisioneroPage() {
   const handleVolver = () => {
     setEstado('login');
     setDni('');
-    setMisioneroInfo(null);
+    setSubmittedDni('');
+    setLoginError('');
   };
 
   const actividades = data?.actividades ?? [];
@@ -81,7 +89,7 @@ export default function CalendarioMisioneroPage() {
               Calendario de actividades
             </h1>
             <p className="text-sm text-brand-brown">
-              Consultá tus proximas actividades con tu DNI
+              Consultá las proximas actividades con tu DNI
             </p>
           </div>
 
@@ -97,14 +105,27 @@ export default function CalendarioMisioneroPage() {
                 onChange={(e) => setDni(e.target.value.replace(/[^\d]/g, ''))}
                 onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
                 className="text-lg"
+                disabled={isLoading}
               />
             </div>
+            {loginError && (
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                {loginError}
+              </p>
+            )}
             <Button
               onClick={handleBuscar}
-              disabled={!dni.trim()}
+              disabled={!dni.trim() || isLoading}
               className="bg-brand-brown hover:bg-brand-dark text-white font-title tracking-wide"
             >
-              Ver mi calendario
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Verificando...
+                </>
+              ) : (
+                'Ver actividades'
+              )}
             </Button>
           </div>
         </div>
@@ -114,38 +135,19 @@ export default function CalendarioMisioneroPage() {
 
   // ── PANTALLA DE CALENDARIO ───────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-gradient-to-b from-brand-cream via-brand-cream to-white px-4 py-10">
+    <main className="min-h-screen bg-brand-cream px-4 py-10">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <section className="rounded-2xl border border-brand-creamLight bg-white/95 p-5 shadow-sm md:p-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-brand-dark p-2 text-brand-cream">
-                <CalendarDays className="h-5 w-5" />
-              </div>
-              <div>
-                <h1 className="font-title text-2xl text-brand-dark">Calendario de actividades</h1>
-                <p className="text-sm text-brand-brown">
-                  {misioneroInfo
-                    ? `${misioneroInfo.apellido}, ${misioneroInfo.nombre}`
-                    : `DNI: ${dni}`}
-                </p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-brand-dark p-2 text-brand-cream">
+              <CalendarDays className="h-5 w-5" />
             </div>
-            <Button
-              variant="ghost"
-              onClick={handleVolver}
-              className="text-brand-brown hover:text-brand-dark"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Cambiar DNI
-            </Button>
+            <div>
+              <h1 className="font-title text-2xl text-brand-dark">Calendario de actividades</h1>
+              <p className="text-sm text-brand-brown">DNI: {submittedDni}</p>
+            </div>
           </div>
 
-          {isError && (
-            <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-              {error instanceof Error ? error.message : 'No se pudo consultar el calendario'}
-            </p>
-          )}
           {data?.message && (
             <p className="mt-4 rounded-lg bg-brand-cream p-3 text-sm text-brand-brown">
               {data.message}
@@ -177,6 +179,7 @@ export default function CalendarioMisioneroPage() {
             <CalendarioVista
               eventos={actividades}
               isLoading={isLoading}
+              soloMes
               onEventClick={handleEventClick}
             />
           </section>

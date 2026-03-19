@@ -16,7 +16,7 @@ import {
   useDeleteInscripcionConsagracion,
   useMarcarConsagracion,
 } from '@/lib/queries/consagracion';
-import { ESTADO_CIVIL_LABEL } from '@/lib/constants/consagracion';
+import { ESTADO_CIVIL_LABEL, INSCRIPCION_ESTADO } from '@/lib/constants/consagracion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -72,10 +72,11 @@ interface InscripcionesViewProps {
   fechaConsagracion?: string | null;
 }
 
-type FiltroConsagracion = 'todos' | 'consagrados' | 'no_completo' | 'pendiente';
+type FiltroConsagracion = 'todos' | 'contactar' | 'consagrados' | 'no_completo' | 'pendiente';
 
 const FILTRO_LABELS: Record<FiltroConsagracion, string> = {
   todos:        'Todos',
+  contactar:    'A contactar',
   consagrados:  'Se consagraron',
   no_completo:  'No completaron',
   pendiente:    'Pendientes',
@@ -106,13 +107,17 @@ export const InscripcionesView = ({
   const [errorEliminar, setErrorEliminar] = useState('');
 
   const datosFiltrados = (() => {
-    if (filtroConsagracion === 'consagrados') return (inscripciones as Inscripcion[]).filter((i) => i.se_consagro === true);
-    if (filtroConsagracion === 'no_completo') return (inscripciones as Inscripcion[]).filter((i) => i.se_consagro === false);
-    if (filtroConsagracion === 'pendiente')   return (inscripciones as Inscripcion[]).filter((i) => i.se_consagro === null);
-    return inscripciones as Inscripcion[];
+    const all = inscripciones as Inscripcion[];
+    if (filtroConsagracion === 'contactar')   return all.filter((i) => i.estado_inscripcion === INSCRIPCION_ESTADO.CONTACTAR);
+    if (filtroConsagracion === 'consagrados') return all.filter((i) => i.estado_inscripcion === INSCRIPCION_ESTADO.INSCRIPTO && i.se_consagro === true);
+    if (filtroConsagracion === 'no_completo') return all.filter((i) => i.estado_inscripcion === INSCRIPCION_ESTADO.INSCRIPTO && i.se_consagro === false);
+    if (filtroConsagracion === 'pendiente')   return all.filter((i) => i.estado_inscripcion === INSCRIPCION_ESTADO.INSCRIPTO && i.se_consagro === null);
+    return all;
   })();
 
   const totalConsagrados = (inscripciones as Inscripcion[]).filter((i) => i.se_consagro === true).length;
+  const totalContactar   = (inscripciones as Inscripcion[]).filter((i) => i.estado_inscripcion === INSCRIPCION_ESTADO.CONTACTAR).length;
+  const totalInscriptos  = (inscripciones as Inscripcion[]).filter((i) => i.estado_inscripcion === INSCRIPCION_ESTADO.INSCRIPTO).length;
 
   const handleConvertir = async () => {
     if (!confirmando) return;
@@ -148,8 +153,19 @@ export const InscripcionesView = ({
   const openEdit   = (ins: Inscripcion) => router.push(`/admin/consagracion/${anio}/inscripciones/${ins.id}`);
 
   const COLUMNS: ColumnDef<Inscripcion>[] = [
-    { accessorKey: 'apellido', header: 'Apellido' },
-    { accessorKey: 'nombre',   header: 'Nombre' },
+    {
+      accessorKey: 'apellido',
+      header: 'Apellido',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <span>{row.original.apellido}</span>
+          {row.original.estado_inscripcion === INSCRIPCION_ESTADO.CONTACTAR && (
+            <Badge className="bg-brand-gold text-brand-dark text-xs py-0 px-1.5">A contactar</Badge>
+          )}
+        </div>
+      ),
+    },
+    { accessorKey: 'nombre', header: 'Nombre' },
     { accessorKey: 'dni',      header: 'DNI' },
     { accessorKey: 'whatsapp', header: 'WhatsApp' },
     {
@@ -192,6 +208,7 @@ export const InscripcionesView = ({
       header: 'Consagración',
       cell: ({ row }) => {
         const ins = row.original;
+        if (ins.estado_inscripcion === INSCRIPCION_ESTADO.CONTACTAR) return <span className="text-xs text-brand-brown/40">—</span>;
         return (
           <div className="flex items-center gap-1">
             <button
@@ -225,8 +242,9 @@ export const InscripcionesView = ({
       header: '',
       cell: ({ row }) => {
         const ins = row.original;
-        const esRenovacion = ins.tipo_inscripcion === 'renovacion';
-        const yaConvertido = convertidos.has(ins.id);
+        const esContactar   = ins.estado_inscripcion === INSCRIPCION_ESTADO.CONTACTAR;
+        const esRenovacion  = ins.tipo_inscripcion === 'renovacion';
+        const yaConvertido  = convertidos.has(ins.id);
 
         return (
           <div className="flex items-center gap-1 flex-wrap">
@@ -238,20 +256,22 @@ export const InscripcionesView = ({
               onClick={() => { setErrorEliminar(''); setEliminando(ins); }}>
               Eliminar
             </Button>
-            {!esRenovacion ? (
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={yaConvertido}
-                className={yaConvertido
-                  ? 'text-brand-teal border-brand-teal opacity-60 cursor-default h-7 px-2 text-xs'
-                  : 'text-brand-teal border-brand-teal hover:bg-brand-teal/10 h-7 px-2 text-xs'}
-                onClick={() => !yaConvertido && setConfirmando(ins)}
-              >
-                {yaConvertido ? 'Misionero ✓' : '+ Misionero'}
-              </Button>
-            ) : (
-              <span className="text-xs text-brand-brown/50 italic">Ya es misionero</span>
+            {!esContactar && (
+              !esRenovacion ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={yaConvertido}
+                  className={yaConvertido
+                    ? 'text-brand-teal border-brand-teal opacity-60 cursor-default h-7 px-2 text-xs'
+                    : 'text-brand-teal border-brand-teal hover:bg-brand-teal/10 h-7 px-2 text-xs'}
+                  onClick={() => !yaConvertido && setConfirmando(ins)}
+                >
+                  {yaConvertido ? 'Misionero ✓' : '+ Misionero'}
+                </Button>
+              ) : (
+                <span className="text-xs text-brand-brown/50 italic">Ya es misionero</span>
+              )
             )}
           </div>
         );
@@ -309,7 +329,10 @@ export const InscripcionesView = ({
         </div>
         {/* Stats */}
         <span className="text-sm text-brand-brown">
-          {table.getFilteredRowModel().rows.length} inscripto(s)
+          {totalInscriptos} inscripto(s)
+          {totalContactar > 0 && (
+            <span className="ml-2 text-brand-gold font-medium">· {totalContactar} a contactar</span>
+          )}
           {totalConsagrados > 0 && (
             <span className="ml-2 text-green-700 font-medium">· {totalConsagrados} consagrado(s)</span>
           )}
@@ -376,20 +399,26 @@ export const InscripcionesView = ({
         )}
         {rows.map((row) => {
           const ins = row.original;
-          const esRenovacion = ins.tipo_inscripcion === 'renovacion';
-          const yaConvertido = convertidos.has(ins.id);
-          const sacramentos = (ins.sacramentos as string[]) ?? [];
+          const esContactar   = ins.estado_inscripcion === INSCRIPCION_ESTADO.CONTACTAR;
+          const esRenovacion  = ins.tipo_inscripcion === 'renovacion';
+          const yaConvertido  = convertidos.has(ins.id);
+          const sacramentos   = (ins.sacramentos as string[]) ?? [];
           const seConsagroLabel = ins.se_consagro === true ? 'Se consagró' : ins.se_consagro === false ? 'No completó' : null;
 
           return (
             <div key={ins.id} className="bg-white border border-brand-creamLight rounded-xl p-4 flex flex-col gap-2">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-title text-brand-dark font-semibold">
-                    {ins.apellido}, {ins.nombre}
-                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-title text-brand-dark font-semibold">
+                      {ins.apellido}, {ins.nombre}
+                    </p>
+                    {esContactar && (
+                      <Badge className="bg-brand-gold text-brand-dark text-xs py-0 px-1.5">A contactar</Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-brand-brown">
-                    DNI {ins.dni ?? '—'} · WA {ins.whatsapp ?? '—'}
+                    {ins.dni ? `DNI ${ins.dni} · ` : ''}WA {ins.whatsapp ?? '—'}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -423,59 +452,63 @@ export const InscripcionesView = ({
                 <p className="text-xs text-brand-brown italic">{ins.comentario}</p>
               )}
 
-              {/* Consagración toggle */}
-              <div className="flex items-center gap-2 pt-1">
-                <span className="text-xs text-brand-brown">Consagración:</span>
-                <button
-                  title="Se consagró"
-                  onClick={() => marcar({ id: ins.id, se_consagro: ins.se_consagro === true ? null : true })}
-                  className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
-                    ins.se_consagro === true
-                      ? 'bg-green-600 text-white'
-                      : 'bg-transparent text-green-700 border border-green-600'
-                  }`}
-                >
-                  ✓
-                </button>
-                <button
-                  title="No completó"
-                  onClick={() => marcar({ id: ins.id, se_consagro: ins.se_consagro === false ? null : false })}
-                  className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
-                    ins.se_consagro === false
-                      ? 'bg-red-500 text-white'
-                      : 'bg-transparent text-red-500 border border-red-400'
-                  }`}
-                >
-                  ✗
-                </button>
-                {seConsagroLabel && (
-                  <span className={`text-xs font-medium ${ins.se_consagro ? 'text-green-700' : 'text-red-500'}`}>
-                    {seConsagroLabel}
-                  </span>
-                )}
-              </div>
+              {/* Consagración toggle — solo para inscriptos completos */}
+              {!esContactar && (
+                <>
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-xs text-brand-brown">Consagración:</span>
+                    <button
+                      title="Se consagró"
+                      onClick={() => marcar({ id: ins.id, se_consagro: ins.se_consagro === true ? null : true })}
+                      className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
+                        ins.se_consagro === true
+                          ? 'bg-green-600 text-white'
+                          : 'bg-transparent text-green-700 border border-green-600'
+                      }`}
+                    >
+                      ✓
+                    </button>
+                    <button
+                      title="No completó"
+                      onClick={() => marcar({ id: ins.id, se_consagro: ins.se_consagro === false ? null : false })}
+                      className={`h-7 w-7 rounded flex items-center justify-center text-sm font-bold transition-colors ${
+                        ins.se_consagro === false
+                          ? 'bg-red-500 text-white'
+                          : 'bg-transparent text-red-500 border border-red-400'
+                      }`}
+                    >
+                      ✗
+                    </button>
+                    {seConsagroLabel && (
+                      <span className={`text-xs font-medium ${ins.se_consagro ? 'text-green-700' : 'text-red-500'}`}>
+                        {seConsagroLabel}
+                      </span>
+                    )}
+                  </div>
 
-              <div className="pt-1">
-                {esRenovacion ? (
-                  <span className="text-xs text-brand-brown/50 italic">Ya es misionero</span>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={yaConvertido}
-                    className={`text-xs ${yaConvertido
-                      ? 'text-brand-teal border-brand-teal opacity-60 cursor-default'
-                      : 'text-brand-teal border-brand-teal hover:bg-brand-teal/10'}`}
-                    onClick={() => {
-                      if (yaConvertido) return;
-                      setConvertirActivo(true);
-                      setConfirmando(ins);
-                    }}
-                  >
-                    {yaConvertido ? 'Misionero ✓' : '+ Misionero'}
-                  </Button>
-                )}
-              </div>
+                  <div className="pt-1">
+                    {esRenovacion ? (
+                      <span className="text-xs text-brand-brown/50 italic">Ya es misionero</span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={yaConvertido}
+                        className={`text-xs ${yaConvertido
+                          ? 'text-brand-teal border-brand-teal opacity-60 cursor-default'
+                          : 'text-brand-teal border-brand-teal hover:bg-brand-teal/10'}`}
+                        onClick={() => {
+                          if (yaConvertido) return;
+                          setConvertirActivo(true);
+                          setConfirmando(ins);
+                        }}
+                      >
+                        {yaConvertido ? 'Misionero ✓' : '+ Misionero'}
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           );
         })}

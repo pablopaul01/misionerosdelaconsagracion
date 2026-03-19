@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFormacionesConsagracion, useCreateFormacionConsagracion } from '@/lib/queries/consagracion';
-import { Check, Copy, CheckCircle2, Users } from 'lucide-react';
+import { useFormacionesConsagracion, useCreateFormacionConsagracion, useUpdateFormacionConsagracion } from '@/lib/queries/consagracion';
+import { Check, Copy, CheckCircle2, Users, Pencil } from 'lucide-react';
 import { formacionConsagracionSchema } from '@/lib/validations/consagracion';
 import { fieldError } from '@/lib/utils/form';
+import { toast } from 'sonner';
 import { useForm } from '@tanstack/react-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,11 +73,75 @@ const NuevaFormacionForm = ({ onSuccess }: { onSuccess: () => void }) => {
   );
 };
 
+interface FormacionEditable {
+  id: string;
+  anio: number;
+  fecha_inicio: string;
+}
+
+const EditarFormacionForm = ({ formacion, onSuccess }: { formacion: FormacionEditable; onSuccess: () => void }) => {
+  const { mutateAsync: update } = useUpdateFormacionConsagracion();
+  const form = useForm({
+    defaultValues: { anio: formacion.anio, fecha_inicio: formacion.fecha_inicio },
+    validators: { onSubmit: formacionConsagracionSchema },
+    onSubmit: async ({ value }) => {
+      await update({ id: formacion.id, ...value });
+      toast.success('Formación actualizada');
+      onSuccess();
+    },
+  });
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }} className="flex flex-col gap-4">
+      <form.Field name="anio">
+        {(field) => (
+          <div className="flex flex-col gap-1.5">
+            <Label>Año</Label>
+            <Input
+              type="number"
+              min={2020}
+              value={field.state.value}
+              onChange={(e) => field.handleChange(Number(e.target.value))}
+            />
+          </div>
+        )}
+      </form.Field>
+      <form.Field name="fecha_inicio">
+        {(field) => (
+          <div className="flex flex-col gap-1.5">
+            <Label>Fecha de inicio</Label>
+            <Input
+              type="date"
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+            />
+            {field.state.meta.errors[0] && (
+              <span className="text-sm text-red-600">{fieldError(field.state.meta.errors[0])}</span>
+            )}
+          </div>
+        )}
+      </form.Field>
+      <p className="text-xs text-brand-brown">
+        Cambiar la fecha de inicio actualizará la actividad en el calendario.
+      </p>
+      <form.Subscribe selector={(s) => s.isSubmitting}>
+        {(isSubmitting) => (
+          <Button type="submit" disabled={isSubmitting} className="bg-brand-brown hover:bg-brand-dark text-white">
+            {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
+          </Button>
+        )}
+      </form.Subscribe>
+    </form>
+  );
+};
+
 export default function ConsagracionPage() {
   const [open, setOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [papasSheetOpen, setPapasSheetOpen] = useState(false);
   const [selectedFormacionId, setSelectedFormacionId] = useState<string | null>(null);
+  const [editFormacionOpen, setEditFormacionOpen] = useState(false);
+  const [editingFormacion, setEditingFormacion] = useState<FormacionEditable | null>(null);
   const router = useRouter();
 
   const copyLink = (anio: number, id: string) => {
@@ -88,6 +153,11 @@ export default function ConsagracionPage() {
   const openPapasSheet = (formacionId: string) => {
     setSelectedFormacionId(formacionId);
     setPapasSheetOpen(true);
+  };
+
+  const openEditFormacion = (f: FormacionEditable) => {
+    setEditingFormacion(f);
+    setEditFormacionOpen(true);
   };
 
   const { data: formaciones = [], isLoading } = useFormacionesConsagracion();
@@ -132,6 +202,13 @@ export default function ConsagracionPage() {
                         <CheckCircle2 className="w-4 h-4" /> Finalizada
                       </span>
                     )}
+                    <button
+                      onClick={() => openEditFormacion({ id: f.id, anio: f.anio, fecha_inicio: f.fecha_inicio })}
+                      title="Editar formación"
+                      className="text-brand-brown/60 hover:text-brand-brown transition-colors"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                   <p className="text-sm text-brand-brown">
                     Inicio: {new Date(f.fecha_inicio + 'T00:00:00').toLocaleDateString('es-AR')}
@@ -213,6 +290,21 @@ export default function ConsagracionPage() {
           onOpenChange={setPapasSheetOpen}
         />
       )}
+
+      {/* Dialog para editar formación */}
+      <Dialog open={editFormacionOpen} onOpenChange={setEditFormacionOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-title text-brand-dark">Editar formación</DialogTitle>
+          </DialogHeader>
+          {editingFormacion && (
+            <EditarFormacionForm
+              formacion={editingFormacion}
+              onSuccess={() => setEditFormacionOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
