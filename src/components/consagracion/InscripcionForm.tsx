@@ -7,7 +7,7 @@ import {
   CONSAGRACION_FIELDS,
   type InscripcionConsagracionInput,
 } from '@/lib/validations/consagracion';
-import { INSCRIPCION_ESTADO } from '@/lib/constants/consagracion';
+import { CONTACTO_ESTADO, INSCRIPCION_ESTADO } from '@/lib/constants/consagracion';
 import { fieldError } from '@/lib/utils/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +51,8 @@ export const InscripcionForm = ({ formacionId, onSuccess }: InscripcionFormProps
       tipo_inscripcion: '' as InscripcionConsagracionInput['tipo_inscripcion'],
       sacramentos:      [] as string[],
       comentario:       '',
+      estado_contacto:  CONTACTO_ESTADO.PENDIENTE as InscripcionConsagracionInput['estado_contacto'],
+      observacion_contacto: '' as InscripcionConsagracionInput['observacion_contacto'],
     },
     validators: { onSubmit: inscripcionConsagracionSchema },
     onSubmit: ({ value }) => {

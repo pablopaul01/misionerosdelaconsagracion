@@ -351,10 +351,12 @@ export type Database = {
           domicilio: string | null
           dni: string | null
           estado_civil: Database["public"]["Enums"]["estado_civil_enum"] | null
+          estado_contacto: 'pendiente' | 'contactado' | 'contactado_si' | 'contactado_no'
           estado_inscripcion: 'contactar' | 'inscripto'
           formacion_id: string
           id: string
           nombre: string
+          observacion_contacto: string | null
           sacramentos: Json
           se_consagro: boolean | null
           tipo_inscripcion: string | null
@@ -367,10 +369,12 @@ export type Database = {
           domicilio?: string | null
           dni?: string | null
           estado_civil?: Database["public"]["Enums"]["estado_civil_enum"] | null
+          estado_contacto?: 'pendiente' | 'contactado' | 'contactado_si' | 'contactado_no'
           estado_inscripcion?: 'contactar' | 'inscripto'
           formacion_id: string
           id?: string
           nombre: string
+          observacion_contacto?: string | null
           sacramentos?: Json
           se_consagro?: boolean | null
           tipo_inscripcion?: string | null
@@ -383,10 +387,12 @@ export type Database = {
           domicilio?: string | null
           dni?: string | null
           estado_civil?: Database["public"]["Enums"]["estado_civil_enum"] | null
+          estado_contacto?: 'pendiente' | 'contactado' | 'contactado_si' | 'contactado_no'
           estado_inscripcion?: 'contactar' | 'inscripto'
           formacion_id?: string
           id?: string
           nombre?: string
+          observacion_contacto?: string | null
           sacramentos?: Json
           se_consagro?: boolean | null
           tipo_inscripcion?: string | null

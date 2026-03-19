@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useFormacionConsagracion, useInscripcionesConsagracion, useCreateInscripcionConsagracion, useUpdateInscripcionConsagracion } from '@/lib/queries/consagracion';
 import { inscripcionConsagracionSchema, contactoConsagracionSchema, CONSAGRACION_FIELDS, type InscripcionConsagracionInput } from '@/lib/validations/consagracion';
-import { INSCRIPCION_ESTADO } from '@/lib/constants/consagracion';
+import { CONTACTO_ESTADO, CONTACTO_ESTADO_LABEL, INSCRIPCION_ESTADO, type ContactoEstado } from '@/lib/constants/consagracion';
 import { fieldError } from '@/lib/utils/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,8 @@ type FormValues = {
   tipo_inscripcion: string;
   sacramentos: string[];
   comentario: string;
+  estado_contacto: ContactoEstado;
+  observacion_contacto: string;
 };
 
 const EMPTY_FORM: FormValues = {
@@ -39,6 +41,8 @@ const EMPTY_FORM: FormValues = {
   tipo_inscripcion: '',
   sacramentos: [],
   comentario: '',
+  estado_contacto: CONTACTO_ESTADO.PENDIENTE,
+  observacion_contacto: '',
 };
 
 const inscripcionToForm = (ins: Inscripcion): FormValues => ({
@@ -51,10 +55,13 @@ const inscripcionToForm = (ins: Inscripcion): FormValues => ({
   tipo_inscripcion: ins.tipo_inscripcion ?? '',
   sacramentos:      (ins.sacramentos as string[]) ?? [],
   comentario:       ins.comentario ?? '',
+  estado_contacto:  ins.estado_contacto ?? CONTACTO_ESTADO.PENDIENTE,
+  observacion_contacto: ins.observacion_contacto ?? '',
 });
 
 export default function ConsagracionInscripcionPage() {
   const { anio, inscripcionId } = useParams<{ anio: string; inscripcionId: string }>();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const anioNum = Number(anio);
   const isNew = inscripcionId === 'nuevo';
@@ -74,18 +81,25 @@ export default function ConsagracionInscripcionPage() {
   const [modo, setModo] = useState<Modo>('inscripto');
   const [form, setForm] = useState<FormValues>(EMPTY_FORM);
   const [error, setError] = useState('');
+  const modoParam = searchParams.get('modo');
+  const modoForzado: Modo | null =
+    modoParam === INSCRIPCION_ESTADO.CONTACTAR
+      ? 'contactar'
+      : modoParam === INSCRIPCION_ESTADO.INSCRIPTO
+        ? 'inscripto'
+        : null;
 
   useEffect(() => {
     if (isNew) {
       setForm(EMPTY_FORM);
-      setModo('inscripto');
+      setModo(modoForzado ?? 'inscripto');
       return;
     }
     if (target) {
       setForm(inscripcionToForm(target));
-      setModo((target.estado_inscripcion as Modo) ?? 'inscripto');
+      setModo(modoForzado ?? (target.estado_inscripcion as Modo) ?? 'inscripto');
     }
-  }, [isNew, target]);
+  }, [isNew, modoForzado, target]);
 
   const set = (key: keyof FormValues, value: FormValues[keyof FormValues]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -113,6 +127,8 @@ export default function ConsagracionInscripcionPage() {
           nombre:             form.nombre.trim(),
           apellido:           form.apellido.trim(),
           whatsapp:           form.whatsapp.trim(),
+          estado_contacto:    form.estado_contacto,
+          observacion_contacto: form.observacion_contacto.trim(),
           estado_inscripcion: INSCRIPCION_ESTADO.CONTACTAR,
         });
         if (!parsed.success) {
@@ -145,6 +161,8 @@ export default function ConsagracionInscripcionPage() {
           tipo_inscripcion:   form.tipo_inscripcion as InscripcionConsagracionInput['tipo_inscripcion'],
           sacramentos:        form.sacramentos,
           comentario:         form.comentario.trim(),
+          estado_contacto:    form.estado_contacto,
+          observacion_contacto: form.observacion_contacto.trim(),
           estado_inscripcion: INSCRIPCION_ESTADO.INSCRIPTO,
         };
         const parsed = inscripcionConsagracionSchema.safeParse(input);
@@ -241,6 +259,39 @@ export default function ConsagracionInscripcionPage() {
               className="min-h-[48px]"
             />
           </div>
+
+          {modo === 'contactar' && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <Label>Estado del contacto *</Label>
+                <Select
+                  value={form.estado_contacto}
+                  onValueChange={(value) => set('estado_contacto', value as ContactoEstado)}
+                >
+                  <SelectTrigger className="min-h-[48px]">
+                    <SelectValue placeholder="Seleccionar estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(CONTACTO_ESTADO_LABEL) as ContactoEstado[]).map((estado) => (
+                      <SelectItem key={estado} value={estado}>
+                        {CONTACTO_ESTADO_LABEL[estado]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="observacion_contacto">Observacion / Notas</Label>
+                <Textarea
+                  id="observacion_contacto"
+                  value={form.observacion_contacto}
+                  onChange={(e) => set('observacion_contacto', e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </>
+          )}
 
           {/* Campos solo para inscripción completa */}
           {modo === 'inscripto' && (

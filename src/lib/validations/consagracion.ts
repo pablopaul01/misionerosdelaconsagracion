@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { ESTADO_CIVIL, INSCRIPCION_ESTADO } from '@/lib/constants/consagracion';
+import { CONTACTO_ESTADO, ESTADO_CIVIL, INSCRIPCION_ESTADO } from '@/lib/constants/consagracion';
+
+const CONTACTO_ESTADOS = [
+  CONTACTO_ESTADO.PENDIENTE,
+  CONTACTO_ESTADO.CONTACTADO,
+  CONTACTO_ESTADO.CONTACTADO_SI,
+  CONTACTO_ESTADO.CONTACTADO_NO,
+] as const;
 
 // Configuración de campos — agregar aquí para extender el formulario sin tocar el componente
 export const CONSAGRACION_FIELDS = [
@@ -42,6 +49,8 @@ export const inscripcionConsagracionSchema = z.object({
   tipo_inscripcion:   z.enum(['primera_vez', 'renovacion'], { message: 'Seleccioná una opción' }),
   sacramentos:        z.array(z.string()),
   comentario:         z.string(),
+  estado_contacto:    z.enum(CONTACTO_ESTADOS),
+  observacion_contacto: z.string(),
   estado_inscripcion: z.literal(INSCRIPCION_ESTADO.INSCRIPTO).default(INSCRIPCION_ESTADO.INSCRIPTO),
 });
 
@@ -50,6 +59,8 @@ export const contactoConsagracionSchema = z.object({
   nombre:             z.string().min(1, 'El nombre es requerido'),
   apellido:           z.string().min(1, 'El apellido es requerido'),
   whatsapp:           z.string().min(8, 'Número inválido').regex(/^\d+$/, 'Solo números'),
+  estado_contacto:    z.enum(CONTACTO_ESTADOS),
+  observacion_contacto: z.string(),
   estado_inscripcion: z.literal(INSCRIPCION_ESTADO.CONTACTAR).default(INSCRIPCION_ESTADO.CONTACTAR),
 });
 
