@@ -16,7 +16,13 @@ import {
   useDeleteInscripcionConsagracion,
   useMarcarConsagracion,
 } from '@/lib/queries/consagracion';
-import { ESTADO_CIVIL_LABEL, INSCRIPCION_ESTADO } from '@/lib/constants/consagracion';
+import {
+  CONTACTO_ESTADO,
+  CONTACTO_ESTADO_LABEL,
+  ESTADO_CIVIL_LABEL,
+  INSCRIPCION_ESTADO,
+  type ContactoEstado,
+} from '@/lib/constants/consagracion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -150,7 +156,17 @@ export const InscripcionesView = ({
   };
 
   const openCreate = () => router.push(`/admin/consagracion/${anio}/inscripciones/nuevo`);
-  const openEdit   = (ins: Inscripcion) => router.push(`/admin/consagracion/${anio}/inscripciones/${ins.id}`);
+  const openEdit = (ins: Inscripcion, mode?: 'contactar' | 'inscripto') => {
+    const modeQuery = mode ? `?modo=${mode}` : '';
+    router.push(`/admin/consagracion/${anio}/inscripciones/${ins.id}${modeQuery}`);
+  };
+
+  const contactoBadgeClass = (estadoContacto: ContactoEstado) => {
+    if (estadoContacto === CONTACTO_ESTADO.CONTACTADO_SI) return 'bg-green-100 text-green-800';
+    if (estadoContacto === CONTACTO_ESTADO.CONTACTADO_NO) return 'bg-red-100 text-red-700';
+    if (estadoContacto === CONTACTO_ESTADO.CONTACTADO) return 'bg-brand-creamLight text-brand-dark';
+    return 'bg-brand-gold text-brand-dark';
+  };
 
   const COLUMNS: ColumnDef<Inscripcion>[] = [
     {
@@ -168,6 +184,21 @@ export const InscripcionesView = ({
     { accessorKey: 'nombre', header: 'Nombre' },
     { accessorKey: 'dni',      header: 'DNI' },
     { accessorKey: 'whatsapp', header: 'WhatsApp' },
+    {
+      accessorKey: 'estado_contacto',
+      header: 'Estado contacto',
+      cell: ({ row }) => {
+        const esContactar = row.original.estado_inscripcion === INSCRIPCION_ESTADO.CONTACTAR;
+        if (!esContactar) return <span className="text-xs text-brand-brown/50">Inscripto</span>;
+
+        const estado = (row.original.estado_contacto ?? CONTACTO_ESTADO.PENDIENTE) as ContactoEstado;
+        return (
+          <Badge className={`text-xs py-0 px-1.5 ${contactoBadgeClass(estado)}`}>
+            {CONTACTO_ESTADO_LABEL[estado]}
+          </Badge>
+        );
+      },
+    },
     {
       accessorKey: 'estado_civil',
       header: 'Estado civil',
@@ -195,11 +226,14 @@ export const InscripcionesView = ({
       },
     },
     {
-      accessorKey: 'comentario',
-      header: 'Comentario',
+      accessorKey: 'observacion_contacto',
+      header: 'Observacion / Comentario',
       cell: ({ row }) => (
-        <span className="text-sm text-brand-brown truncate max-w-[160px] block" title={row.original.comentario ?? ''}>
-          {row.original.comentario || '—'}
+        <span
+          className="text-sm text-brand-brown truncate max-w-[200px] block"
+          title={row.original.observacion_contacto ?? row.original.comentario ?? ''}
+        >
+          {row.original.observacion_contacto ?? row.original.comentario ?? '—'}
         </span>
       ),
     },
@@ -245,6 +279,7 @@ export const InscripcionesView = ({
         const esContactar   = ins.estado_inscripcion === INSCRIPCION_ESTADO.CONTACTAR;
         const esRenovacion  = ins.tipo_inscripcion === 'renovacion';
         const yaConvertido  = convertidos.has(ins.id);
+        const puedeDerivarInscripto = (ins.estado_contacto ?? CONTACTO_ESTADO.PENDIENTE) === CONTACTO_ESTADO.CONTACTADO_SI;
 
         return (
           <div className="flex items-center gap-1 flex-wrap">
@@ -252,6 +287,16 @@ export const InscripcionesView = ({
               onClick={() => openEdit(ins)}>
               Editar
             </Button>
+            {esContactar && puedeDerivarInscripto && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-brand-teal border-brand-teal hover:bg-brand-teal/10 h-7 px-2 text-xs"
+                onClick={() => openEdit(ins, 'inscripto')}
+              >
+                Pasar a inscripto
+              </Button>
+            )}
             <Button size="sm" variant="ghost" className="text-red-500 h-7 px-2 text-xs"
               onClick={() => { setErrorEliminar(''); setEliminando(ins); }}>
               Eliminar
@@ -403,6 +448,8 @@ export const InscripcionesView = ({
           const esRenovacion  = ins.tipo_inscripcion === 'renovacion';
           const yaConvertido  = convertidos.has(ins.id);
           const sacramentos   = (ins.sacramentos as string[]) ?? [];
+          const estadoContacto = (ins.estado_contacto ?? CONTACTO_ESTADO.PENDIENTE) as ContactoEstado;
+          const puedeDerivarInscripto = estadoContacto === CONTACTO_ESTADO.CONTACTADO_SI;
           const seConsagroLabel = ins.se_consagro === true ? 'Se consagró' : ins.se_consagro === false ? 'No completó' : null;
 
           return (
@@ -414,7 +461,9 @@ export const InscripcionesView = ({
                       {ins.apellido}, {ins.nombre}
                     </p>
                     {esContactar && (
-                      <Badge className="bg-brand-gold text-brand-dark text-xs py-0 px-1.5">A contactar</Badge>
+                      <Badge className={`text-xs py-0 px-1.5 ${contactoBadgeClass(estadoContacto)}`}>
+                        {CONTACTO_ESTADO_LABEL[estadoContacto]}
+                      </Badge>
                     )}
                   </div>
                   <p className="text-xs text-brand-brown">
@@ -450,6 +499,23 @@ export const InscripcionesView = ({
 
               {ins.comentario && (
                 <p className="text-xs text-brand-brown italic">{ins.comentario}</p>
+              )}
+
+              {ins.observacion_contacto && (
+                <p className="text-xs text-brand-brown italic">{ins.observacion_contacto}</p>
+              )}
+
+              {esContactar && puedeDerivarInscripto && (
+                <div className="pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs text-brand-teal border-brand-teal hover:bg-brand-teal/10"
+                    onClick={() => openEdit(ins, 'inscripto')}
+                  >
+                    Pasar a inscripto
+                  </Button>
+                </div>
               )}
 
               {/* Consagración toggle — solo para inscriptos completos */}

@@ -38,6 +38,22 @@ export const INSCRIPCION_ESTADO_LABEL: Record<InscripcionEstado, string> = {
   inscripto:  'Inscripto',
 };
 
+export const CONTACTO_ESTADO = {
+  PENDIENTE: 'pendiente',
+  CONTACTADO: 'contactado',
+  CONTACTADO_SI: 'contactado_si',
+  CONTACTADO_NO: 'contactado_no',
+} as const;
+
+export type ContactoEstado = (typeof CONTACTO_ESTADO)[keyof typeof CONTACTO_ESTADO];
+
+export const CONTACTO_ESTADO_LABEL: Record<ContactoEstado, string> = {
+  pendiente: 'Sin contactar',
+  contactado: 'Contactado',
+  contactado_si: 'Dio si',
+  contactado_no: 'Dijo no',
+};
+
 export const SACRAMENTOS = [
   { value: 'bautismo',      label: 'Bautismo' },
   { value: 'comunion',      label: 'Primera Comunión' },
