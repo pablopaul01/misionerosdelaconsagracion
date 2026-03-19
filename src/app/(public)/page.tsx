@@ -19,12 +19,20 @@ export default function LandingPage() {
 
       <div className="relative z-10 flex flex-col items-center gap-8">
         <InkRevealLogo />
-        <Link
-          href="/login"
-          className="text-sm text-brand-brown/60 hover:text-brand-brown transition-colors tracking-wide"
-        >
-          Acceso interno →
-        </Link>
+        <div className="flex flex-col items-center gap-3">
+          <Link
+            href="/calendario"
+            className="rounded-full bg-brand-brown px-6 py-2 font-title text-sm tracking-wide text-white transition-colors hover:bg-brand-dark"
+          >
+            Ver calendario de actividades
+          </Link>
+          <Link
+            href="/login"
+            className="text-sm text-brand-brown/60 hover:text-brand-brown transition-colors tracking-wide"
+          >
+            Acceso interno →
+          </Link>
+        </div>
       </div>
     </main>
   );
