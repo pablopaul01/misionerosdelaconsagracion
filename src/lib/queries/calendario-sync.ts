@@ -87,3 +87,18 @@ export const desactivarActividadSincronizada = async (
 
   if (error) throw error;
 };
+
+export const deleteActividadSincronizada = async (
+  supabase: CalendarioClient,
+  origenTipo: Exclude<CalendarioOrigen, 'manual'>,
+  origenId: string,
+) => {
+  const dedupeKey = buildCalendarioDedupeKey(origenTipo, origenId);
+
+  const { error } = await supabase
+    .from('calendario_actividades')
+    .delete()
+    .eq('dedupe_key', dedupeKey);
+
+  if (error) throw error;
+};

@@ -37,12 +37,21 @@ interface DayEventsSheetProps {
   onEventClick: (eventId: string) => void;
 }
 
-const getInitialView = (): string => {
+const getInitialView = (soloMes?: boolean): string => {
+  if (soloMes) return 'dayGridMonth';
   if (typeof window === 'undefined') return 'dayGridMonth';
   return window.innerWidth < 768 ? 'listMonth' : 'dayGridMonth';
 };
 
-const getToolbarConfig = () => {
+const getToolbarConfig = (soloMes?: boolean) => {
+  if (soloMes) {
+    return {
+      left: 'prev,next today',
+      center: 'title',
+      right: '',
+    };
+  }
+
   if (typeof window === 'undefined') {
     return {
       left: 'prev,next today',
@@ -260,10 +269,8 @@ export function CalendarioVista({ eventos, isLoading, soloMes, onDateClick, onEv
       >
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
-          initialView={getInitialView()}
-          headerToolbar={soloMes
-            ? { left: 'prev,next today', center: 'title', right: '' }
-            : getToolbarConfig()}
+          initialView={getInitialView(soloMes)}
+          headerToolbar={getToolbarConfig(soloMes)}
           events={calendarEvents}
           dateClick={handleDateClick}
           eventClick={handleEventClick}
