@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
 import Image from 'next/image';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ConsagracionPage() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (supabase as any)

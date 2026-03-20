@@ -2,28 +2,20 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { createClient } from '@/lib/supabase/client';
 import { formatFechaLarga } from '@/lib/utils/dates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  buscarMisioneroGrupo,
+  registrarAsistenciaGrupo,
+  type GrupoActivo,
+  type MisioneroEncontrado,
+} from './actions';
 
 type Estado = 'buscar' | 'confirmar' | 'registrado' | 'sin-grupo' | 'ya-registrado';
 
-interface GrupoActivo {
-  id: string;
-  fecha: string;
-}
-
-interface MisioneroEncontrado {
-  id: string;
-  nombre: string;
-  apellido: string;
-}
-
 export default function GrupoOracionAsistenciaPage() {
-  const supabase = createClient();
-
   const [dni, setDni] = useState('');
   const [estado, setEstado] = useState<Estado>('buscar');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -37,50 +29,26 @@ export default function GrupoOracionAsistenciaPage() {
     setBuscando(true);
     setErrorMsg(null);
 
-    const { data: grupo, error: grupoError } = await supabase
-      .from('grupos_oracion')
-      .select('id, fecha')
-      .eq('activa', true)
-      .order('fecha', { ascending: false })
-      .limit(1)
-      .single();
+    const result = await buscarMisioneroGrupo(dni);
 
-    if (grupoError || !grupo) {
+    if (!result.ok) {
+      setErrorMsg(result.error);
+      setBuscando(false);
+      return;
+    }
+
+    if (result.estado === 'sin-grupo') {
       setEstado('sin-grupo');
-      setBuscando(false);
-      return;
-    }
-
-    const { data: misioneroData, error: misioneroError } = await supabase
-      .from('misioneros')
-      .select('id, nombre, apellido')
-      .eq('dni', dni.trim())
-      .single();
-
-    if (misioneroError || !misioneroData) {
-      setErrorMsg('No encontramos un misionero con ese DNI');
-      setBuscando(false);
-      return;
-    }
-
-    const { data: asistenciaExistente } = await supabase
-      .from('asistencias_grupo_oracion')
-      .select('id')
-      .eq('grupo_id', grupo.id)
-      .eq('misionero_id', misioneroData.id)
-      .single();
-
-    if (asistenciaExistente) {
-      setMisionero(misioneroData);
-      setGrupoActivo(grupo);
+    } else if (result.estado === 'ya-registrado') {
+      setMisionero(result.misionero);
+      setGrupoActivo(result.grupo);
       setEstado('ya-registrado');
-      setBuscando(false);
-      return;
+    } else {
+      setMisionero(result.misionero);
+      setGrupoActivo(result.grupo);
+      setEstado('confirmar');
     }
 
-    setMisionero(misioneroData);
-    setGrupoActivo(grupo);
-    setEstado('confirmar');
     setBuscando(false);
   };
 
@@ -88,11 +56,7 @@ export default function GrupoOracionAsistenciaPage() {
     if (!misionero || !grupoActivo) return;
     setGuardando(true);
 
-    await supabase.from('asistencias_grupo_oracion').insert({
-      grupo_id: grupoActivo.id,
-      misionero_id: misionero.id,
-      asistio: true,
-    });
+    await registrarAsistenciaGrupo(misionero.id, grupoActivo.id);
 
     setEstado('registrado');
     setGuardando(false);
