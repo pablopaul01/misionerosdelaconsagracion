@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFormacionesConsagracion, useCreateFormacionConsagracion, useUpdateFormacionConsagracion } from '@/lib/queries/consagracion';
-import { Check, Copy, CheckCircle2, Users, Pencil } from 'lucide-react';
+import { useFormacionesConsagracion, useCreateFormacionConsagracion, useUpdateFormacionConsagracion, useActivarFormacion } from '@/lib/queries/consagracion';
+import { Check, Copy, CheckCircle2, Users, Pencil, Zap } from 'lucide-react';
 import { formacionConsagracionSchema } from '@/lib/validations/consagracion';
 import { fieldError } from '@/lib/utils/form';
 import { toast } from 'sonner';
@@ -160,12 +160,19 @@ export default function ConsagracionPage() {
     setEditFormacionOpen(true);
   };
 
-  const { data: formaciones = [], isLoading } = useFormacionesConsagracion();
+  const { data: rawFormaciones = [], isLoading } = useFormacionesConsagracion();
+  const formaciones = rawFormaciones as Array<typeof rawFormaciones[number] & { activa: boolean }>;
+  const { mutate: activar, isPending: activando } = useActivarFormacion();
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-title text-2xl text-brand-dark">Consagración Total</h1>
+        <div>
+          <h1 className="font-title text-2xl text-brand-dark">Consagración Total</h1>
+          <p className="text-xs text-brand-brown/70 mt-0.5">
+            El link <span className="font-mono">/consagracion</span> siempre redirige a la formación marcada como activa.
+          </p>
+        </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="bg-brand-brown hover:bg-brand-dark text-white">
@@ -197,6 +204,11 @@ export default function ConsagracionPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="font-title text-brand-dark text-lg">Consagración {f.anio}</p>
+                    {f.activa && (
+                      <span className="flex items-center gap-1 text-xs text-brand-teal font-medium">
+                        <Zap className="w-3.5 h-3.5" /> Activa
+                      </span>
+                    )}
                     {f.finalizada && (
                       <span className="flex items-center gap-1 text-xs text-green-700 font-medium">
                         <CheckCircle2 className="w-4 h-4" /> Finalizada
@@ -273,6 +285,18 @@ export default function ConsagracionPage() {
                   Asistencias
                 </Button>
               </div>
+              <Button
+                size="sm"
+                variant={f.activa ? 'default' : 'outline'}
+                disabled={f.activa || activando}
+                className={f.activa
+                  ? 'w-full bg-brand-teal text-white cursor-default'
+                  : 'w-full text-brand-teal border-brand-teal hover:bg-brand-teal/10'}
+                onClick={() => !f.activa && activar(f.id)}
+              >
+                <Zap className="w-3.5 h-3.5 mr-1.5" />
+                {f.activa ? 'Activa — link /consagracion apunta aquí' : 'Marcar como activa'}
+              </Button>
             </div>
           );
         })}

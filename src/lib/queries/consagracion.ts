@@ -322,6 +322,30 @@ export const useMarcarConsagracion = (formacionId: string) => {
   });
 };
 
+// --- Activar formación (link permanente /consagracion) ---
+
+export const useActivarFormacion = () => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const client = supabase as any;
+      const { error: e1 } = await client
+        .from('formaciones_consagracion')
+        .update({ activa: false })
+        .neq('id', id);
+      if (e1) throw e1;
+      const { error: e2 } = await client
+        .from('formaciones_consagracion')
+        .update({ activa: true })
+        .eq('id', id);
+      if (e2) throw e2;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.formaciones }),
+  });
+};
+
 // --- Finalizar formación ---
 
 export const useFinalizarFormacion = () => {
