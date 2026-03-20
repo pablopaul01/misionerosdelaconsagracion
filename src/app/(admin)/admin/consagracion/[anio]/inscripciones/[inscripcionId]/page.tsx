@@ -207,11 +207,11 @@ export default function ConsagracionInscripcionPage() {
           onClick={() => { setModo('contactar'); setError(''); }}
           className={`px-4 py-2 text-sm font-medium transition-colors ${
             modo === 'contactar'
-              ? 'bg-brand-gold text-brand-dark'
+              ? 'bg-brand-brown text-white'
               : 'bg-white text-brand-brown hover:bg-brand-cream'
           }`}
         >
-          A contactar
+          Interesados
         </button>
         <button
           type="button"
