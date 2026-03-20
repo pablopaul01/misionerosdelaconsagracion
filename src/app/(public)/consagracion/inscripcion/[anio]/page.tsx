@@ -1,16 +1,17 @@
-'use client';
-
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
 import Image from 'next/image';
-import { useFormacionConsagracion } from '@/lib/queries/consagracion';
-import { InscripcionForm } from '@/components/consagracion/InscripcionForm';
+import { InscripcionConsagracionClient } from './InscripcionConsagracionClient';
+import { getFormacionByAnio } from './actions';
 
-export default function InscripcionConsagracionPage() {
-  const { anio } = useParams<{ anio: string }>();
+export const dynamic = 'force-dynamic';
+
+interface Props {
+  params: Promise<{ anio: string }>;
+}
+
+export default async function InscripcionConsagracionPage({ params }: Props) {
+  const { anio } = await params;
   const anioNum = Number(anio);
-  const { data: formacion, isLoading } = useFormacionConsagracion(anioNum);
-  const [enviado, setEnviado] = useState(false);
+  const formacion = await getFormacionByAnio(anioNum);
 
   return (
     <main className="min-h-screen bg-brand-cream py-10 px-4">
@@ -38,35 +39,15 @@ export default function InscripcionConsagracionPage() {
           <p className="text-brand-brown text-center">Inscripción {anio}</p>
         </div>
 
-        {isLoading && <p className="text-center text-brand-brown">Cargando...</p>}
-
-        {!isLoading && !formacion && (
+        {!formacion ? (
           <div className="bg-white rounded-2xl p-6 text-center shadow-sm">
             <p className="text-brand-dark font-title text-lg">Inscripciones no disponibles</p>
             <p className="text-sm text-brand-brown mt-2">
               No hay inscripciones abiertas para el año {anio}.
             </p>
           </div>
-        )}
-
-        {!isLoading && formacion && !enviado && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <InscripcionForm
-              formacionId={formacion.id}
-              onSuccess={() => setEnviado(true)}
-            />
-          </div>
-        )}
-
-        {enviado && (
-          <div className="bg-white rounded-2xl p-8 text-center shadow-sm flex flex-col gap-4">
-            <p className="text-4xl">🙏</p>
-            <p className="font-title text-brand-dark text-xl">¡Inscripción recibida!</p>
-            <p className="text-brand-brown text-sm">
-              Gracias por inscribirte a la Consagración Total {anio}.
-              Pronto recibirás más información.
-            </p>
-          </div>
+        ) : (
+          <InscripcionConsagracionClient formacionId={formacion.id} anio={anio} />
         )}
       </div>
     </main>

@@ -64,13 +64,11 @@ export const InscripcionForm = ({ formacionId, onSuccess }: InscripcionFormProps
   const confirmarEnvio = async () => {
     if (!pendingSubmit) return;
 
-    const { createClient } = await import('@/lib/supabase/client');
-    const supabase = createClient();
+    const { crearInscripcionConsagracion } = await import(
+      '@/app/(public)/consagracion/inscripcion/[anio]/actions'
+    );
 
-    await supabase.from('inscripciones_consagracion').insert({
-      ...pendingSubmit,
-      formacion_id: formacionId,
-    });
+    await crearInscripcionConsagracion(formacionId, pendingSubmit);
 
     setPendingSubmit(null);
     form.reset();
