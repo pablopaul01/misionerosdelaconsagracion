@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useFormacionConsagracion, useInscripcionesConsagracion, useCreateInscripcionConsagracion, useUpdateInscripcionConsagracion } from '@/lib/queries/consagracion';
 import { inscripcionConsagracionSchema, contactoConsagracionSchema, CONSAGRACION_FIELDS, type InscripcionConsagracionInput } from '@/lib/validations/consagracion';
 import { CONTACTO_ESTADO, CONTACTO_ESTADO_LABEL, INSCRIPCION_ESTADO, type ContactoEstado } from '@/lib/constants/consagracion';
-import { fieldError } from '@/lib/utils/form';
+import { fieldError, toCapitalize } from '@/lib/utils/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -80,6 +80,7 @@ export default function ConsagracionInscripcionPage() {
 
   const [modo, setModo] = useState<Modo>('inscripto');
   const [form, setForm] = useState<FormValues>(EMPTY_FORM);
+  const [formReady, setFormReady] = useState(isNew);
   const [error, setError] = useState('');
   const modoParam = searchParams.get('modo');
   const modoForzado: Modo | null =
@@ -93,11 +94,13 @@ export default function ConsagracionInscripcionPage() {
     if (isNew) {
       setForm(EMPTY_FORM);
       setModo(modoForzado ?? 'inscripto');
+      setFormReady(true);
       return;
     }
     if (target) {
       setForm(inscripcionToForm(target));
       setModo(modoForzado ?? (target.estado_inscripcion as Modo) ?? 'inscripto');
+      setFormReady(true);
     }
   }, [isNew, modoForzado, target]);
 
@@ -112,9 +115,9 @@ export default function ConsagracionInscripcionPage() {
         : [...prev.sacramentos, value],
     }));
 
-  const getValue = (key: keyof FormValues) => {
+  const getValue = (key: keyof FormValues): string | undefined => {
     const value = form[key];
-    return typeof value === 'string' ? value : '';
+    return typeof value === 'string' && value !== '' ? value : undefined;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -124,8 +127,8 @@ export default function ConsagracionInscripcionPage() {
     try {
       if (modo === 'contactar') {
         const parsed = contactoConsagracionSchema.safeParse({
-          nombre:             form.nombre.trim(),
-          apellido:           form.apellido.trim(),
+          nombre:             toCapitalize(form.nombre),
+          apellido:           toCapitalize(form.apellido),
           whatsapp:           form.whatsapp.trim(),
           estado_contacto:    form.estado_contacto,
           observacion_contacto: form.observacion_contacto.trim(),
@@ -152,8 +155,8 @@ export default function ConsagracionInscripcionPage() {
           return;
         }
         const input: InscripcionConsagracionInput = {
-          nombre:             form.nombre.trim(),
-          apellido:           form.apellido.trim(),
+          nombre:             toCapitalize(form.nombre),
+          apellido:           toCapitalize(form.apellido),
           dni:                form.dni.trim(),
           domicilio:          form.domicilio.trim(),
           whatsapp:           form.whatsapp.trim(),
@@ -186,6 +189,7 @@ export default function ConsagracionInscripcionPage() {
   if (!formacion) return <p className="text-red-600">Formación no encontrada</p>;
   if (!isNew && loadingInscripciones) return <p className="text-brand-brown">Cargando inscripción...</p>;
   if (!isNew && !target) return <p className="text-red-600">Inscripción no encontrada</p>;
+  if (!isNew && !formReady) return <p className="text-brand-brown">Cargando...</p>;
 
   const isPending = creando || actualizando;
 

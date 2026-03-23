@@ -5,3 +5,7 @@ export const fieldError = (error: unknown): string => {
   if (typeof error === 'object' && 'message' in error) return String((error as { message: unknown }).message);
   return String(error);
 };
+
+/** Capitaliza la primera letra de cada palabra y pone el resto en minúsculas */
+export const toCapitalize = (str: string): string =>
+  str.trim().split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');

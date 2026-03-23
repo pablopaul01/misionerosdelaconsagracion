@@ -8,7 +8,7 @@ import {
   type InscripcionConsagracionInput,
 } from '@/lib/validations/consagracion';
 import { CONTACTO_ESTADO, INSCRIPCION_ESTADO } from '@/lib/constants/consagracion';
-import { fieldError } from '@/lib/utils/form';
+import { fieldError, toCapitalize } from '@/lib/utils/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -57,7 +57,12 @@ export const InscripcionForm = ({ formacionId, onSuccess }: InscripcionFormProps
     validators: { onSubmit: inscripcionConsagracionSchema },
     onSubmit: ({ value }) => {
       // Guardar el value para confirmar antes de persistir
-      setPendingSubmit({ ...value, estado_inscripcion: INSCRIPCION_ESTADO.INSCRIPTO });
+      setPendingSubmit({
+        ...value,
+        nombre:   toCapitalize(value.nombre),
+        apellido: toCapitalize(value.apellido),
+        estado_inscripcion: INSCRIPCION_ESTADO.INSCRIPTO,
+      });
     },
   });
 
