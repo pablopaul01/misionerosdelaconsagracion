@@ -188,9 +188,6 @@ export const InscripcionesView = ({
       accessorKey: 'estado_contacto',
       header: 'Estado contacto',
       cell: ({ row }) => {
-        const esContactar = row.original.estado_inscripcion === INSCRIPCION_ESTADO.CONTACTAR;
-        if (!esContactar) return <span className="text-xs text-brand-brown/50">Inscripto</span>;
-
         const estado = (row.original.estado_contacto ?? CONTACTO_ESTADO.PENDIENTE) as ContactoEstado;
         return (
           <Badge className={`text-xs py-0 px-1.5 ${contactoBadgeClass(estado)}`}>
@@ -460,11 +457,9 @@ export const InscripcionesView = ({
                     <p className="font-title text-brand-dark font-semibold">
                       {ins.apellido}, {ins.nombre}
                     </p>
-                    {esContactar && (
-                      <Badge className={`text-xs py-0 px-1.5 ${contactoBadgeClass(estadoContacto)}`}>
-                        {CONTACTO_ESTADO_LABEL[estadoContacto]}
-                      </Badge>
-                    )}
+                    <Badge className={`text-xs py-0 px-1.5 ${contactoBadgeClass(estadoContacto)}`}>
+                      {CONTACTO_ESTADO_LABEL[estadoContacto]}
+                    </Badge>
                   </div>
                   <p className="text-xs text-brand-brown">
                     {ins.dni ? `DNI ${ins.dni} · ` : ''}WA {ins.whatsapp ?? '—'}

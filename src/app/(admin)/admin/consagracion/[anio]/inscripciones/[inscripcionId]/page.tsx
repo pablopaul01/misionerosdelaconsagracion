@@ -296,6 +296,35 @@ export default function ConsagracionInscripcionPage() {
           {/* Campos solo para inscripción completa */}
           {modo === 'inscripto' && (
             <>
+              <div className="flex flex-col gap-1.5">
+                <Label>Estado del contacto</Label>
+                <Select
+                  value={form.estado_contacto}
+                  onValueChange={(value) => set('estado_contacto', value as ContactoEstado)}
+                >
+                  <SelectTrigger className="min-h-[48px]">
+                    <SelectValue placeholder="Seleccionar estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(CONTACTO_ESTADO_LABEL) as ContactoEstado[]).map((estado) => (
+                      <SelectItem key={estado} value={estado}>
+                        {CONTACTO_ESTADO_LABEL[estado]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="observacion_contacto_inscripto">Observacion / Notas de contacto</Label>
+                <Textarea
+                  id="observacion_contacto_inscripto"
+                  value={form.observacion_contacto}
+                  onChange={(e) => set('observacion_contacto', e.target.value)}
+                  rows={3}
+                />
+              </div>
+
               {CONSAGRACION_FIELDS.filter((f) => !['nombre', 'apellido', 'whatsapp'].includes(f.name)).map((fieldConfig) => {
                 const { name, label, type, required } = fieldConfig;
 
