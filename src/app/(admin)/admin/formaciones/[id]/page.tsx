@@ -13,6 +13,7 @@ import {
 } from '@/lib/queries/formaciones';
 import { useMisioneros } from '@/lib/queries/misioneros';
 import { ClaseList } from '@/components/formaciones/ClaseList';
+import { AsistenciasTab } from '@/components/formaciones/AsistenciasTab';
 import { TIPO_FORMACION_LABEL, DIAS_SEMANA } from '@/lib/constants/formaciones';
 import { formatFechaCorta } from '@/lib/utils/dates';
 import { Button } from '@/components/ui/button';
@@ -177,6 +178,7 @@ export default function FormacionDetailPage() {
             Misioneros
             <Badge className="ml-2 bg-brand-brown text-white text-xs">{inscriptos.length}</Badge>
           </TabsTrigger>
+          <TabsTrigger value="asistencias">Asistencias</TabsTrigger>
         </TabsList>
 
         <TabsContent value="clases" className="mt-4">
@@ -288,17 +290,9 @@ export default function FormacionDetailPage() {
                       ]}
                     />
                   </div>
-                  {/* Fila 2: DNI + link a asistencias */}
-                  <div className="flex items-center justify-between gap-2">
+                  {/* Fila 2: DNI */}
+                  <div className="flex items-center gap-2">
                     <span className="text-sm text-brand-brown">DNI {insc.misioneros?.dni}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-brand-teal h-6 px-2 text-xs"
-                      onClick={() => router.push(`/admin/formaciones/${id}/asistencias`)}
-                    >
-                      Asistencias →
-                    </Button>
                   </div>
                 </div>
               ))}
@@ -308,6 +302,10 @@ export default function FormacionDetailPage() {
               )}
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="asistencias" className="mt-4">
+          <AsistenciasTab formacionId={id} />
         </TabsContent>
       </Tabs>
 

@@ -32,7 +32,8 @@
       "Bash(pnpm build:*)",
       "Bash(engram --help:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(find \"/c/Users/salomonjp/proyectos/Nueva carpeta/misionerosdelaconsagracion/src/app/\\(admin\\)/admin/formaciones\" -type f -name \"*.tsx\" -o -name \"*.ts\")"
     ]
   }
 }
