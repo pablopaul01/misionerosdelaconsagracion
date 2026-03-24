@@ -64,8 +64,50 @@ const TIPO_LABEL: Record<string, string> = {
   renovacion:  'Renovación',
 };
 
-// ── Form values type ──────────────────────────────────────────────
+// ── Export Excel ───────────────────────────────────────────────────
 
+type ExportFiltro = 'todos' | 'inscriptos' | 'contactar' | 'contactados' | 'sin_contactar';
+
+const EXPORT_OPCIONES: { key: ExportFiltro; label: string }[] = [
+  { key: 'todos',         label: 'Todos' },
+  { key: 'inscriptos',    label: 'Inscriptos' },
+  { key: 'contactar',     label: 'A contactar' },
+  { key: 'contactados',   label: 'Contactados' },
+  { key: 'sin_contactar', label: 'Sin contactar' },
+];
+
+const exportarExcel = async (inscripciones: Inscripcion[], filtro: ExportFiltro, anio: number) => {
+  const XLSX = await import('xlsx-js-style');
+
+  let datos = inscripciones;
+  if (filtro === 'inscriptos')    datos = inscripciones.filter((i) => i.estado_inscripcion === INSCRIPCION_ESTADO.INSCRIPTO);
+  if (filtro === 'contactar')     datos = inscripciones.filter((i) => i.estado_inscripcion === INSCRIPCION_ESTADO.CONTACTAR);
+  if (filtro === 'contactados')   datos = inscripciones.filter((i) => !!i.estado_contacto && i.estado_contacto !== CONTACTO_ESTADO.PENDIENTE);
+  if (filtro === 'sin_contactar') datos = inscripciones.filter((i) => !i.estado_contacto || i.estado_contacto === CONTACTO_ESTADO.PENDIENTE);
+
+  const rows = datos.map((i) => ({
+    Apellido:             i.apellido,
+    Nombre:               i.nombre,
+    DNI:                  i.dni ?? '',
+    WhatsApp:             i.whatsapp ?? '',
+    'Estado civil':       i.estado_civil ? (ESTADO_CIVIL_LABEL[i.estado_civil] ?? i.estado_civil) : '',
+    Tipo:                 TIPO_LABEL[i.tipo_inscripcion ?? ''] ?? '',
+    Sacramentos:          ((i.sacramentos as string[]) ?? []).map((s) => SACRAMENTOS_LABEL[s] ?? s).join(', '),
+    'Estado inscripción': i.estado_inscripcion === INSCRIPCION_ESTADO.CONTACTAR ? 'A contactar' : 'Inscripto',
+    'Estado contacto':    CONTACTO_ESTADO_LABEL[(i.estado_contacto ?? CONTACTO_ESTADO.PENDIENTE) as ContactoEstado],
+    'Observación':        i.observacion_contacto ?? i.comentario ?? '',
+    Consagración:         i.estado_inscripcion === INSCRIPCION_ESTADO.CONTACTAR
+      ? ''
+      : i.se_consagro === true ? 'Sí' : i.se_consagro === false ? 'No' : 'Pendiente',
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Inscripciones');
+
+  const nombre = EXPORT_OPCIONES.find((o) => o.key === filtro)?.label.replace(/ /g, '-') ?? filtro;
+  XLSX.writeFile(wb, `Consagracion-${anio}-${nombre}.xlsx`);
+};
 
 // ── Main component ────────────────────────────────────────────────
 
@@ -104,6 +146,7 @@ export const InscripcionesView = ({
 
   const [globalFilter, setGlobalFilter] = useState('');
   const [filtroConsagracion, setFiltroConsagracion] = useState<FiltroConsagracion>('todos');
+  const [exportOpen, setExportOpen] = useState(false);
   const [confirmando, setConfirmando] = useState<Inscripcion | null>(null);
   const [convertirActivo, setConvertirActivo] = useState(true);
   const [convertidos, setConvertidos] = useState<Set<string>>(new Set());
@@ -348,7 +391,7 @@ export const InscripcionesView = ({
           className="w-full"
         />
         {/* Acciones — ambos botones juntos */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {finalizada ? (
             <Badge className="bg-green-700 text-white px-3 py-1.5 text-xs">FINALIZADA</Badge>
           ) : onFinalizar ? (
@@ -362,9 +405,41 @@ export const InscripcionesView = ({
               {finalizando ? 'Finalizando...' : 'Finalizar consagración'}
             </Button>
           ) : null}
+
+          {/* Exportar Excel */}
+          <div className="relative ml-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-brand-brown text-brand-brown hover:bg-brand-cream shrink-0"
+              onClick={() => setExportOpen((o) => !o)}
+            >
+              ↓ Excel
+            </Button>
+            {exportOpen && (
+              <>
+                <div className="fixed inset-0 z-[9]" onClick={() => setExportOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 bg-white border border-brand-creamLight rounded-lg shadow-lg z-10 min-w-[160px] overflow-hidden">
+                  {EXPORT_OPCIONES.map(({ key, label }) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        exportarExcel(inscripciones as Inscripcion[], key, anio);
+                        setExportOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-cream transition-colors"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
           <Button
             onClick={openCreate}
-            className="bg-brand-brown hover:bg-brand-dark text-white ml-auto shrink-0"
+            className="bg-brand-brown hover:bg-brand-dark text-white shrink-0"
           >
             + Nueva inscripción
           </Button>
