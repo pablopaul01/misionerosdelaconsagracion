@@ -284,6 +284,14 @@ export default function ConsagracionPage() {
                 >
                   Asistencias
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 text-brand-dark border-brand-cream"
+                  onClick={() => router.push(`/admin/consagracion/${f.anio}/inscripciones/estadisticas`)}
+                >
+                  Estadísticas
+                </Button>
               </div>
               <Button
                 size="sm"
