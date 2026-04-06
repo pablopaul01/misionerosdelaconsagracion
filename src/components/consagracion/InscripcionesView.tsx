@@ -7,9 +7,12 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   flexRender,
   type ColumnDef,
+  type SortingState,
 } from '@tanstack/react-table';
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import {
   useInscripcionesConsagracion,
   useConvertirAMisionero,
@@ -27,6 +30,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -130,6 +140,21 @@ const FILTRO_LABELS: Record<FiltroConsagracion, string> = {
   pendiente:    'Pendientes',
 };
 
+const MOBILE_SORT_FIELDS = ['nombre', 'apellido', 'estado_civil', 'tipo_inscripcion', 'created_at'] as const;
+
+type MobileSortField = (typeof MOBILE_SORT_FIELDS)[number];
+
+const MOBILE_SORT_LABEL: Record<MobileSortField, string> = {
+  nombre: 'Nombre',
+  apellido: 'Apellido',
+  estado_civil: 'Estado civil',
+  tipo_inscripcion: 'Tipo inscripción',
+  created_at: 'Fecha de inscripción',
+};
+
+const isMobileSortField = (value: string): value is MobileSortField =>
+  MOBILE_SORT_FIELDS.some((field) => field === value);
+
 export const InscripcionesView = ({
   formacionId,
   anio,
@@ -145,6 +170,7 @@ export const InscripcionesView = ({
   const { mutate: marcar } = useMarcarConsagracion(formacionId);
 
   const [globalFilter, setGlobalFilter] = useState('');
+  const [sorting, setSorting] = useState<SortingState>([]);
   const [filtroConsagracion, setFiltroConsagracion] = useState<FiltroConsagracion>('todos');
   const [exportOpen, setExportOpen] = useState(false);
   const [confirmando, setConfirmando] = useState<Inscripcion | null>(null);
@@ -213,8 +239,34 @@ export const InscripcionesView = ({
 
   const COLUMNS: ColumnDef<Inscripcion>[] = [
     {
+      accessorKey: 'nombre',
+      header: ({ column }) => (
+        <button
+          type="button"
+          onClick={column.getToggleSortingHandler()}
+          className="inline-flex items-center gap-1"
+        >
+          Nombre
+          {column.getIsSorted() === 'asc' && <ArrowUp className="h-3.5 w-3.5" />}
+          {column.getIsSorted() === 'desc' && <ArrowDown className="h-3.5 w-3.5" />}
+          {!column.getIsSorted() && <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />}
+        </button>
+      ),
+    },
+    {
       accessorKey: 'apellido',
-      header: 'Apellido',
+      header: ({ column }) => (
+        <button
+          type="button"
+          onClick={column.getToggleSortingHandler()}
+          className="inline-flex items-center gap-1"
+        >
+          Apellido
+          {column.getIsSorted() === 'asc' && <ArrowUp className="h-3.5 w-3.5" />}
+          {column.getIsSorted() === 'desc' && <ArrowDown className="h-3.5 w-3.5" />}
+          {!column.getIsSorted() && <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />}
+        </button>
+      ),
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <span>{row.original.apellido}</span>
@@ -224,7 +276,6 @@ export const InscripcionesView = ({
         </div>
       ),
     },
-    { accessorKey: 'nombre', header: 'Nombre' },
     { accessorKey: 'dni',      header: 'DNI' },
     { accessorKey: 'whatsapp', header: 'WhatsApp' },
     {
@@ -241,13 +292,72 @@ export const InscripcionesView = ({
     },
     {
       accessorKey: 'estado_civil',
-      header: 'Estado civil',
+      header: ({ column }) => (
+        <button
+          type="button"
+          onClick={column.getToggleSortingHandler()}
+          className="inline-flex items-center gap-1"
+        >
+          Estado civil
+          {column.getIsSorted() === 'asc' && <ArrowUp className="h-3.5 w-3.5" />}
+          {column.getIsSorted() === 'desc' && <ArrowDown className="h-3.5 w-3.5" />}
+          {!column.getIsSorted() && <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />}
+        </button>
+      ),
       cell: ({ row }) => row.original.estado_civil ? (ESTADO_CIVIL_LABEL[row.original.estado_civil] ?? row.original.estado_civil) : '—',
+      sortingFn: (left, right) => {
+        const leftLabel = left.original.estado_civil
+          ? (ESTADO_CIVIL_LABEL[left.original.estado_civil] ?? left.original.estado_civil)
+          : '';
+        const rightLabel = right.original.estado_civil
+          ? (ESTADO_CIVIL_LABEL[right.original.estado_civil] ?? right.original.estado_civil)
+          : '';
+        return leftLabel.localeCompare(rightLabel, 'es', { sensitivity: 'base' });
+      },
     },
     {
       accessorKey: 'tipo_inscripcion',
-      header: 'Tipo',
+      header: ({ column }) => (
+        <button
+          type="button"
+          onClick={column.getToggleSortingHandler()}
+          className="inline-flex items-center gap-1"
+        >
+          Tipo
+          {column.getIsSorted() === 'asc' && <ArrowUp className="h-3.5 w-3.5" />}
+          {column.getIsSorted() === 'desc' && <ArrowDown className="h-3.5 w-3.5" />}
+          {!column.getIsSorted() && <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />}
+        </button>
+      ),
       cell: ({ row }) => TIPO_LABEL[row.original.tipo_inscripcion ?? ''] ?? '—',
+      sortingFn: (left, right) => {
+        const leftLabel = TIPO_LABEL[left.original.tipo_inscripcion ?? ''] ?? left.original.tipo_inscripcion ?? '';
+        const rightLabel = TIPO_LABEL[right.original.tipo_inscripcion ?? ''] ?? right.original.tipo_inscripcion ?? '';
+        return leftLabel.localeCompare(rightLabel, 'es', { sensitivity: 'base' });
+      },
+    },
+    {
+      accessorKey: 'created_at',
+      header: ({ column }) => (
+        <button
+          type="button"
+          onClick={column.getToggleSortingHandler()}
+          className="inline-flex items-center gap-1"
+        >
+          Fecha inscripción
+          {column.getIsSorted() === 'asc' && <ArrowUp className="h-3.5 w-3.5" />}
+          {column.getIsSorted() === 'desc' && <ArrowDown className="h-3.5 w-3.5" />}
+          {!column.getIsSorted() && <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />}
+        </button>
+      ),
+      cell: ({ row }) => (
+        <span>{row.original.created_at ? new Date(row.original.created_at).toLocaleDateString('es-AR') : '—'}</span>
+      ),
+      sortingFn: (left, right) => {
+        const leftDate = left.original.created_at ? new Date(left.original.created_at).getTime() : 0;
+        const rightDate = right.original.created_at ? new Date(right.original.created_at).getTime() : 0;
+        return leftDate - rightDate;
+      },
     },
     {
       accessorKey: 'sacramentos',
@@ -367,15 +477,22 @@ export const InscripcionesView = ({
   const table = useReactTable({
     data: datosFiltrados,
     columns: COLUMNS,
-    state: { globalFilter },
+    state: { globalFilter, sorting },
     onGlobalFilterChange: setGlobalFilter,
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: { pagination: { pageSize: 20 } },
   });
 
   if (isLoading) return <p className="text-brand-brown">Cargando inscripciones...</p>;
+
+  const activeSort = sorting[0];
+  const activeMobileSortField = activeSort && isMobileSortField(activeSort.id)
+    ? activeSort.id
+    : undefined;
 
   const rows = table.getRowModel().rows;
 
@@ -511,6 +628,40 @@ export const InscripcionesView = ({
 
       {/* ── Mobile: cards ── */}
       <div className="md:hidden flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Select
+            value={activeMobileSortField}
+            onValueChange={(field) => setSorting([{ id: field, desc: false }])}
+          >
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue placeholder="Ordenar por" />
+            </SelectTrigger>
+            <SelectContent>
+              {MOBILE_SORT_FIELDS.map((field) => (
+                <SelectItem key={field} value={field}>
+                  {MOBILE_SORT_LABEL[field]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9 px-3 text-xs"
+            onClick={() => {
+              if (!activeMobileSortField) {
+                setSorting([{ id: 'nombre', desc: false }]);
+                return;
+              }
+              setSorting([{ id: activeMobileSortField, desc: !(activeSort?.desc ?? false) }]);
+            }}
+          >
+            {activeSort?.desc ? 'Desc' : 'Asc'}
+          </Button>
+        </div>
+
         {rows.length === 0 && (
           <p className="text-center text-brand-brown py-6">No hay inscripciones</p>
         )}
@@ -530,7 +681,7 @@ export const InscripcionesView = ({
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-title text-brand-dark font-semibold">
-                      {ins.apellido}, {ins.nombre}
+                      {ins.nombre} {ins.apellido}
                     </p>
                     <Badge className={`text-xs py-0 px-1.5 ${contactoBadgeClass(estadoContacto)}`}>
                       {CONTACTO_ESTADO_LABEL[estadoContacto]}
