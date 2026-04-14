@@ -4,7 +4,12 @@ const XLSX = require('xlsx-js-style');
 interface InscriptoRow {
   apellido: string;
   nombre: string;
-  dni?: string;
+  dni?: string | null;
+  fechaNacimiento?: string | null;
+  direccion?: string | null;
+  telefono?: string | null;
+  estadoCivil?: string | null;
+  sacramentos?: string[] | null;
 }
 
 const BORDER = { style: 'thin', color: { rgb: '000000' } };
@@ -26,21 +31,64 @@ const DATA_STYLE = {
   border:    CELL_BORDER,
 };
 
+function formatFechaNacimientoExcel(fechaNacimiento?: string | null): string {
+  if (!fechaNacimiento) return '';
+
+  const [fechaSolo] = fechaNacimiento.split('T');
+  const [year, month, day] = fechaSolo.split('-');
+
+  if (!year || !month || !day) return '';
+
+  return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year.padStart(4, '0')}`;
+}
+
 export function exportarListaAsistencia(
   inscriptos: InscriptoRow[],
   titulo: string,
   tituloVisible: string,
   includeFirma: boolean = true,
+  incluirDatosInscriptos: boolean = false,
 ) {
-  const cols    = includeFirma ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
-  const headers = includeFirma
-    ? ['Nº', 'Apellido', 'Nombre', 'DNI', 'Firma']
-    : ['Nº', 'Apellido', 'Nombre', 'DNI'];
-  const filas   = inscriptos.map((i, idx) => (
-    includeFirma
-      ? [idx + 1, i.apellido, i.nombre, i.dni ?? '', '']
-      : [idx + 1, i.apellido, i.nombre, i.dni ?? '']
-  ));
+  const headers = incluirDatosInscriptos
+    ? [
+        'Nº',
+        'Nombre y apellido',
+        'DNI',
+        'Fecha de nacimiento',
+        'Dirección',
+        'Teléfono',
+        'Estado civil',
+        'Sacramentos',
+        ...(includeFirma ? ['Firma'] : []),
+      ]
+    : includeFirma
+      ? ['Nº', 'Apellido', 'Nombre', 'DNI', 'Firma']
+      : ['Nº', 'Apellido', 'Nombre', 'DNI'];
+
+  const filas = incluirDatosInscriptos
+    ? inscriptos.map((i, idx) => {
+      const nombreYApellido = `${i.nombre ?? ''} ${i.apellido ?? ''}`.trim();
+      const sacramentos = (i.sacramentos ?? []).join(', ');
+
+      return [
+        idx + 1,
+        nombreYApellido,
+        i.dni ?? '',
+        formatFechaNacimientoExcel(i.fechaNacimiento),
+        i.direccion ?? '',
+        i.telefono ?? '',
+        i.estadoCivil ?? '',
+        sacramentos,
+        ...(includeFirma ? [''] : []),
+      ];
+    })
+    : inscriptos.map((i, idx) => (
+      includeFirma
+        ? [idx + 1, i.apellido, i.nombre, i.dni ?? '', '']
+        : [idx + 1, i.apellido, i.nombre, i.dni ?? '']
+    ));
+
+  const cols = headers.map((_, idx) => XLSX.utils.encode_col(idx));
 
   // fila 1 = título, fila 2 = encabezados, filas 3+ = datos
   const aoa = [
@@ -53,28 +101,41 @@ export function exportarListaAsistencia(
 
   // Merge A1:E1 para el título
   ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: includeFirma ? 4 : 3 } },
+    { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } },
   ];
 
-  const maxApellido = Math.max(...inscriptos.map((i) => i.apellido.length), 'Apellido'.length);
-  const maxNombre   = Math.max(...inscriptos.map((i) => i.nombre.length),   'Nombre'.length);
+  if (incluirDatosInscriptos) {
+    ws['!cols'] = [
+      { wch: 5 },
+      { wch: 32 },
+      { wch: 14 },
+      { wch: 18 },
+      { wch: 28 },
+      { wch: 16 },
+      { wch: 16 },
+      { wch: 34 },
+      ...(includeFirma ? [{ wch: 35 }] : []),
+    ];
+  } else {
+    const maxApellido = Math.max(...inscriptos.map((i) => i.apellido.length), 'Apellido'.length);
+    const maxNombre = Math.max(...inscriptos.map((i) => i.nombre.length), 'Nombre'.length);
+    const maxDni = Math.max(...inscriptos.map((i) => (i.dni ?? '').length), 'DNI'.length);
 
-  const maxDni = Math.max(...inscriptos.map((i) => (i.dni ?? '').length), 'DNI'.length);
-
-  ws['!cols'] = includeFirma
-    ? [
-        { wch: 5 },               // Nº
-        { wch: maxApellido + 2 }, // Apellido
-        { wch: maxNombre + 2 },   // Nombre
-        { wch: maxDni + 2 },      // DNI
-        { wch: 35 },              // Firma
-      ]
-    : [
-        { wch: 5 },               // Nº
-        { wch: maxApellido + 2 }, // Apellido
-        { wch: maxNombre + 2 },   // Nombre
-        { wch: maxDni + 2 },      // DNI
-      ];
+    ws['!cols'] = includeFirma
+      ? [
+          { wch: 5 },
+          { wch: maxApellido + 2 },
+          { wch: maxNombre + 2 },
+          { wch: maxDni + 2 },
+          { wch: 35 },
+        ]
+      : [
+          { wch: 5 },
+          { wch: maxApellido + 2 },
+          { wch: maxNombre + 2 },
+          { wch: maxDni + 2 },
+        ];
+  }
 
   ws['!rows'] = [
     { hpt: 26 },  // título

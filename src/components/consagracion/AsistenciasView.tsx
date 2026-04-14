@@ -346,9 +346,22 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
             variant="outline"
             className="border-brand-brown text-brand-brown hover:bg-brand-cream gap-2"
             onClick={() => exportarListaAsistencia(
-              inscripciones.map(({ apellido, nombre }) => ({ apellido, nombre })),
+              inscripciones.map(({ apellido, nombre, dni, fecha_nacimiento, domicilio, whatsapp, estado_civil, sacramentos }) => ({
+                apellido,
+                nombre,
+                dni,
+                fechaNacimiento: fecha_nacimiento,
+                direccion: domicilio,
+                telefono: whatsapp,
+                estadoCivil: estado_civil,
+                sacramentos: Array.isArray(sacramentos)
+                  ? sacramentos.filter((item): item is string => typeof item === 'string')
+                  : [],
+              })),
               `Lista_Consagracion_${new Date().getFullYear()}`,
               `Asistencia — Consagración ${new Date().getFullYear()}`,
+              true,
+              true,
             )}
           >
             <FileDown className="w-4 h-4" />

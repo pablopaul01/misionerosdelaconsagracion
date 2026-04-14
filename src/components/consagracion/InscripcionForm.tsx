@@ -45,6 +45,7 @@ export const InscripcionForm = ({ formacionId, onSuccess }: InscripcionFormProps
       nombre:           '',
       apellido:         '',
       dni:              '',
+      fecha_nacimiento: '' as InscripcionConsagracionInput['fecha_nacimiento'],
       domicilio:        '',
       whatsapp:         '',
       estado_civil:     '' as InscripcionConsagracionInput['estado_civil'],
@@ -61,6 +62,7 @@ export const InscripcionForm = ({ formacionId, onSuccess }: InscripcionFormProps
         ...value,
         nombre:   toCapitalize(value.nombre),
         apellido: toCapitalize(value.apellido),
+        fecha_nacimiento: value.fecha_nacimiento || null,
         estado_inscripcion: INSCRIPCION_ESTADO.INSCRIPTO,
       });
     },
@@ -204,7 +206,7 @@ export const InscripcionForm = ({ formacionId, onSuccess }: InscripcionFormProps
           );
         }
 
-        // type: text | tel
+        // type: text | tel | date
         return (
           <form.Field key={name} name={name}>
             {(field) => (
@@ -212,7 +214,7 @@ export const InscripcionForm = ({ formacionId, onSuccess }: InscripcionFormProps
                 <Label htmlFor={name}>{label}{required && ' *'}</Label>
                 <Input
                   id={name}
-                  type={type === 'tel' ? 'tel' : 'text'}
+                  type={type === 'tel' ? 'tel' : type === 'date' ? 'date' : 'text'}
                   inputMode={type === 'tel' ? 'numeric' : 'text'}
                   value={String(field.state.value ?? '')}
                   onChange={(e) => field.handleChange(e.target.value as never)}

@@ -21,6 +21,7 @@ type FormValues = {
   nombre: string;
   apellido: string;
   dni: string;
+  fecha_nacimiento: string;
   domicilio: string;
   whatsapp: string;
   estado_civil: string;
@@ -35,6 +36,7 @@ const EMPTY_FORM: FormValues = {
   nombre: '',
   apellido: '',
   dni: '',
+  fecha_nacimiento: '',
   domicilio: '',
   whatsapp: '',
   estado_civil: '',
@@ -49,6 +51,7 @@ const inscripcionToForm = (ins: Inscripcion): FormValues => ({
   nombre:           ins.nombre,
   apellido:         ins.apellido,
   dni:              ins.dni ?? '',
+  fecha_nacimiento: ins.fecha_nacimiento ?? '',
   domicilio:        ins.domicilio ?? '',
   whatsapp:         ins.whatsapp ?? '',
   estado_civil:     ins.estado_civil ?? '',
@@ -158,6 +161,7 @@ export default function ConsagracionInscripcionPage() {
           nombre:             toCapitalize(form.nombre),
           apellido:           toCapitalize(form.apellido),
           dni:                form.dni.trim(),
+          fecha_nacimiento:   form.fecha_nacimiento || null,
           domicilio:          form.domicilio.trim(),
           whatsapp:           form.whatsapp.trim(),
           estado_civil:       form.estado_civil as InscripcionConsagracionInput['estado_civil'],
@@ -415,6 +419,7 @@ export default function ConsagracionInscripcionPage() {
                   <div key={name} className="flex flex-col gap-1.5">
                     <Label>{label}{required && ' *'}</Label>
                     <Input
+                      type={type === 'date' ? 'date' : 'text'}
                       value={getValue(name as keyof FormValues)}
                       onChange={(e) => set(name as keyof FormValues, e.target.value)}
                       className="min-h-[48px]"

@@ -350,6 +350,7 @@ export type Database = {
           created_at: string | null
           domicilio: string | null
           dni: string | null
+          fecha_nacimiento: string | null
           estado_civil: Database["public"]["Enums"]["estado_civil_enum"] | null
           estado_contacto: 'pendiente' | 'contactado' | 'contactado_si' | 'contactado_no'
           estado_inscripcion: 'contactar' | 'inscripto'
@@ -368,6 +369,7 @@ export type Database = {
           created_at?: string | null
           domicilio?: string | null
           dni?: string | null
+          fecha_nacimiento?: string | null
           estado_civil?: Database["public"]["Enums"]["estado_civil_enum"] | null
           estado_contacto?: 'pendiente' | 'contactado' | 'contactado_si' | 'contactado_no'
           estado_inscripcion?: 'contactar' | 'inscripto'
@@ -386,6 +388,7 @@ export type Database = {
           created_at?: string | null
           domicilio?: string | null
           dni?: string | null
+          fecha_nacimiento?: string | null
           estado_civil?: Database["public"]["Enums"]["estado_civil_enum"] | null
           estado_contacto?: 'pendiente' | 'contactado' | 'contactado_si' | 'contactado_no'
           estado_inscripcion?: 'contactar' | 'inscripto'

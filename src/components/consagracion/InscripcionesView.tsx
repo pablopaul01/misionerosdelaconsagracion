@@ -74,6 +74,12 @@ const TIPO_LABEL: Record<string, string> = {
   renovacion:  'Renovación',
 };
 
+const formatDateOnly = (value: string | null | undefined) => {
+  if (!value) return '—';
+  const [year, month, day] = value.split('-');
+  return year && month && day ? `${day}/${month}/${year}` : value;
+};
+
 // ── Export Excel ───────────────────────────────────────────────────
 
 type ExportFiltro = 'todos' | 'inscriptos' | 'contactar' | 'contactados' | 'sin_contactar';
@@ -98,6 +104,7 @@ const exportarExcel = async (inscripciones: Inscripcion[], filtro: ExportFiltro,
   const rows = datos.map((i) => ({
     Apellido:             i.apellido,
     Nombre:               i.nombre,
+    'Fecha nacimiento':   i.fecha_nacimiento ?? '',
     DNI:                  i.dni ?? '',
     WhatsApp:             i.whatsapp ?? '',
     'Estado civil':       i.estado_civil ? (ESTADO_CIVIL_LABEL[i.estado_civil] ?? i.estado_civil) : '',
@@ -275,6 +282,16 @@ export const InscripcionesView = ({
           )}
         </div>
       ),
+    },
+    {
+      accessorKey: 'fecha_nacimiento',
+      header: 'Fecha nacimiento',
+      cell: ({ row }) => formatDateOnly(row.original.fecha_nacimiento),
+      sortingFn: (left, right) => {
+        const leftDate = left.original.fecha_nacimiento ?? '';
+        const rightDate = right.original.fecha_nacimiento ?? '';
+        return leftDate.localeCompare(rightDate, 'es', { sensitivity: 'base' });
+      },
     },
     { accessorKey: 'dni',      header: 'DNI' },
     { accessorKey: 'whatsapp', header: 'WhatsApp' },
@@ -704,6 +721,7 @@ export const InscripcionesView = ({
               </div>
 
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-brand-brown">
+                <span>Nac. {formatDateOnly(ins.fecha_nacimiento)}</span>
                 <span>{ins.estado_civil ? (ESTADO_CIVIL_LABEL[ins.estado_civil] ?? ins.estado_civil) : '—'}</span>
                 {ins.tipo_inscripcion && <span>{TIPO_LABEL[ins.tipo_inscripcion] ?? ins.tipo_inscripcion}</span>}
               </div>
