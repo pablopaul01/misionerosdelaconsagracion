@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { TIPO_RETIRO_PUBLICO } from '@/lib/constants/retiros';
 import { ConversionForm } from '@/components/retiros/public/ConversionForm';
 import { MatrimoniosForm } from '@/components/retiros/public/MatrimoniosForm';
 import { MisionerosForm } from '@/components/retiros/public/MisionerosForm';
@@ -31,7 +30,7 @@ export default async function RetiroInscripcionPage({ params }: PageProps) {
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="font-title text-3xl text-brand-dark mb-2">
-            {TIPO_RETIRO_PUBLICO[retiro.tipo]}
+            Pre inscripcion
           </h1>
           <p className="text-brand-brown">{retiro.nombre}</p>
         </div>

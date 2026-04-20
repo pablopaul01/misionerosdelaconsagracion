@@ -223,10 +223,13 @@ export const useCreateInscripcionConversion = (retiroId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: InscripcionConversionInput) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('inscripciones_retiro_conversion')
-        .insert({ ...input, retiro_id: retiroId });
+        .insert({ ...input, retiro_id: retiroId })
+        .select('en_espera')
+        .single();
       if (error) throw error;
+      return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inscripcionesConversion(retiroId) }),
   });
