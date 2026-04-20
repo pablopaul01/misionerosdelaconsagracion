@@ -2,8 +2,11 @@ import { z } from 'zod';
 import {
   ESTADO_CIVIL_LABEL,
   ESTADO_RELACION_LABEL,
+  SACRAMENTOS_RETIRO,
+  SACRAMENTOS_RETIRO_LABEL,
   type EstadoRelacion,
   type EstadoCivil,
+  type SacramentoRetiro,
 } from '@/lib/constants/retiros';
 
 // ============ CONTACTO DE EMERGENCIA ============
@@ -67,7 +70,17 @@ export const CONVERSION_FIELDS = [
 
   // Sección 4: Info del retiro
   { name: 'primer_retiro', label: '¿Es tu primer retiro?', type: 'boolean', required: true, section: 4 },
-  { name: 'bautizado', label: '¿Recibiste el sacramento del Bautismo?', type: 'boolean', required: true, section: 4 },
+  {
+    name: 'sacramentos',
+    label: 'Marque los sacramentos recibidos',
+    type: 'checkboxGroup',
+    required: false,
+    section: 4,
+    options: (Object.entries(SACRAMENTOS_RETIRO_LABEL) as [SacramentoRetiro, string][]).map(([value, label]) => ({
+      value,
+      label,
+    })),
+  },
 ] as const;
 
 export const inscripcionConversionSchema = z.object({
@@ -84,7 +97,12 @@ export const inscripcionConversionSchema = z.object({
   tiene_dieta_especial: z.boolean(),
   dieta_especial_detalle: z.string(),
   primer_retiro: z.boolean(),
-  bautizado: z.boolean(),
+  sacramentos: z.array(z.enum([
+    SACRAMENTOS_RETIRO.BAUTISMO,
+    SACRAMENTOS_RETIRO.PRIMERA_COMUNION,
+    SACRAMENTOS_RETIRO.CONFIRMACION,
+    SACRAMENTOS_RETIRO.MATRIMONIO,
+  ] as const)),
   en_espera: z.boolean().optional(),
 }).refine(
   (data) => !data.tiene_enfermedad || (data.tiene_enfermedad && data.enfermedad_detalle.length > 0),
@@ -222,7 +240,7 @@ export const defaultInscripcionConversion: InscripcionConversionInput = {
   tiene_dieta_especial: false,
   dieta_especial_detalle: '',
   primer_retiro: true,
-  bautizado: false,
+  sacramentos: [],
 };
 
 // Valores por defecto para formulario de matrimonios

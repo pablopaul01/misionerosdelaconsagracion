@@ -25,6 +25,7 @@ export const TIPO_RETIRO_PUBLICO: Record<TipoRetiro, string> = {
 export const ESTADO_CIVIL = {
   SOLTERO_A: 'soltero_a',
   CASADO: 'casado',
+  UNION_LIBRE: 'union_libre',
   DIVORCIADO: 'divorciado',
   VIUDO: 'viudo',
 } as const;
@@ -34,8 +35,25 @@ export type EstadoCivil = (typeof ESTADO_CIVIL)[keyof typeof ESTADO_CIVIL];
 export const ESTADO_CIVIL_LABEL: Record<EstadoCivil, string> = {
   soltero_a: 'Soltero/a',
   casado: 'Casado/a',
+  union_libre: 'Unión Libre (concubinato)',
   divorciado: 'Divorciado/a',
   viudo: 'Viudo/a',
+};
+
+export const SACRAMENTOS_RETIRO = {
+  BAUTISMO: 'bautismo',
+  PRIMERA_COMUNION: 'primera_comunion',
+  CONFIRMACION: 'confirmacion',
+  MATRIMONIO: 'matrimonio',
+} as const;
+
+export type SacramentoRetiro = (typeof SACRAMENTOS_RETIRO)[keyof typeof SACRAMENTOS_RETIRO];
+
+export const SACRAMENTOS_RETIRO_LABEL: Record<SacramentoRetiro, string> = {
+  bautismo: 'Bautismo',
+  primera_comunion: 'Primera comunión',
+  confirmacion: 'Confirmación',
+  matrimonio: 'Matrimonio',
 };
 
 export const ESTADO_RELACION = {

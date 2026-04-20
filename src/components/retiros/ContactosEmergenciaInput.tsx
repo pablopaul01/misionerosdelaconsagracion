@@ -5,11 +5,13 @@ import { User, Phone, Heart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ContactoEmergencia } from '@/lib/validations/retiros';
+import { cn } from '@/lib/utils';
 
 interface ContactosEmergenciaInputProps {
   value: ContactoEmergencia[];
   onChange: (contactos: ContactoEmergencia[]) => void;
   error?: string;
+  itemErrors?: Array<Partial<Record<keyof ContactoEmergencia, string>>>;
   showErrors?: boolean;
 }
 
@@ -23,6 +25,7 @@ export function ContactosEmergenciaInput({
   value,
   onChange,
   error,
+  itemErrors = [],
   showErrors = false,
 }: ContactosEmergenciaInputProps) {
   useEffect(() => {
@@ -48,9 +51,13 @@ export function ContactosEmergenciaInput({
       <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, index) => {
           const contacto = value[index] || EMPTY_CONTACTO;
-          const nombreError = showErrors && !contacto.nombre;
-          const whatsappError = showErrors && !contacto.whatsapp;
-          const relacionError = showErrors && !contacto.relacion;
+          const currentItemErrors = itemErrors[index];
+          const nombreError = currentItemErrors?.nombre ?? (showErrors && !contacto.nombre ? 'Nombre requerido' : undefined);
+          const whatsappError = currentItemErrors?.whatsapp
+            ?? (showErrors && !/^\d{10}$/.test(contacto.whatsapp)
+              ? (contacto.whatsapp ? 'Formato inválido. Ej: 3814038899' : 'WhatsApp requerido')
+              : undefined);
+          const relacionError = currentItemErrors?.relacion ?? (showErrors && !contacto.relacion ? 'Relación requerida' : undefined);
           return (
             <div
               key={index}
@@ -69,9 +76,9 @@ export function ContactosEmergenciaInput({
                   value={contacto.nombre}
                   onChange={(e) => updateContacto(index, 'nombre', e.target.value)}
                   placeholder="Nombre del contacto"
-                  className="min-h-[48px]"
+                  className={cn('min-h-[48px]', nombreError && 'border-red-500 focus-visible:ring-red-500')}
                 />
-                {nombreError && <p className="text-xs text-red-500">Nombre requerido</p>}
+                {nombreError && <p className="text-xs text-red-500">{nombreError}</p>}
               </div>
 
               <div className="space-y-1.5">
@@ -85,9 +92,9 @@ export function ContactosEmergenciaInput({
                   value={contacto.whatsapp}
                   onChange={(e) => updateContacto(index, 'whatsapp', e.target.value.replace(/\D/g, ''))}
                   placeholder="Solo números"
-                  className="min-h-[48px]"
+                  className={cn('min-h-[48px]', whatsappError && 'border-red-500 focus-visible:ring-red-500')}
                 />
-                {whatsappError && <p className="text-xs text-red-500">WhatsApp requerido</p>}
+                {whatsappError && <p className="text-xs text-red-500">{whatsappError}</p>}
               </div>
 
               <div className="space-y-1.5">
@@ -99,9 +106,9 @@ export function ContactosEmergenciaInput({
                   value={contacto.relacion}
                   onChange={(e) => updateContacto(index, 'relacion', e.target.value)}
                   placeholder="Ej: Mamá, Papá, Hermano, Amigo..."
-                  className="min-h-[48px]"
+                  className={cn('min-h-[48px]', relacionError && 'border-red-500 focus-visible:ring-red-500')}
                 />
-                {relacionError && <p className="text-xs text-red-500">Relación requerida</p>}
+                {relacionError && <p className="text-xs text-red-500">{relacionError}</p>}
               </div>
             </div>
           );

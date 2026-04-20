@@ -704,6 +704,7 @@ export type Database = {
           nombre: string
           primer_retiro: boolean
           retiro_id: string
+          sacramentos: Json
           tiene_dieta_especial: boolean
           tiene_enfermedad: boolean
           telefono: string
@@ -724,6 +725,7 @@ export type Database = {
           nombre: string
           primer_retiro?: boolean
           retiro_id: string
+          sacramentos?: Json
           tiene_dieta_especial?: boolean
           tiene_enfermedad?: boolean
           telefono: string
@@ -744,6 +746,7 @@ export type Database = {
           nombre?: string
           primer_retiro?: boolean
           retiro_id?: string
+          sacramentos?: Json
           tiene_dieta_especial?: boolean
           tiene_enfermedad?: boolean
           telefono?: string

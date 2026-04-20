@@ -21,7 +21,7 @@ import {
   useUpdateInscripcionMisionero,
   useMisioneros,
 } from '@/lib/queries/retiros';
-import { ESTADO_CIVIL_LABEL, ESTADO_RELACION_LABEL } from '@/lib/constants/retiros';
+import { ESTADO_CIVIL_LABEL, ESTADO_RELACION_LABEL, SACRAMENTOS_RETIRO_LABEL } from '@/lib/constants/retiros';
 import type { InscripcionConversionInput, InscripcionMatrimoniosInput } from '@/lib/validations/retiros';
 import type { Database } from '@/types/supabase';
 import { toast } from 'sonner';
@@ -51,7 +51,7 @@ const conversionDefaults: InscripcionConversionInput = {
   tiene_dieta_especial: false,
   dieta_especial_detalle: '',
   primer_retiro: true,
-  bautizado: false,
+  sacramentos: [],
 };
 
 const matrimoniosDefaults: InscripcionMatrimoniosInput & {
@@ -136,7 +136,11 @@ export default function RetiroInscripcionPage() {
       tiene_dieta_especial: conversionTarget.tiene_dieta_especial ?? false,
       dieta_especial_detalle: conversionTarget.dieta_especial_detalle ?? '',
       primer_retiro: conversionTarget.primer_retiro ?? true,
-      bautizado: conversionTarget.bautizado ?? false,
+      sacramentos: ((conversionTarget.sacramentos as string[] | null) ?? []).length > 0
+        ? (conversionTarget.sacramentos as InscripcionConversionInput['sacramentos'])
+        : conversionTarget.bautizado
+          ? (['bautismo'] as InscripcionConversionInput['sacramentos'])
+          : [],
     });
     setConversionEspera(!!conversionTarget.en_espera);
   }, [tipoRetiro, isNew, conversionTarget]);
@@ -290,19 +294,40 @@ export default function RetiroInscripcionPage() {
             </label>
             <Input placeholder="Detalle dieta" value={conversionForm.dieta_especial_detalle} onChange={(e) => setConversionForm((p) => ({ ...p, dieta_especial_detalle: e.target.value }))} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="flex items-center gap-2 text-sm">
               <Checkbox checked={conversionForm.primer_retiro} onCheckedChange={(c) => setConversionForm((p) => ({ ...p, primer_retiro: !!c }))} />
               Primer retiro
             </label>
             <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={conversionForm.bautizado} onCheckedChange={(c) => setConversionForm((p) => ({ ...p, bautizado: !!c }))} />
-              Bautizado
-            </label>
-            <label className="flex items-center gap-2 text-sm">
               <Checkbox checked={conversionEspera} onCheckedChange={(c) => setConversionEspera(!!c)} />
               En espera
             </label>
+          </div>
+          <div className="space-y-2">
+            <Label>Marque los sacramentos recibidos</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {Object.entries(SACRAMENTOS_RETIRO_LABEL).map(([value, label]) => {
+                const checked = conversionForm.sacramentos.includes(value as InscripcionConversionInput['sacramentos'][number]);
+                return (
+                  <label key={value} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={() => {
+                        setConversionForm((previous) => {
+                          const currentValue = value as InscripcionConversionInput['sacramentos'][number];
+                          const nextSacramentos = previous.sacramentos.includes(currentValue)
+                            ? previous.sacramentos.filter((item) => item !== currentValue)
+                            : [...previous.sacramentos, currentValue];
+                          return { ...previous, sacramentos: nextSacramentos };
+                        });
+                      }}
+                    />
+                    <span>{label}</span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={goBack}>Cancelar</Button>
