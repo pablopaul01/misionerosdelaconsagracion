@@ -199,6 +199,43 @@ export const useDeleteRetiro = () => {
   });
 };
 
+export const useToggleActivoRetiro = () => {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, activo }: { id: string; activo: boolean }) => {
+      const { data, error } = await supabase
+        .from('retiros')
+        .update({ activo })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+
+      if (activo) {
+        await upsertActividadSincronizada(supabase, {
+          origenTipo: CALENDARIO_ORIGEN.RETIRO,
+          origenId: data.id,
+          origenUpdatedAt: data.updated_at ?? data.created_at ?? new Date().toISOString(),
+          titulo: data.nombre,
+          descripcion: data.descripcion,
+          tipo: data.tipo,
+          fechaInicio: data.fecha_inicio,
+          fechaFin: data.fecha_fin,
+        });
+      } else {
+        await desactivarActividadSincronizada(supabase, CALENDARIO_ORIGEN.RETIRO, id);
+      }
+
+      return data;
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.retiros });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.retiro(id) });
+    },
+  });
+};
+
 // ============ INSCRIPCIONES CONVERSIÓN ============
 
 export const useInscripcionesConversion = (retiroId: string) => {

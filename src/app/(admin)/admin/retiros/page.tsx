@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useRetiros, useCreateRetiro, useDeleteRetiro, useUploadImagenRetiro } from '@/lib/queries/retiros';
+import { useRetiros, useCreateRetiro, useDeleteRetiro, useUploadImagenRetiro, useToggleActivoRetiro } from '@/lib/queries/retiros';
 import { TIPO_RETIRO_LABEL, TIPO_RETIRO } from '@/lib/constants/retiros';
 import { useForm } from '@tanstack/react-form';
 import { Button } from '@/components/ui/button';
@@ -36,7 +36,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Calendar, MapPin, DollarSign, Users, Copy, Check, Trash2, Upload, X, MoreVertical, Pencil } from 'lucide-react';
+import { Calendar, MapPin, DollarSign, Users, Copy, Check, Trash2, Upload, X, MoreVertical, Pencil, Power } from 'lucide-react';
 import type { RetiroInput } from '@/lib/validations/retiros';
 
 import type { Database } from '@/types/supabase';
@@ -310,6 +310,7 @@ export default function RetirosPage() {
 
   const { data: retiros = [], isLoading } = useRetiros();
   const { mutateAsync: deleteRetiro, isPending: eliminandoPending } = useDeleteRetiro();
+  const { mutateAsync: toggleActivo, isPending: togglingActivo } = useToggleActivoRetiro();
 
   const aniosDisponibles = Array.from(
     new Set(
@@ -360,6 +361,16 @@ export default function RetirosPage() {
     } catch (e) {
       toast.error((e as Error)?.message ?? 'Error al eliminar');
       setEliminando(null);
+    }
+  };
+
+  const handleToggleActivo = async (retiro: Retiro) => {
+    try {
+      const newActivo = !retiro.activo;
+      await toggleActivo({ id: retiro.id, activo: newActivo });
+      toast.success(newActivo ? 'Retiro activado' : 'Retiro desactivado');
+    } catch (e) {
+      toast.error((e as Error)?.message ?? 'Error al cambiar estado');
     }
   };
 
@@ -429,50 +440,55 @@ export default function RetirosPage() {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-title text-brand-dark text-lg">{retiro.nombre}</p>
-                  {!retiro.activo && (
-                    <Badge className="bg-red-100 text-red-700 text-xs">Inactivo</Badge>
-                  )}
                 </div>
                 <Badge className="bg-brand-creamLight text-brand-brown text-xs mt-1">
                   {TIPO_RETIRO_LABEL[retiro.tipo]}
                 </Badge>
               </div>
               <div className="relative" data-retiro-menu>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpenId((prev) => (prev === retiro.id ? null : retiro.id));
-                  }}
-                  data-retiro-menu
-                  className="p-1.5 rounded-full hover:bg-brand-creamLight text-brand-brown"
-                  aria-label="Acciones"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-                {menuOpenId === retiro.id && (
-                  <div
-                    className="absolute right-0 mt-2 w-40 bg-white border border-brand-creamLight rounded-lg shadow-lg z-10"
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuOpenId((prev) => (prev === retiro.id ? null : retiro.id));
+                    }}
                     data-retiro-menu
-                    onClick={(e) => e.stopPropagation()}
+                    className="p-1.5 rounded-full hover:bg-brand-creamLight text-brand-brown"
+                    aria-label="Acciones"
                   >
-                    <button
-                      onClick={() => router.push(`/admin/retiros/${retiro.id}?edit=true`)}
-                      className="w-full px-3 py-2 text-left text-sm text-brand-brown hover:bg-brand-creamLight flex items-center gap-2"
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                  {menuOpenId === retiro.id && (
+                    <div
+                      className="absolute right-0 mt-2 w-48 bg-white border border-brand-creamLight rounded-lg shadow-lg z-10"
+                      data-retiro-menu
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <Pencil className="w-4 h-4" />
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => setEliminando(retiro as Retiro)}
-                      className="w-full px-3 py-2 text-left text-sm text-red-500 hover:bg-red-50 flex items-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Eliminar
-                    </button>
-                  </div>
-                )}
+                      <button
+                        onClick={() => router.push(`/admin/retiros/${retiro.id}?edit=true`)}
+                        className="w-full px-3 py-2 text-left text-sm text-brand-brown hover:bg-brand-creamLight flex items-center gap-2"
+                      >
+                        <Pencil className="w-4 h-4" />
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleToggleActivo(retiro as Retiro)}
+                        disabled={togglingActivo}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-brand-creamLight flex items-center gap-2"
+                      >
+                        <Power className={`w-4 h-4 ${retiro.activo ? 'text-green-600' : 'text-gray-400'}`} />
+                        {retiro.activo ? 'Desactivar' : 'Activar'}
+                      </button>
+                      <button
+                        onClick={() => setEliminando(retiro as Retiro)}
+                        className="w-full px-3 py-2 text-left text-sm text-red-500 hover:bg-red-50 flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Eliminar
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
             {retiro.descripcion && (
               <p className="text-sm text-brand-brown/80 line-clamp-2">{retiro.descripcion}</p>
@@ -522,6 +538,15 @@ export default function RetirosPage() {
               >
                 Ver detalle
               </button>
+              <Badge
+                className={
+                  retiro.activo === true
+                    ? 'ml-auto bg-brand-creamLight text-brand-teal text-xs'
+                    : 'ml-auto bg-red-100 text-red-700 text-xs'
+                }
+              >
+                {retiro.activo === true ? 'Activo' : 'Desactivado'}
+              </Badge>
             </div>
           </div>
         ))}
