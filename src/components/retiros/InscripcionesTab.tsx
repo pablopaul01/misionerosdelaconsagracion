@@ -40,7 +40,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Trash2, Users, UserCheck, DollarSign, Plus, Pencil, MoreVertical } from 'lucide-react';
+import { Trash2, Users, UserCheck, DollarSign, Plus, Pencil, MoreVertical, FileDown } from 'lucide-react';
 import type { Database } from '@/types/supabase';
 import type { PagoInput } from '@/lib/validations/retiros';
 
@@ -202,9 +202,103 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
   const goToMisionerosNew = () => router.push(`/admin/retiros/${retiroId}/inscripciones/misioneros/nuevo`);
   const goToMisionerosEdit = (id: string) => router.push(`/admin/retiros/${retiroId}/inscripciones/misioneros/${id}`);
 
+  const exportarExcel = async () => {
+    const XLSX = await import('xlsx-js-style');
+
+    // ── Conversion ────────────────────────────────────────────────────
+    const getContactoEmergencia = (contactos: unknown) => {
+      const arr = (contactos as { nombre?: string; whatsapp?: string; relacion?: string }[]) ?? [];
+      return arr.filter(c => c.nombre).map(c => `${c.nombre} (${c.relacion}: ${c.whatsapp})`).join('; ') || '';
+    };
+
+    const convRows = [...conversion].sort((a, b) => (a.apellido ?? '').localeCompare(b.apellido ?? '', 'es', { sensitivity: 'base' }))
+      .map((i, idx) => ({
+        'Nº': idx + 1,
+        'Apellido': i.apellido,
+        'Nombre': i.nombre,
+        'Fecha nacimiento': i.fecha_nacimiento ? new Date(i.fecha_nacimiento + 'T00:00:00').toLocaleDateString('es-AR') : '',
+        'DNI': i.dni ?? '',
+        'Estado civil': i.estado_civil ?? '',
+        'Domicilio': i.domicilio ?? '',
+        'Teléfono': i.telefono ?? '',
+        'Contacto emergencia 1': getContactoEmergencia((i.contactos_emergencia as { nombre?: string; whatsapp?: string; relacion?: string }[]) ?? []).slice(0, 1),
+        'Contacto emergencia 2': getContactoEmergencia((i.contactos_emergencia as { nombre?: string; whatsapp?: string; relacion?: string }[]) ?? []).slice(1, 2),
+        'Contacto emergencia 3': getContactoEmergencia((i.contactos_emergencia as { nombre?: string; whatsapp?: string; relacion?: string }[]) ?? []).slice(2, 3),
+        'Tiene enfermedad': i.tiene_enfermedad ? 'Sí' : 'No',
+        'Enfermedad detalle': i.enfermedad_detalle ?? '',
+        'Dieta especial': i.tiene_dieta_especial ? 'Sí' : 'No',
+        'Dieta detalle': i.dieta_especial_detalle ?? '',
+        'Primer retiro': i.primer_retiro ? 'Sí' : 'No',
+        'Bautizado': i.bautizado ? 'Sí' : 'No',
+        'Sacramentos': ((i.sacramentos as string[]) ?? []).join(', '),
+        'En espera': i.en_espera ? 'Sí' : 'No',
+        'Fecha inscripción': i.created_at ? new Date(i.created_at).toLocaleDateString('es-AR') : '',
+      }));
+
+    // ── Matrimonios ─────────────────────────────────────────────
+    const matriRows = [...matrimonios].sort((a, b) => (a.apellido_esposo ?? '').localeCompare(b.apellido_esposo ?? '', 'es', { sensitivity: 'base' }))
+      .map((i, idx) => ({
+        'Nº': idx + 1,
+        'Apellido esposo': i.apellido_esposo,
+        'Nombre esposo': i.nombre_esposo,
+        'DNI esposo': i.dni_esposo ?? '',
+        'Fecha nacimiento esposo': i.fecha_nacimiento_esposo ? new Date(i.fecha_nacimiento_esposo + 'T00:00:00').toLocaleDateString('es-AR') : '',
+        'WhatsApp esposo': i.whatsapp_esposo ?? '',
+        'Apellido esposa': i.apellido_esposa,
+        'Nombre esposa': i.nombre_esposa,
+        'DNI esposa': i.dni_esposa ?? '',
+        'Fecha nacimiento esposa': i.fecha_nacimiento_esposa ? new Date(i.fecha_nacimiento_esposa + 'T00:00:00').toLocaleDateString('es-AR') : '',
+        'WhatsApp esposa': i.whatsapp_esposa ?? '',
+        'Estado relación': i.estado_relacion ?? '',
+        'Domicilio': i.domicilio ?? '',
+        'Cómo se enteraron': i.como_se_enteraron ?? '',
+        'Entrevista': i.entrevista_realizada ? 'Sí' : 'No',
+        'Fecha entrevista': i.entrevista_fecha ? new Date(i.entrevista_fecha + 'T00:00:00').toLocaleDateString('es-AR') : '',
+        'Notas entrevista': i.entrevista_notas ?? '',
+        'En espera': i.en_espera ? 'Sí' : 'No',
+        'Fecha inscripción': i.created_at ? new Date(i.created_at).toLocaleDateString('es-AR') : '',
+      }));
+
+    // ── Misioneros ──────────────────────────────────────────────────────
+    const misiRows = [...misioneros].sort((a, b) => (a.misioneros?.apellido ?? '').localeCompare(b.misioneros?.apellido ?? '', 'es', { sensitivity: 'base' }))
+      .map((i, idx) => ({
+        'Nº': idx + 1,
+        'Apellido': i.misioneros?.apellido ?? '',
+        'Nombre': i.misioneros?.nombre ?? '',
+        'DNI': i.misioneros?.dni ?? '',
+        'Fecha nacimiento': i.misioneros?.fecha_nacimiento ? new Date(i.misioneros.fecha_nacimiento + 'T00:00:00').toLocaleDateString('es-AR') : '',
+        'Teléfono': i.misioneros?.telefono ?? '',
+        'Estado civil': i.misioneros?.estado_civil ?? '',
+        'Fecha inscripción': i.created_at ? new Date(i.created_at).toLocaleDateString('es-AR') : '',
+      }));
+
+    const wb = XLSX.utils.book_new();
+
+    if (convRows.length > 0) {
+      const wsConv = XLSX.utils.json_to_sheet(convRows);
+      XLSX.utils.book_append_sheet(wb, wsConv, 'Conversión');
+    }
+    if (matriRows.length > 0) {
+      const wsMatri = XLSX.utils.json_to_sheet(matriRows);
+      XLSX.utils.book_append_sheet(wb, wsMatri, 'Matrimonios');
+    }
+    if (misiRows.length > 0) {
+      const wsMisi = XLSX.utils.json_to_sheet(misiRows);
+      XLSX.utils.book_append_sheet(wb, wsMisi, 'Misioneros');
+    }
+
+    XLSX.writeFile(wb, `Inscripciones_${retiroId}.xlsx`);
+  };
+
+  const allInscripciones = [
+    ...conversion.map((i) => ({ id: i.id })),
+    ...matrimonios.map((i) => ({ id: i.id })),
+    ...misioneros.map((i) => ({ id: i.id })),
+  ];
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-4 flex-wrap">
+      <div className="flex gap-4 flex-wrap items-center">
         <div className="bg-white border border-brand-creamLight rounded-lg p-3 flex items-center gap-2">
           <Users className="w-5 h-5 text-brand-brown" />
           <span className="font-medium">{stats?.inscriptos ?? 0} Inscriptos</span>
@@ -219,6 +313,17 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
             ${((stats?.totalRecaudado ?? 0) as number).toLocaleString('es-AR')}
           </span>
         </div>
+        {allInscripciones.length > 0 && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-brand-brown text-brand-brown hover:bg-brand-cream"
+            onClick={exportarExcel}
+          >
+            <FileDown className="w-4 h-4 mr-1" />
+            Exportar
+          </Button>
+        )}
       </div>
 
       {tipo === 'conversion' && (

@@ -36,7 +36,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Calendar, MapPin, DollarSign, Users, Copy, Check, Trash2, Upload, X, MoreVertical, Pencil, Power } from 'lucide-react';
+import { Calendar, MapPin, DollarSign, Users, Copy, Check, Trash2, Upload, X, MoreVertical, Pencil, Power, FileText } from 'lucide-react';
 import type { RetiroInput } from '@/lib/validations/retiros';
 
 import type { Database } from '@/types/supabase';
@@ -471,6 +471,13 @@ export default function RetirosPage() {
                         Editar
                       </button>
                       <button
+                        onClick={() => router.push(`/admin/retiros/${retiro.id}`)}
+                        className="w-full px-3 py-2 text-left text-sm text-brand-brown hover:bg-brand-creamLight flex items-center gap-2"
+                      >
+                        <FileText className="w-4 h-4" />
+                        Ver detalle
+                      </button>
+                      <button
                         onClick={() => handleToggleActivo(retiro as Retiro)}
                         disabled={togglingActivo}
                         className="w-full px-3 py-2 text-left text-sm hover:bg-brand-creamLight flex items-center gap-2"
@@ -531,12 +538,6 @@ export default function RetirosPage() {
                 ) : (
                   <><Copy className="w-4 h-4" /><span>Copiar link</span></>
                 )}
-              </button>
-              <button
-                onClick={() => router.push(`/admin/retiros/${retiro.id}`)}
-                className="text-sm text-brand-brown hover:text-brand-dark transition-colors"
-              >
-                Ver detalle
               </button>
               <Badge
                 className={
