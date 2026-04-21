@@ -267,8 +267,7 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
         'Nombre': i.misioneros?.nombre ?? '',
         'DNI': i.misioneros?.dni ?? '',
         'Fecha nacimiento': i.misioneros?.fecha_nacimiento ? new Date(i.misioneros.fecha_nacimiento + 'T00:00:00').toLocaleDateString('es-AR') : '',
-        'Teléfono': i.misioneros?.telefono ?? '',
-        'Estado civil': i.misioneros?.estado_civil ?? '',
+        'Teléfono': i.misioneros?.whatsapp ?? '',
         'Fecha inscripción': i.created_at ? new Date(i.created_at).toLocaleDateString('es-AR') : '',
       }));
 
