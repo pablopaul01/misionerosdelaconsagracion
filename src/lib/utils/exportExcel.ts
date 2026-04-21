@@ -10,6 +10,7 @@ interface InscriptoRow {
   telefono?: string | null;
   estadoCivil?: string | null;
   sacramentos?: string[] | null;
+  createdAt?: string | null;
 }
 
 const BORDER = { style: 'thin', color: { rgb: '000000' } };
@@ -59,15 +60,21 @@ export function exportarListaAsistencia(
         'Teléfono',
         'Estado civil',
         'Sacramentos',
+        'Fecha de inscripción',
         ...(includeFirma ? ['Firma'] : []),
       ]
     : includeFirma
-      ? ['Nº', 'Apellido', 'Nombre', 'DNI', 'Firma']
-      : ['Nº', 'Apellido', 'Nombre', 'DNI'];
+      ? ['Nº', 'Nombre', 'DNI', 'Fecha de inscripción', 'Firma']
+      : ['Nº', 'Nombre', 'DNI', 'Fecha de inscripción'];
+
+  // Sort alphabetically by apellido
+  const sortedInscriptos = [...inscriptos].sort((a, b) =>
+    (a.apellido ?? '').localeCompare(b.apellido ?? '', 'es', { sensitivity: 'base' }),
+  );
 
   const filas = incluirDatosInscriptos
-    ? inscriptos.map((i, idx) => {
-      const nombreYApellido = `${i.nombre ?? ''} ${i.apellido ?? ''}`.trim();
+    ? sortedInscriptos.map((i, idx) => {
+      const nombreYApellido = `${i.apellido}, ${i.nombre}`.trim();
       const sacramentos = (i.sacramentos ?? []).join(', ');
 
       return [
@@ -79,14 +86,16 @@ export function exportarListaAsistencia(
         i.telefono ?? '',
         i.estadoCivil ?? '',
         sacramentos,
+        i.createdAt ? new Date(i.createdAt).toLocaleDateString('es-AR') : '',
         ...(includeFirma ? [''] : []),
       ];
     })
-    : inscriptos.map((i, idx) => (
-      includeFirma
-        ? [idx + 1, i.apellido, i.nombre, i.dni ?? '', '']
-        : [idx + 1, i.apellido, i.nombre, i.dni ?? '']
-    ));
+    : sortedInscriptos.map((i, idx) => {
+      const nombreCompleto = `${i.apellido}, ${i.nombre}`;
+      return includeFirma
+        ? [idx + 1, nombreCompleto, i.dni ?? '', i.createdAt ? new Date(i.createdAt).toLocaleDateString('es-AR') : '', '']
+        : [idx + 1, nombreCompleto, i.dni ?? '', i.createdAt ? new Date(i.createdAt).toLocaleDateString('es-AR') : '']
+    });
 
   const cols = headers.map((_, idx) => XLSX.utils.encode_col(idx));
 
@@ -101,7 +110,7 @@ export function exportarListaAsistencia(
 
   // Merge A1:E1 para el título
   ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } },
+    { s: { r: 0, c: 0 }, e: { r: 0, c: (headers.length - 1) } },
   ];
 
   if (incluirDatosInscriptos) {
@@ -117,23 +126,22 @@ export function exportarListaAsistencia(
       ...(includeFirma ? [{ wch: 35 }] : []),
     ];
   } else {
-    const maxApellido = Math.max(...inscriptos.map((i) => i.apellido.length), 'Apellido'.length);
-    const maxNombre = Math.max(...inscriptos.map((i) => i.nombre.length), 'Nombre'.length);
-    const maxDni = Math.max(...inscriptos.map((i) => (i.dni ?? '').length), 'DNI'.length);
+    const maxNombre = Math.max(...sortedInscriptos.map((i) => `${i.apellido}, ${i.nombre}`.length), 'Nombre'.length);
+    const maxDni = Math.max(...sortedInscriptos.map((i) => (i.dni ?? '').length), 'DNI'.length);
 
     ws['!cols'] = includeFirma
       ? [
           { wch: 5 },
-          { wch: maxApellido + 2 },
           { wch: maxNombre + 2 },
           { wch: maxDni + 2 },
+          { wch: 20 },
           { wch: 35 },
         ]
       : [
           { wch: 5 },
-          { wch: maxApellido + 2 },
           { wch: maxNombre + 2 },
           { wch: maxDni + 2 },
+          { wch: 20 },
         ];
   }
 

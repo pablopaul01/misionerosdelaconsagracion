@@ -346,7 +346,7 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
             variant="outline"
             className="border-brand-brown text-brand-brown hover:bg-brand-cream gap-2"
             onClick={() => exportarListaAsistencia(
-              inscripciones.map(({ apellido, nombre, dni, fecha_nacimiento, domicilio, whatsapp, estado_civil, sacramentos }) => ({
+              inscripciones.map(({ apellido, nombre, dni, fecha_nacimiento, domicilio, whatsapp, estado_civil, sacramentos, created_at }) => ({
                 apellido,
                 nombre,
                 dni,
@@ -357,6 +357,7 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                 sacramentos: Array.isArray(sacramentos)
                   ? sacramentos.filter((item): item is string => typeof item === 'string')
                   : [],
+                createdAt: created_at,
               })),
               `Lista_Consagracion_${new Date().getFullYear()}`,
               `Asistencia — Consagración ${new Date().getFullYear()}`,
