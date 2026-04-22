@@ -6,6 +6,8 @@ export const CALENDARIO_ORIGEN = {
   FORMACION_MISIONEROS: 'formacion_misioneros',
 } as const;
 
+export const CALENDARIO_ORIGEN_CUMPLEANIOS_MISIONERO = 'cumpleanios_misionero' as const;
+
 export type CalendarioOrigen = (typeof CALENDARIO_ORIGEN)[keyof typeof CALENDARIO_ORIGEN];
 
 export const CALENDARIO_ESTADO = {
@@ -21,6 +23,14 @@ export const CALENDARIO_ORIGEN_LABEL: Record<CalendarioOrigen, string> = {
   [CALENDARIO_ORIGEN.CONSAGRACION_RETIRO]: 'Consagracion retiro',
   [CALENDARIO_ORIGEN.RETIRO]: 'Retiro',
   [CALENDARIO_ORIGEN.FORMACION_MISIONEROS]: 'Formacion misioneros',
+};
+
+export const getCalendarioOrigenLabel = (origenTipo: string) => {
+  if (origenTipo === CALENDARIO_ORIGEN_CUMPLEANIOS_MISIONERO) {
+    return 'Cumpleaños misionero';
+  }
+
+  return CALENDARIO_ORIGEN_LABEL[origenTipo as CalendarioOrigen] ?? origenTipo;
 };
 
 export const CALENDARIO_MAX_RANGE_DIAS = 120;

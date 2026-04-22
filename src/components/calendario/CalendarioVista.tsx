@@ -5,8 +5,7 @@ import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ActividadCalendario } from '@/types/calendario';
 import { CALENDARIO_COLORS } from '@/types/calendario';
-import { CALENDARIO_ORIGEN, CALENDARIO_ORIGEN_LABEL } from '@/lib/constants/calendario';
-import type { CalendarioOrigen } from '@/lib/constants/calendario';
+import { CALENDARIO_ORIGEN, getCalendarioOrigenLabel } from '@/lib/constants/calendario';
 import type { EventInput } from '@fullcalendar/core';
 import {
   Sheet,
@@ -105,7 +104,7 @@ function DayEventsSheet({ open, onOpenChange, date, eventos, onEventClick }: Day
           ) : (
             eventos.map((evento) => {
               const colors = CALENDARIO_COLORS[evento.origen_tipo] ?? CALENDARIO_COLORS[CALENDARIO_ORIGEN.MANUAL];
-              const origenLabel = CALENDARIO_ORIGEN_LABEL[evento.origen_tipo] ?? evento.origen_tipo;
+              const origenLabel = getCalendarioOrigenLabel(evento.origen_tipo);
 
               return (
                 <motion.div
@@ -295,7 +294,7 @@ export function CalendarioVista({ eventos, isLoading, soloMes, onDateClick, onEv
             hour12: false,
           }}
           eventDidMount={(info) => {
-            const origenLabel = CALENDARIO_ORIGEN_LABEL[info.event.extendedProps.origen_tipo as CalendarioOrigen] ?? info.event.extendedProps.origen_tipo;
+            const origenLabel = getCalendarioOrigenLabel(info.event.extendedProps.origen_tipo);
             info.el.title = `${info.event.title}\n${info.event.extendedProps.tipo}\n${origenLabel}`;
           }}
           scrollTime="08:00:00"

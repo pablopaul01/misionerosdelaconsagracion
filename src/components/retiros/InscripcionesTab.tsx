@@ -40,7 +40,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Trash2, Users, UserCheck, DollarSign, Plus, Pencil, MoreVertical, FileDown } from 'lucide-react';
+import { Trash2, Users, UserCheck, DollarSign, Plus, MoreVertical, FileDown, ChevronDown } from 'lucide-react';
 import type { Database } from '@/types/supabase';
 import type { PagoInput } from '@/lib/validations/retiros';
 
@@ -48,6 +48,9 @@ type TipoRetiro = Database['public']['Enums']['tipo_retiro'];
 type MetodoPago = Database['public']['Enums']['metodo_pago'];
 type ConversionRow = Database['public']['Tables']['inscripciones_retiro_conversion']['Row'];
 type MatrimonioRow = Database['public']['Tables']['inscripciones_retiro_matrimonios']['Row'];
+type MisioneroRow = Database['public']['Tables']['inscripciones_retiro_misioneros']['Row'] & {
+  misioneros: Database['public']['Tables']['misioneros']['Row'] | null;
+};
 
 interface InscripcionesTabProps {
   retiroId: string;
@@ -71,6 +74,62 @@ type ActionItem = {
   onClick: () => void;
   tone?: 'default' | 'danger';
 };
+
+type EstadoFiltro = 'todos' | 'inscriptos' | 'enEspera';
+
+type ContactoEmergencia = {
+  nombre?: string;
+  whatsapp?: string;
+  relacion?: string;
+};
+
+const parseContactosEmergencia = (contactos: unknown): ContactoEmergencia[] => {
+  const normalize = (value: unknown): ContactoEmergencia[] => {
+    if (!Array.isArray(value)) return [];
+    return value
+      .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+      .map((item) => ({
+        nombre: typeof item.nombre === 'string' ? item.nombre : '',
+        whatsapp: typeof item.whatsapp === 'string' ? item.whatsapp : '',
+        relacion: typeof item.relacion === 'string' ? item.relacion : '',
+      }));
+  };
+
+  if (Array.isArray(contactos)) {
+    return normalize(contactos);
+  }
+
+  if (typeof contactos === 'string') {
+    try {
+      const parsed = JSON.parse(contactos) as unknown;
+      return normalize(parsed);
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+};
+
+const formatUiDate = (value: string | null | undefined, hasTime = false): string => {
+  if (!value) return 'No informado';
+  const date = new Date(hasTime ? value : `${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return 'No informado';
+  return date.toLocaleDateString('es-AR');
+};
+
+const formatUiBoolean = (value: boolean | null | undefined): string => (value ? 'Si' : 'No');
+
+const formatUiText = (value: string | null | undefined): string => value?.trim() || 'No informado';
+
+function DetailItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-brand-brown/10 bg-brand-cream/30 p-2.5">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-brand-brown/70">{label}</p>
+      <p className="mt-1 text-sm text-brand-dark break-words whitespace-normal">{value}</p>
+    </div>
+  );
+}
 
 const ActionMenu = ({ items }: { items: ActionItem[] }) => {
   const [open, setOpen] = useState(false);
@@ -98,13 +157,13 @@ const ActionMenu = ({ items }: { items: ActionItem[] }) => {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="p-1.5 rounded-full hover:bg-brand-creamLight text-brand-brown"
-        aria-label="Acciones"
+        className="h-9 w-9 flex items-center justify-center rounded-md border border-brand-creamLight bg-white text-brand-brown"
+        aria-label="Abrir acciones"
       >
         <MoreVertical className="w-4 h-4" />
       </button>
       {open && (
-        <div className="absolute right-0 bottom-full mb-2 w-40 bg-white border border-brand-creamLight rounded-lg shadow-lg z-50">
+        <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-brand-creamLight rounded-lg shadow-lg z-50">
           {items.map((item) => (
             <button
               key={item.label}
@@ -127,6 +186,7 @@ const ActionMenu = ({ items }: { items: ActionItem[] }) => {
 export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
   const { data: stats } = useEstadisticasRetiro(retiroId, tipo);
   const router = useRouter();
+  const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('todos');
 
   const [deleteTarget, setDeleteTarget] = useState<
     | { kind: 'conversion'; id: string; label: string }
@@ -206,34 +266,42 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
     const XLSX = await import('xlsx-js-style');
 
     // ── Conversion ────────────────────────────────────────────────────
-    const getContactoEmergencia = (contactos: unknown) => {
-      const arr = (contactos as { nombre?: string; whatsapp?: string; relacion?: string }[]) ?? [];
-      return arr.filter(c => c.nombre).map(c => `${c.nombre} (${c.relacion}: ${c.whatsapp})`).join('; ') || '';
-    };
-
     const convRows = [...conversion].sort((a, b) => (a.apellido ?? '').localeCompare(b.apellido ?? '', 'es', { sensitivity: 'base' }))
-      .map((i, idx) => ({
-        'Nº': idx + 1,
-        'Apellido': i.apellido,
-        'Nombre': i.nombre,
-        'Fecha nacimiento': i.fecha_nacimiento ? new Date(i.fecha_nacimiento + 'T00:00:00').toLocaleDateString('es-AR') : '',
-        'DNI': i.dni ?? '',
-        'Estado civil': i.estado_civil ?? '',
-        'Domicilio': i.domicilio ?? '',
-        'Teléfono': i.telefono ?? '',
-        'Contacto emergencia 1': getContactoEmergencia((i.contactos_emergencia as { nombre?: string; whatsapp?: string; relacion?: string }[]) ?? []).slice(0, 1),
-        'Contacto emergencia 2': getContactoEmergencia((i.contactos_emergencia as { nombre?: string; whatsapp?: string; relacion?: string }[]) ?? []).slice(1, 2),
-        'Contacto emergencia 3': getContactoEmergencia((i.contactos_emergencia as { nombre?: string; whatsapp?: string; relacion?: string }[]) ?? []).slice(2, 3),
-        'Tiene enfermedad': i.tiene_enfermedad ? 'Sí' : 'No',
-        'Enfermedad detalle': i.enfermedad_detalle ?? '',
-        'Dieta especial': i.tiene_dieta_especial ? 'Sí' : 'No',
-        'Dieta detalle': i.dieta_especial_detalle ?? '',
-        'Primer retiro': i.primer_retiro ? 'Sí' : 'No',
-        'Bautizado': i.bautizado ? 'Sí' : 'No',
-        'Sacramentos': ((i.sacramentos as string[]) ?? []).join(', '),
-        'En espera': i.en_espera ? 'Sí' : 'No',
-        'Fecha inscripción': i.created_at ? new Date(i.created_at).toLocaleDateString('es-AR') : '',
-      }));
+      .map((i, idx) => {
+        const contactosEmergencia = parseContactosEmergencia(i.contactos_emergencia);
+        const contacto1 = contactosEmergencia[0];
+        const contacto2 = contactosEmergencia[1];
+        const contacto3 = contactosEmergencia[2];
+
+        return {
+          'Nº': idx + 1,
+          'Apellido': i.apellido,
+          'Nombre': i.nombre,
+          'Fecha nacimiento': i.fecha_nacimiento ? new Date(i.fecha_nacimiento + 'T00:00:00').toLocaleDateString('es-AR') : '',
+          'DNI': i.dni ?? '',
+          'Estado civil': i.estado_civil ?? '',
+          'Domicilio': i.domicilio ?? '',
+          'Teléfono': i.telefono ?? '',
+          'Nombre contacto 1': contacto1?.nombre ?? '',
+          'Whatsapp contacto 1': contacto1?.whatsapp ?? '',
+          'Relacion contacto 1': contacto1?.relacion ?? '',
+          'Nombre contacto 2': contacto2?.nombre ?? '',
+          'Whatsapp contacto 2': contacto2?.whatsapp ?? '',
+          'Relacion contacto 2': contacto2?.relacion ?? '',
+          'Nombre contacto 3': contacto3?.nombre ?? '',
+          'Whatsapp contacto 3': contacto3?.whatsapp ?? '',
+          'Relacion contacto 3': contacto3?.relacion ?? '',
+          'Tiene enfermedad': i.tiene_enfermedad ? 'Sí' : 'No',
+          'Enfermedad detalle': i.enfermedad_detalle ?? '',
+          'Dieta especial': i.tiene_dieta_especial ? 'Sí' : 'No',
+          'Dieta detalle': i.dieta_especial_detalle ?? '',
+          'Primer retiro': i.primer_retiro ? 'Sí' : 'No',
+          'Bautizado': i.bautizado ? 'Sí' : 'No',
+          'Sacramentos': ((i.sacramentos as string[]) ?? []).join(', '),
+          'En espera': i.en_espera ? 'Sí' : 'No',
+          'Fecha inscripción': i.created_at ? new Date(i.created_at).toLocaleDateString('es-AR') : '',
+        };
+      });
 
     // ── Matrimonios ─────────────────────────────────────────────
     const matriRows = [...matrimonios].sort((a, b) => (a.apellido_esposo ?? '').localeCompare(b.apellido_esposo ?? '', 'es', { sensitivity: 'base' }))
@@ -295,16 +363,45 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
     ...misioneros.map((i) => ({ id: i.id })),
   ];
 
+  const coincideConFiltro = (enEspera: boolean | undefined): boolean => {
+    if (estadoFiltro === 'todos') return true;
+    if (estadoFiltro === 'inscriptos') return enEspera !== true;
+    return enEspera === true;
+  };
+
+  const conversionFiltradas = conversion.filter((inscripcion) => coincideConFiltro(inscripcion.en_espera));
+  const matrimoniosFiltradas = matrimonios.filter((inscripcion) => coincideConFiltro(inscripcion.en_espera));
+  const misionerosFiltrados = misioneros.filter(() => coincideConFiltro(undefined));
+
+  const filtrosEstado: { value: EstadoFiltro; label: string; count: number; icon: typeof Users }[] = [
+    { value: 'todos', label: 'Todos', count: (stats?.inscriptos ?? 0) + (stats?.enEspera ?? 0), icon: Users },
+    { value: 'inscriptos', label: 'Inscriptos', count: stats?.inscriptos ?? 0, icon: Users },
+    { value: 'enEspera', label: 'En espera', count: stats?.enEspera ?? 0, icon: UserCheck },
+  ];
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-4 flex-wrap items-center">
-        <div className="bg-white border border-brand-creamLight rounded-lg p-3 flex items-center gap-2">
-          <Users className="w-5 h-5 text-brand-brown" />
-          <span className="font-medium">{stats?.inscriptos ?? 0} Inscriptos</span>
-        </div>
-        <div className="bg-white border border-brand-creamLight rounded-lg p-3 flex items-center gap-2">
-          <UserCheck className="w-5 h-5 text-brand-teal" />
-          <span className="font-medium">{stats?.enEspera ?? 0} En espera</span>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          {filtrosEstado.map(({ value, label, count, icon: Icon }) => {
+            const isActive = estadoFiltro === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setEstadoFiltro(value)}
+                aria-pressed={isActive}
+                className={`rounded-lg border p-3 flex items-center gap-2 transition-colors ${
+                  isActive
+                    ? 'border-brand-brown bg-brand-cream text-brand-dark'
+                    : 'border-brand-creamLight bg-white text-brand-brown hover:bg-brand-cream/40'
+                }`}
+              >
+                <Icon className={`w-5 h-5 ${value === 'enEspera' ? 'text-brand-teal' : 'text-brand-brown'}`} />
+                <span className="font-medium">{count} {label}</span>
+              </button>
+            );
+          })}
         </div>
         <div className="bg-white border border-brand-creamLight rounded-lg p-3 flex items-center gap-2">
           <DollarSign className="w-5 h-5 text-green-600" />
@@ -333,11 +430,11 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
           </div>
           {loadingConversion ? (
             <p className="p-4 text-brand-brown">Cargando...</p>
-          ) : conversion.length === 0 ? (
+          ) : conversionFiltradas.length === 0 ? (
             <p className="p-4 text-brand-brown">No hay inscripciones</p>
           ) : (
             <div className="divide-y divide-brand-brown/10">
-              {conversion.map((insc) => (
+              {conversionFiltradas.map((insc) => (
                 <ConversionInscripcionRow
                   key={insc.id}
                   inscripcion={insc}
@@ -367,11 +464,11 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
           </div>
           {loadingMatrimonios ? (
             <p className="p-4 text-brand-brown">Cargando...</p>
-          ) : matrimonios.length === 0 ? (
+          ) : matrimoniosFiltradas.length === 0 ? (
             <p className="p-4 text-brand-brown">No hay inscripciones</p>
           ) : (
             <div className="divide-y divide-brand-brown/10">
-              {matrimonios.map((insc) => (
+              {matrimoniosFiltradas.map((insc) => (
                 <MatrimonioInscripcionRow
                   key={insc.id}
                   inscripcion={insc}
@@ -401,55 +498,23 @@ export function InscripcionesTab({ retiroId, tipo }: InscripcionesTabProps) {
           </div>
           {loadingMisioneros ? (
             <p className="p-4 text-brand-brown">Cargando...</p>
-          ) : misioneros.length === 0 ? (
+          ) : misionerosFiltrados.length === 0 ? (
             <p className="p-4 text-brand-brown">No hay inscripciones</p>
           ) : (
             <div className="divide-y divide-brand-brown/10">
-              {misioneros.map((insc) => (
-                <div key={insc.id} className="p-3 flex items-center justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-brand-dark break-words whitespace-normal">
-                      {insc.misioneros?.nombre} {insc.misioneros?.apellido}
-                    </p>
-                    <p className="text-sm text-brand-brown">DNI: {insc.misioneros?.dni}</p>
-                  </div>
-                  <div className="hidden md:flex items-center gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => goToMisionerosEdit(insc.id)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500"
-                      onClick={() =>
-                        setDeleteTarget({
-                          kind: 'misioneros',
-                          id: insc.id,
-                          label: `${insc.misioneros?.nombre ?? ''} ${insc.misioneros?.apellido ?? ''}`.trim(),
-                        })
-                      }
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <div className="md:hidden">
-                    <ActionMenu
-                      items={[
-                        { label: 'Editar', onClick: () => goToMisionerosEdit(insc.id) },
-                        {
-                          label: 'Eliminar',
-                          onClick: () =>
-                            setDeleteTarget({
-                              kind: 'misioneros',
-                              id: insc.id,
-                              label: `${insc.misioneros?.nombre ?? ''} ${insc.misioneros?.apellido ?? ''}`.trim(),
-                            }),
-                          tone: 'danger',
-                        },
-                      ]}
-                    />
-                  </div>
-                </div>
+              {misionerosFiltrados.map((insc) => (
+                <MisioneroInscripcionRow
+                  key={insc.id}
+                  inscripcion={insc}
+                  onEdit={() => goToMisionerosEdit(insc.id)}
+                  onDelete={() =>
+                    setDeleteTarget({
+                      kind: 'misioneros',
+                      id: insc.id,
+                      label: `${insc.misioneros?.nombre ?? ''} ${insc.misioneros?.apellido ?? ''}`.trim(),
+                    })
+                  }
+                />
               ))}
             </div>
           )}
@@ -502,6 +567,7 @@ function ConversionInscripcionRow({
   onDeletePago: (args: DeletePagoArgs) => Promise<unknown>;
 }) {
   const [pagoOpen, setPagoOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [monto, setMonto] = useState('');
   const [metodo, setMetodo] = useState<MetodoPago>('efectivo');
   const { data: pagos = [] } = usePagosByInscripcion('conversion', inscripcion.id);
@@ -530,6 +596,10 @@ function ConversionInscripcionRow({
   };
 
   const [deletePagoId, setDeletePagoId] = useState<string | null>(null);
+  const contactosEmergencia = parseContactosEmergencia(inscripcion.contactos_emergencia);
+  const contacto1 = contactosEmergencia[0];
+  const contacto2 = contactosEmergencia[1];
+  const contacto3 = contactosEmergencia[2];
 
   const handleEliminarPago = async (id: string) => {
     try {
@@ -542,30 +612,23 @@ function ConversionInscripcionRow({
 
   return (
     <div className="p-3 space-y-3">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-brand-dark break-words whitespace-normal">
-            {inscripcion.nombre} {inscripcion.apellido}
-          </p>
-          <p className="text-sm text-brand-brown">DNI: {inscripcion.dni} · Tel: {inscripcion.telefono}</p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-medium text-brand-dark break-words whitespace-normal">
+              {inscripcion.nombre} {inscripcion.apellido}
+            </p>
+            {inscripcion.en_espera ? (
+              <Badge className="bg-yellow-100 text-yellow-800">En espera</Badge>
+            ) : (
+              <Badge className="bg-green-100 text-green-800">Inscripto</Badge>
+            )}
+          </div>
+          <p className="text-sm text-brand-brown break-words">DNI: {formatUiText(inscripcion.dni)} · Tel: {formatUiText(inscripcion.telefono)}</p>
+          <p className="text-xs text-brand-brown/80">{inscripcion.primer_retiro ? 'Primer retiro' : 'Ya participo en retiros'} · Bautizado: {formatUiBoolean(inscripcion.bautizado)}</p>
         </div>
-        <div className="hidden md:flex items-center gap-2">
-          {inscripcion.en_espera ? (
-            <Badge className="bg-yellow-100 text-yellow-800">En espera</Badge>
-          ) : (
-            <Badge className="bg-green-100 text-green-800">Inscripto</Badge>
-          )}
-          <Button variant="ghost" size="sm" onClick={onEdit}>
-            <Pencil className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => onToggleEspera(inscripcion.en_espera)}>
-            {inscripcion.en_espera ? 'Confirmar' : 'Pasar a espera'}
-          </Button>
-          <Button variant="ghost" size="sm" className="text-red-500" onClick={onDelete}>
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
-        <div className="md:hidden">
+
+        <div className="flex items-center justify-end gap-2">
           <ActionMenu
             items={[
               { label: 'Editar', onClick: onEdit },
@@ -576,12 +639,12 @@ function ConversionInscripcionRow({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
         <DollarSign className="w-4 h-4 text-green-600" />
         <span className="font-medium">${totalPagado.toLocaleString('es-AR')}</span>
         <Dialog open={pagoOpen} onOpenChange={setPagoOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="ml-2">
+            <Button variant="outline" size="sm" className="sm:ml-2">
               <Plus className="w-3 h-3 mr-1" /> Registrar pago
             </Button>
           </DialogTrigger>
@@ -595,7 +658,7 @@ function ConversionInscripcionRow({
                 <Input type="number" value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="0" className="mt-1" />
               </div>
               <div>
-                <label className="text-sm font-medium">Método</label>
+                <label className="text-sm font-medium">Metodo</label>
                 <Select value={metodo} onValueChange={(v) => setMetodo(v as MetodoPago)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
@@ -614,6 +677,60 @@ function ConversionInscripcionRow({
           </DialogContent>
         </Dialog>
       </div>
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setExpanded((prev) => !prev)}
+        className="w-fit px-2"
+      >
+        {expanded ? 'Ver menos' : 'Ver más datos'}
+        <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </Button>
+
+      {expanded && (
+        <div className="rounded-lg border border-brand-brown/10 bg-brand-cream/20 p-3 sm:p-4 space-y-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-brown/70">Datos completos</p>
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <DetailItem label="Fecha de nacimiento" value={formatUiDate(inscripcion.fecha_nacimiento)} />
+              <DetailItem label="Estado civil" value={formatUiText(inscripcion.estado_civil)} />
+              <DetailItem label="Domicilio" value={formatUiText(inscripcion.domicilio)} />
+              <DetailItem label="Tiene enfermedad" value={formatUiBoolean(inscripcion.tiene_enfermedad)} />
+              <DetailItem label="Detalle enfermedad" value={formatUiText(inscripcion.enfermedad_detalle)} />
+              <DetailItem label="Dieta especial" value={formatUiBoolean(inscripcion.tiene_dieta_especial)} />
+              <DetailItem label="Detalle dieta" value={formatUiText(inscripcion.dieta_especial_detalle)} />
+              <DetailItem label="Sacramentos" value={((inscripcion.sacramentos as string[]) ?? []).join(', ') || 'No informado'} />
+              <DetailItem label="Fecha de inscripcion" value={formatUiDate(inscripcion.created_at, true)} />
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-brown/70">Contactos de emergencia</p>
+            <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
+              <div className="rounded-md border border-brand-brown/10 bg-white p-2.5 space-y-1">
+                <p className="text-xs font-medium text-brand-brown/70">Contacto 1</p>
+                <p className="text-sm text-brand-dark break-words">{formatUiText(contacto1?.nombre)}</p>
+                <p className="text-xs text-brand-brown break-words">Wsp: {formatUiText(contacto1?.whatsapp)}</p>
+                <p className="text-xs text-brand-brown break-words">Relacion: {formatUiText(contacto1?.relacion)}</p>
+              </div>
+              <div className="rounded-md border border-brand-brown/10 bg-white p-2.5 space-y-1">
+                <p className="text-xs font-medium text-brand-brown/70">Contacto 2</p>
+                <p className="text-sm text-brand-dark break-words">{formatUiText(contacto2?.nombre)}</p>
+                <p className="text-xs text-brand-brown break-words">Wsp: {formatUiText(contacto2?.whatsapp)}</p>
+                <p className="text-xs text-brand-brown break-words">Relacion: {formatUiText(contacto2?.relacion)}</p>
+              </div>
+              <div className="rounded-md border border-brand-brown/10 bg-white p-2.5 space-y-1">
+                <p className="text-xs font-medium text-brand-brown/70">Contacto 3</p>
+                <p className="text-sm text-brand-dark break-words">{formatUiText(contacto3?.nombre)}</p>
+                <p className="text-xs text-brand-brown break-words">Wsp: {formatUiText(contacto3?.whatsapp)}</p>
+                <p className="text-xs text-brand-brown break-words">Relacion: {formatUiText(contacto3?.relacion)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {pagos.length > 0 && (
         <div className="bg-brand-cream/40 rounded-lg p-3 text-sm space-y-2">
@@ -679,6 +796,7 @@ function MatrimonioInscripcionRow({
   onDeletePago: (args: DeletePagoArgs) => Promise<unknown>;
 }) {
   const [pagoOpen, setPagoOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [monto, setMonto] = useState('');
   const [metodo, setMetodo] = useState<MetodoPago>('efectivo');
   const { data: pagos = [] } = usePagosByInscripcion('matrimonios', inscripcion.id);
@@ -719,32 +837,27 @@ function MatrimonioInscripcionRow({
 
   return (
     <div className="p-3 space-y-3">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-brand-dark break-words whitespace-normal">
-            {inscripcion.nombre_esposo} {inscripcion.apellido_esposo} & {inscripcion.nombre_esposa} {inscripcion.apellido_esposa}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-medium text-brand-dark break-words whitespace-normal">
+              {inscripcion.nombre_esposo} {inscripcion.apellido_esposo} & {inscripcion.nombre_esposa} {inscripcion.apellido_esposa}
+            </p>
+            {inscripcion.en_espera ? (
+              <Badge className="bg-yellow-100 text-yellow-800">En espera</Badge>
+            ) : (
+              <Badge className="bg-green-100 text-green-800">Inscripto</Badge>
+            )}
+          </div>
+          <p className="text-sm text-brand-brown break-words">
+            Estado: {formatUiText(inscripcion.estado_relacion)} · {inscripcion.entrevista_realizada ? 'Entrevistados' : 'Sin entrevista'}
           </p>
-          <p className="text-sm text-brand-brown">
-            Estado: {inscripcion.estado_relacion} · {inscripcion.entrevista_realizada ? 'Entrevistados' : 'Sin entrevista'}
+          <p className="text-xs text-brand-brown/80 break-words">
+            DNI esposo: {formatUiText(inscripcion.dni_esposo)} · DNI esposa: {formatUiText(inscripcion.dni_esposa)}
           </p>
         </div>
-        <div className="hidden md:flex items-center gap-2">
-          {inscripcion.en_espera ? (
-            <Badge className="bg-yellow-100 text-yellow-800">En espera</Badge>
-          ) : (
-            <Badge className="bg-green-100 text-green-800">Inscripto</Badge>
-          )}
-          <Button variant="ghost" size="sm" onClick={onEdit}>
-            <Pencil className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => onToggleEspera(inscripcion.en_espera)}>
-            {inscripcion.en_espera ? 'Confirmar' : 'Pasar a espera'}
-          </Button>
-          <Button variant="ghost" size="sm" className="text-red-500" onClick={onDelete}>
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
-        <div className="md:hidden">
+
+        <div className="flex items-center justify-end gap-2">
           <ActionMenu
             items={[
               { label: 'Editar', onClick: onEdit },
@@ -755,12 +868,12 @@ function MatrimonioInscripcionRow({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
         <DollarSign className="w-4 h-4 text-green-600" />
         <span className="font-medium">${totalPagado.toLocaleString('es-AR')}</span>
         <Dialog open={pagoOpen} onOpenChange={setPagoOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="ml-2">
+            <Button variant="outline" size="sm" className="sm:ml-2">
               <Plus className="w-3 h-3 mr-1" /> Registrar pago
             </Button>
           </DialogTrigger>
@@ -774,7 +887,7 @@ function MatrimonioInscripcionRow({
                 <Input type="number" value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="0" className="mt-1" />
               </div>
               <div>
-                <label className="text-sm font-medium">Método</label>
+                <label className="text-sm font-medium">Metodo</label>
                 <Select value={metodo} onValueChange={(v) => setMetodo(v as MetodoPago)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
@@ -793,6 +906,40 @@ function MatrimonioInscripcionRow({
           </DialogContent>
         </Dialog>
       </div>
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setExpanded((prev) => !prev)}
+        className="w-fit px-2"
+      >
+        {expanded ? 'Ver menos' : 'Ver más datos'}
+        <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </Button>
+
+      {expanded && (
+        <div className="rounded-lg border border-brand-brown/10 bg-brand-cream/20 p-3 sm:p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-brown/70">Datos completos</p>
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <DetailItem label="Nombre esposo" value={`${inscripcion.nombre_esposo ?? ''} ${inscripcion.apellido_esposo ?? ''}`.trim() || 'No informado'} />
+            <DetailItem label="DNI esposo" value={formatUiText(inscripcion.dni_esposo)} />
+            <DetailItem label="Nacimiento esposo" value={formatUiDate(inscripcion.fecha_nacimiento_esposo)} />
+            <DetailItem label="WhatsApp esposo" value={formatUiText(inscripcion.whatsapp_esposo)} />
+            <DetailItem label="Nombre esposa" value={`${inscripcion.nombre_esposa ?? ''} ${inscripcion.apellido_esposa ?? ''}`.trim() || 'No informado'} />
+            <DetailItem label="DNI esposa" value={formatUiText(inscripcion.dni_esposa)} />
+            <DetailItem label="Nacimiento esposa" value={formatUiDate(inscripcion.fecha_nacimiento_esposa)} />
+            <DetailItem label="WhatsApp esposa" value={formatUiText(inscripcion.whatsapp_esposa)} />
+            <DetailItem label="Estado relacion" value={formatUiText(inscripcion.estado_relacion)} />
+            <DetailItem label="Domicilio" value={formatUiText(inscripcion.domicilio)} />
+            <DetailItem label="Como se enteraron" value={formatUiText(inscripcion.como_se_enteraron)} />
+            <DetailItem label="Entrevista realizada" value={formatUiBoolean(inscripcion.entrevista_realizada)} />
+            <DetailItem label="Fecha entrevista" value={formatUiDate(inscripcion.entrevista_fecha)} />
+            <DetailItem label="Notas entrevista" value={formatUiText(inscripcion.entrevista_notas)} />
+            <DetailItem label="Fecha de inscripcion" value={formatUiDate(inscripcion.created_at, true)} />
+          </div>
+        </div>
+      )}
 
       {pagos.length > 0 && (
         <div className="bg-brand-cream/40 rounded-lg p-3 text-sm space-y-2">
@@ -838,6 +985,67 @@ function MatrimonioInscripcionRow({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+function MisioneroInscripcionRow({
+  inscripcion,
+  onEdit,
+  onDelete,
+}: {
+  inscripcion: MisioneroRow;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="p-3 space-y-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-brand-dark break-words whitespace-normal">
+            {inscripcion.misioneros?.nombre} {inscripcion.misioneros?.apellido}
+          </p>
+          <p className="text-sm text-brand-brown break-words">
+            DNI: {formatUiText(inscripcion.misioneros?.dni)} · Tel: {formatUiText(inscripcion.misioneros?.whatsapp)}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-end gap-2">
+          <ActionMenu
+            items={[
+              { label: 'Editar', onClick: onEdit },
+              { label: 'Eliminar', onClick: onDelete, tone: 'danger' },
+            ]}
+          />
+        </div>
+      </div>
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setExpanded((prev) => !prev)}
+        className="w-fit px-2"
+      >
+        {expanded ? 'Ver menos' : 'Ver más datos'}
+        <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </Button>
+
+      {expanded && (
+        <div className="rounded-lg border border-brand-brown/10 bg-brand-cream/20 p-3 sm:p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-brown/70">Datos completos</p>
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <DetailItem label="Nombre" value={formatUiText(inscripcion.misioneros?.nombre)} />
+            <DetailItem label="Apellido" value={formatUiText(inscripcion.misioneros?.apellido)} />
+            <DetailItem label="DNI" value={formatUiText(inscripcion.misioneros?.dni)} />
+            <DetailItem label="Fecha de nacimiento" value={formatUiDate(inscripcion.misioneros?.fecha_nacimiento)} />
+            <DetailItem label="Telefono" value={formatUiText(inscripcion.misioneros?.whatsapp)} />
+            <DetailItem label="Fecha de inscripcion" value={formatUiDate(inscripcion.created_at, true)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

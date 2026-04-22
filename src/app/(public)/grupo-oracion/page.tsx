@@ -6,6 +6,7 @@ import { formatFechaLarga } from '@/lib/utils/dates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   buscarMisioneroGrupo,
   registrarAsistenciaGrupo,
@@ -21,6 +22,8 @@ export default function GrupoOracionAsistenciaPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [seleccion, setSeleccion] = useState<'asistio' | 'no_asistio' | null>(null);
+  const [motivoAusencia, setMotivoAusencia] = useState('');
   const [misionero, setMisionero] = useState<MisioneroEncontrado | null>(null);
   const [grupoActivo, setGrupoActivo] = useState<GrupoActivo | null>(null);
 
@@ -52,14 +55,26 @@ export default function GrupoOracionAsistenciaPage() {
     setBuscando(false);
   };
 
-  const registrarAsistencia = async () => {
+  const registrarAsistencia = async (asistio: boolean) => {
     if (!misionero || !grupoActivo) return;
     setGuardando(true);
+    setErrorMsg(null);
 
-    await registrarAsistenciaGrupo(misionero.id, grupoActivo.id);
+    const result = await registrarAsistenciaGrupo(misionero.id, grupoActivo.id, asistio, motivoAusencia);
+
+    if (!result.ok) {
+      setErrorMsg(result.error);
+      setGuardando(false);
+      return;
+    }
 
     setEstado('registrado');
     setGuardando(false);
+  };
+
+  const handleConfirmar = () => {
+    if (!seleccion) return;
+    registrarAsistencia(seleccion === 'asistio');
   };
 
   const reiniciar = () => {
@@ -68,6 +83,8 @@ export default function GrupoOracionAsistenciaPage() {
     setErrorMsg(null);
     setMisionero(null);
     setGrupoActivo(null);
+    setSeleccion(null);
+    setMotivoAusencia('');
   };
 
   return (
@@ -129,15 +146,59 @@ export default function GrupoOracionAsistenciaPage() {
               </p>
             </div>
 
-            <p className="text-center text-brand-dark font-medium">Confirmá tu asistencia al grupo de oración</p>
+            <p className="text-center text-brand-dark font-medium">¿Pudiste asistir al grupo de oración?</p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setSeleccion('asistio')}
+                className={`rounded-xl border-2 p-4 flex flex-col items-center gap-2 transition-all ${
+                  seleccion === 'asistio'
+                    ? 'border-green-600 bg-green-50'
+                    : 'border-brand-creamLight hover:border-green-300'
+                }`}
+              >
+                <span className="text-2xl">✓</span>
+                <span className={`text-sm font-medium ${seleccion === 'asistio' ? 'text-green-700' : 'text-brand-dark'}`}>
+                  Sí, asistí
+                </span>
+              </button>
+
+              <button
+                onClick={() => setSeleccion('no_asistio')}
+                className={`rounded-xl border-2 p-4 flex flex-col items-center gap-2 transition-all ${
+                  seleccion === 'no_asistio'
+                    ? 'border-red-400 bg-red-50'
+                    : 'border-brand-creamLight hover:border-red-200'
+                }`}
+              >
+                <span className="text-2xl">✗</span>
+                <span className={`text-sm font-medium ${seleccion === 'no_asistio' ? 'text-red-600' : 'text-brand-dark'}`}>
+                  No pude asistir
+                </span>
+              </button>
+            </div>
+
+            {seleccion === 'no_asistio' && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="motivo">Motivo (opcional)</Label>
+                <Textarea
+                  id="motivo"
+                  placeholder="Ej: Estaba enfermo, trabajo, etc."
+                  value={motivoAusencia}
+                  onChange={(e) => setMotivoAusencia(e.target.value)}
+                  rows={2}
+                />
+              </div>
+            )}
 
             <Button
-              onClick={registrarAsistencia}
-              disabled={guardando}
-              className="bg-brand-teal hover:bg-brand-navy text-white font-title tracking-wide"
+              onClick={handleConfirmar}
+              disabled={!seleccion || guardando}
+              className="bg-brand-brown hover:bg-brand-dark text-white font-title tracking-wide py-5 disabled:opacity-40"
             >
-              {guardando ? 'Registrando...' : 'Registrar asistencia'}
+              {guardando ? 'Registrando...' : 'Confirmar'}
             </Button>
+            {errorMsg && <p className="text-sm text-red-600 text-center">{errorMsg}</p>}
           </div>
         )}
 

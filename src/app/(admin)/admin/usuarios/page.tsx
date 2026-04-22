@@ -39,14 +39,23 @@ import { Pencil } from 'lucide-react';
 const ROLE_LABEL: Record<string, string> = {
   [USER_ROLES.ADMIN]: 'Administrador',
   [USER_ROLES.SECRETARIO_CONSAGRACION]: 'Secretario de Consagración',
+  [USER_ROLES.RETIRO]: 'Retiros',
+};
+
+const ROLE_BADGE_CLASS: Record<string, string> = {
+  [USER_ROLES.ADMIN]: 'bg-brand-navy text-white',
+  [USER_ROLES.SECRETARIO_CONSAGRACION]: 'bg-brand-teal text-white',
+  [USER_ROLES.RETIRO]: 'bg-brand-brown text-white',
 };
 
 const crearUsuarioSchema = z.object({
   email:    z.string().email('Email inválido'),
   password: z.string().min(6, 'Mínimo 6 caracteres'),
   nombre:   z.string().min(1, 'El nombre es requerido'),
-  role:     z.enum([USER_ROLES.ADMIN, USER_ROLES.SECRETARIO_CONSAGRACION]),
+  role:     z.enum([USER_ROLES.ADMIN, USER_ROLES.SECRETARIO_CONSAGRACION, USER_ROLES.RETIRO]),
 });
+
+type RoleFormValue = z.infer<typeof crearUsuarioSchema>['role'];
 
 type Usuario = { id: string; nombre: string; role: string; email: string };
 
@@ -57,7 +66,7 @@ const NuevoUsuarioForm = ({ onSuccess }: { onSuccess: () => void }) => {
       email:    '',
       password: '',
       nombre:   '',
-      role:     USER_ROLES.SECRETARIO_CONSAGRACION as 'admin' | 'secretario_consagracion',
+      role:     USER_ROLES.SECRETARIO_CONSAGRACION as RoleFormValue,
     },
     validators: { onSubmit: crearUsuarioSchema },
     onSubmit: async ({ value }) => {
@@ -129,7 +138,7 @@ const NuevoUsuarioForm = ({ onSuccess }: { onSuccess: () => void }) => {
             <Label>Rol</Label>
             <Select
               value={field.state.value}
-              onValueChange={(v) => field.handleChange(v as 'admin' | 'secretario_consagracion')}
+              onValueChange={(v) => field.handleChange(v as RoleFormValue)}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -138,6 +147,7 @@ const NuevoUsuarioForm = ({ onSuccess }: { onSuccess: () => void }) => {
                 <SelectItem value={USER_ROLES.SECRETARIO_CONSAGRACION}>
                   Secretario de Consagración
                 </SelectItem>
+                <SelectItem value={USER_ROLES.RETIRO}>Retiros</SelectItem>
                 <SelectItem value={USER_ROLES.ADMIN}>Administrador</SelectItem>
               </SelectContent>
             </Select>
@@ -164,9 +174,11 @@ const NuevoUsuarioForm = ({ onSuccess }: { onSuccess: () => void }) => {
 
 const editarSchema = z.object({
   nombre:   z.string().min(1, 'El nombre es requerido'),
-  role:     z.enum([USER_ROLES.ADMIN, USER_ROLES.SECRETARIO_CONSAGRACION]),
+  role:     z.enum([USER_ROLES.ADMIN, USER_ROLES.SECRETARIO_CONSAGRACION, USER_ROLES.RETIRO]),
   password: z.string(),
 });
+
+type EditRoleFormValue = z.infer<typeof editarSchema>['role'];
 
 const EditarUsuarioDialog = ({
   usuario,
@@ -181,7 +193,7 @@ const EditarUsuarioDialog = ({
   const form = useForm({
     defaultValues: {
       nombre:   usuario.nombre,
-      role:     usuario.role as 'admin' | 'secretario_consagracion',
+      role:     usuario.role as EditRoleFormValue,
       password: '',
     },
     validators: { onSubmit: editarSchema },
@@ -233,7 +245,7 @@ const EditarUsuarioDialog = ({
                 <Label>Rol</Label>
                 <Select
                   value={field.state.value}
-                  onValueChange={(v) => field.handleChange(v as 'admin' | 'secretario_consagracion')}
+                  onValueChange={(v) => field.handleChange(v as EditRoleFormValue)}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -242,6 +254,7 @@ const EditarUsuarioDialog = ({
                     <SelectItem value={USER_ROLES.SECRETARIO_CONSAGRACION}>
                       Secretario de Consagración
                     </SelectItem>
+                    <SelectItem value={USER_ROLES.RETIRO}>Retiros</SelectItem>
                     <SelectItem value={USER_ROLES.ADMIN}>Administrador</SelectItem>
                   </SelectContent>
                 </Select>
@@ -352,11 +365,7 @@ export default function UsuariosPage() {
                     <td className="px-4 py-3 text-brand-brown">{u.email}</td>
                     <td className="px-4 py-3">
                       <Badge
-                        className={
-                          u.role === USER_ROLES.ADMIN
-                            ? 'bg-brand-navy text-white'
-                            : 'bg-brand-teal text-white'
-                        }
+                        className={ROLE_BADGE_CLASS[u.role] ?? 'bg-brand-creamLight text-brand-dark'}
                       >
                         {ROLE_LABEL[u.role] ?? u.role}
                       </Badge>
@@ -398,11 +407,7 @@ export default function UsuariosPage() {
                   <p className="font-title text-brand-dark font-semibold">{u.nombre}</p>
                   <p className="text-xs text-brand-brown truncate">{u.email}</p>
                   <Badge
-                    className={`mt-1 w-fit ${
-                      u.role === USER_ROLES.ADMIN
-                        ? 'bg-brand-navy text-white'
-                        : 'bg-brand-teal text-white'
-                    }`}
+                    className={`mt-1 w-fit ${ROLE_BADGE_CLASS[u.role] ?? 'bg-brand-creamLight text-brand-dark'}`}
                   >
                     {ROLE_LABEL[u.role] ?? u.role}
                   </Badge>

@@ -61,14 +61,22 @@ export async function buscarMisioneroGrupo(dni: string): Promise<BuscarMisionero
 export async function registrarAsistenciaGrupo(
   misioneroId: string,
   grupoId: string,
-): Promise<{ ok: boolean }> {
+  asistio: boolean,
+  motivoAusencia?: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const supabase = createAdminClient();
+  const motivoAusenciaNormalizado = motivoAusencia?.trim();
 
   const { error } = await supabase.from('asistencias_grupo_oracion').insert({
     grupo_id: grupoId,
     misionero_id: misioneroId,
-    asistio: true,
+    asistio,
+    motivo_ausencia: asistio ? null : (motivoAusenciaNormalizado || null),
   });
 
-  return { ok: !error };
+  if (error) {
+    return { ok: false, error: 'No se pudo registrar la asistencia. Intentá nuevamente.' };
+  }
+
+  return { ok: true };
 }

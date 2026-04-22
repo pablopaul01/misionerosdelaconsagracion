@@ -41,6 +41,8 @@ export const LoginForm = () => {
 
       if (role === USER_ROLES.ADMIN) {
         router.push('/admin/dashboard');
+      } else if (role === USER_ROLES.RETIRO) {
+        router.push('/admin/retiros');
       } else {
         router.push('/secretario/inscripciones');
       }

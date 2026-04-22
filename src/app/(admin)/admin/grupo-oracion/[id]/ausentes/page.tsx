@@ -16,7 +16,7 @@ export default function GrupoOracionAusentesPage() {
   const { data: misioneros = [] } = useMisioneros();
 
   const presentesIds = useMemo(
-    () => new Set(asistencias.map((a) => a.misionero_id)),
+    () => new Set(asistencias.filter((a) => a.asistio !== false).map((a) => a.misionero_id)),
     [asistencias]
   );
 
