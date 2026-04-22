@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { CALENDARIO_ORIGEN_LABEL } from '@/lib/constants/calendario';
+import { getCalendarioOrigenLabel } from '@/lib/constants/calendario';
 import { useCalendarioMisionero } from '@/lib/queries/calendario';
 import { CalendarioVista } from '@/components/calendario/CalendarioVista';
 import type { ActividadCalendario } from '@/types/calendario';
@@ -206,7 +206,7 @@ export default function CalendarioMisioneroPage() {
             <div className="mt-4 space-y-3">
               <div>
                 <p className="text-xs uppercase tracking-wide text-brand-brown/70">
-                  {CALENDARIO_ORIGEN_LABEL[selectedActividad.origen_tipo]}
+                  {getCalendarioOrigenLabel(selectedActividad.origen_tipo)}
                 </p>
                 <p className="mt-1 text-sm text-brand-brown">{selectedActividad.tipo}</p>
               </div>

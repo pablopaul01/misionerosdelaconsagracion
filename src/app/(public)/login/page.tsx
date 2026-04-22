@@ -21,7 +21,15 @@ export default async function LoginPage() {
       .eq('id', user.id)
       .single();
 
-    redirect(profile?.role === USER_ROLES.ADMIN ? '/admin/dashboard' : '/secretario/inscripciones');
+    if (profile?.role === USER_ROLES.ADMIN) {
+      redirect('/admin/dashboard');
+    }
+
+    if (profile?.role === USER_ROLES.RETIRO) {
+      redirect('/admin/retiros');
+    }
+
+    redirect('/secretario/inscripciones');
   }
   return (
     <main className="min-h-dvh flex items-center justify-center bg-brand-cream px-4">

@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { USER_ROLES } from '@/lib/constants/roles';
 
 /** Refresca la sesión de Supabase en cada request — mantiene cookies al día */
 export const updateSession = async (request: NextRequest) => {
@@ -29,6 +30,18 @@ export const updateSession = async (request: NextRequest) => {
   const isProtected = pathname.startsWith('/admin') || pathname.startsWith('/secretario');
   if (isProtected && !user) {
     return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  if (user && pathname.startsWith('/admin')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role === USER_ROLES.RETIRO && !pathname.startsWith('/admin/retiros')) {
+      return NextResponse.redirect(new URL('/admin/retiros', request.url));
+    }
   }
 
   return supabaseResponse;

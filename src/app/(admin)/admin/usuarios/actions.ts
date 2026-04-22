@@ -8,7 +8,7 @@ const crearUsuarioSchema = z.object({
   email:    z.string().email('Email inválido'),
   password: z.string().min(6, 'Mínimo 6 caracteres'),
   nombre:   z.string().min(1, 'El nombre es requerido'),
-  role:     z.enum([USER_ROLES.ADMIN, USER_ROLES.SECRETARIO_CONSAGRACION]),
+  role:     z.enum([USER_ROLES.ADMIN, USER_ROLES.SECRETARIO_CONSAGRACION, USER_ROLES.RETIRO]),
 });
 
 export type CrearUsuarioInput = z.infer<typeof crearUsuarioSchema>;
@@ -70,7 +70,7 @@ export async function listarUsuarios() {
 
 const editarUsuarioSchema = z.object({
   nombre:   z.string().min(1, 'El nombre es requerido'),
-  role:     z.enum([USER_ROLES.ADMIN, USER_ROLES.SECRETARIO_CONSAGRACION]),
+  role:     z.enum([USER_ROLES.ADMIN, USER_ROLES.SECRETARIO_CONSAGRACION, USER_ROLES.RETIRO]),
   password: z.string().optional(),
 });
 

@@ -137,10 +137,18 @@ export default function GrupoOracionDetallePage() {
               className="flex items-center justify-between gap-3 border border-brand-creamLight rounded-lg px-3 py-2"
             >
               <div className="flex flex-col min-w-0">
-                <span className="text-sm text-brand-dark truncate">
-                  {asistencia.misioneros?.apellido}, {asistencia.misioneros?.nombre}
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm text-brand-dark truncate">
+                    {asistencia.misioneros?.apellido}, {asistencia.misioneros?.nombre}
+                  </span>
+                  <Badge className={asistencia.asistio === false ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
+                    {asistencia.asistio === false ? 'No asistio' : 'Asistio'}
+                  </Badge>
+                </div>
                 <span className="text-xs text-brand-brown">DNI {asistencia.misioneros?.dni ?? '—'}</span>
+                {asistencia.asistio === false && asistencia.motivo_ausencia && (
+                  <span className="text-xs text-brand-brown">Motivo: {asistencia.motivo_ausencia}</span>
+                )}
               </div>
               <button
                 type="button"

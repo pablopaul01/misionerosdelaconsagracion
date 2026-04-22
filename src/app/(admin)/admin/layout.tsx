@@ -20,11 +20,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const profile = data as Pick<ProfileRow, 'role' | 'nombre'> | null;
 
-  if (profile?.role !== USER_ROLES.ADMIN) redirect('/login');
+  const rolesPermitidos: ProfileRow['role'][] = [
+    USER_ROLES.ADMIN,
+    USER_ROLES.RETIRO,
+  ];
+
+  if (!profile?.role || !rolesPermitidos.includes(profile.role)) redirect('/login');
 
   return (
     <div className="flex min-h-screen bg-brand-cream">
-      <AdminSidebar nombre={profile.nombre} />
+      <AdminSidebar nombre={profile.nombre} role={profile.role} />
       <main className="flex-1 overflow-auto">
         {/* Spacer mobile: ocupa exactamente la altura de la top bar fija */}
         <div className="h-14 md:hidden" />

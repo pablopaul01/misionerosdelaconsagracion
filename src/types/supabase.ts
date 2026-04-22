@@ -102,6 +102,7 @@ export type Database = {
           grupo_id: string
           id: string
           misionero_id: string
+          motivo_ausencia: string | null
         }
         Insert: {
           asistio?: boolean | null
@@ -109,6 +110,7 @@ export type Database = {
           grupo_id: string
           id?: string
           misionero_id: string
+          motivo_ausencia?: string | null
         }
         Update: {
           asistio?: boolean | null
@@ -116,6 +118,7 @@ export type Database = {
           grupo_id?: string
           id?: string
           misionero_id?: string
+          motivo_ausencia?: string | null
         }
         Relationships: [
           {
@@ -1049,7 +1052,7 @@ export type Database = {
       tipo_formacion: "san_lorenzo" | "escuela_de_maria"
       tipo_leccion: "leccion" | "retiro"
       tipo_retiro: "conversion" | "matrimonios" | "misioneros"
-      user_role: "admin" | "secretario_consagracion"
+      user_role: "admin" | "secretario_consagracion" | "retiro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1183,7 +1186,7 @@ export const Constants = {
       tipo_formacion: ["san_lorenzo", "escuela_de_maria"],
       tipo_leccion: ["leccion", "retiro"],
       tipo_retiro: ["conversion", "matrimonios", "misioneros"],
-      user_role: ["admin", "secretario_consagracion"],
+      user_role: ["admin", "secretario_consagracion", "retiro"],
     },
   },
 } as const

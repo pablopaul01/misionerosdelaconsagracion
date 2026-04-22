@@ -1,6 +1,6 @@
 'use client';
 
-import { CALENDARIO_ORIGEN_LABEL } from '@/lib/constants/calendario';
+import { getCalendarioOrigenLabel } from '@/lib/constants/calendario';
 import type { ActividadCalendario } from '@/types/calendario';
 
 interface CalendarioEventCardProps {
@@ -43,7 +43,7 @@ export function CalendarioEventCard({ actividad, onClick }: CalendarioEventCardP
       }}
     >
       <p className="text-xs uppercase tracking-wide text-brand-brown/70">
-        {CALENDARIO_ORIGEN_LABEL[actividad.origen_tipo]}
+        {getCalendarioOrigenLabel(actividad.origen_tipo)}
       </p>
       <h3 className="mt-1 font-title text-lg text-brand-dark">{actividad.titulo}</h3>
       <p className="mt-1 text-sm text-brand-brown">{actividad.tipo}</p>

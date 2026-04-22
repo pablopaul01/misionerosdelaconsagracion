@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useEffect, useState } from 'react';
+import { USER_ROLES, type UserRole } from '@/lib/constants/roles';
 
 const NAV_ITEMS = [
   { href: '/admin/dashboard',    label: 'Dashboard' },
@@ -24,13 +25,18 @@ const NAV_ITEMS = [
 
 interface AdminSidebarProps {
   nombre: string;
+  role: UserRole;
 }
 
-export const AdminSidebar = ({ nombre }: AdminSidebarProps) => {
+export const AdminSidebar = ({ nombre, role }: AdminSidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const navItems = role === USER_ROLES.RETIRO
+    ? NAV_ITEMS.filter((item) => item.href === '/admin/retiros')
+    : NAV_ITEMS;
 
   // Cierra el drawer al navegar
   useEffect(() => { setMobileOpen(false); }, [pathname]);
@@ -57,7 +63,7 @@ export const AdminSidebar = ({ nombre }: AdminSidebarProps) => {
       </div>
 
       <nav className="flex flex-col gap-1 flex-1">
-        {NAV_ITEMS.map(({ href, label }) => (
+        {navItems.map(({ href, label }) => (
           <Link
             key={href}
             href={href}
