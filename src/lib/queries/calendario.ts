@@ -200,5 +200,9 @@ export const useCalendarioMisionero = (params: MisioneroCalendarioParams) => {
       return payload;
     },
     enabled: !!params.dni.trim(),
+    placeholderData: (previousData) => previousData,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 };

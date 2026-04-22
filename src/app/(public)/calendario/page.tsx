@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { CalendarDays, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,16 +23,53 @@ export const dynamic = 'force-dynamic';
 
 type Estado = 'login' | 'calendario';
 
+const toDateOnly = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getInitialMonthRange = () => {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  return {
+    desde: toDateOnly(monthStart),
+    hasta: toDateOnly(monthEnd),
+  };
+};
+
+const getYearRange = (year: number) => ({
+  desde: `${year}-01-01`,
+  hasta: `${year}-12-31`,
+});
+
+const getYearFromDateOnly = (value: string): number => Number(value.slice(0, 4));
+
+const isActividadInRange = (
+  actividad: ActividadCalendario,
+  range: { desde: string; hasta: string },
+): boolean => {
+  const fechaFin = actividad.fecha_fin ?? actividad.fecha_inicio;
+  return actividad.fecha_inicio <= range.hasta && fechaFin >= range.desde;
+};
+
 export default function CalendarioMisioneroPage() {
   const [dni, setDni] = useState('');
   const [submittedDni, setSubmittedDni] = useState('');
   const [estado, setEstado] = useState<Estado>('login');
   const [loginError, setLoginError] = useState('');
+  const [visibleRange, setVisibleRange] = useState(getInitialMonthRange);
+  const [activeYear, setActiveYear] = useState(() => new Date().getFullYear());
 
-  const { data, isLoading, isError, isSuccess } = useCalendarioMisionero({
+  const queryRange = useMemo(() => getYearRange(activeYear), [activeYear]);
+
+  const { data, isLoading, isFetching, isError, isSuccess } = useCalendarioMisionero({
     dni: submittedDni,
-    desde: '',
-    hasta: '',
+    desde: queryRange.desde,
+    hasta: queryRange.hasta,
   });
 
   const [showEventDialog, setShowEventDialog] = useState(false);
@@ -70,7 +107,21 @@ export default function CalendarioMisioneroPage() {
     setLoginError('');
   };
 
-  const actividades = data?.actividades ?? [];
+  const actividadesVisibles = useMemo(
+    () => (data?.actividades ?? []).filter((actividad) => isActividadInRange(actividad, visibleRange)),
+    [data?.actividades, visibleRange],
+  );
+
+  const handleVisibleRangeChange = (range: { desde: string; hasta: string }) => {
+    setVisibleRange(range);
+
+    const visibleYear = getYearFromDateOnly(range.desde);
+    if (Number.isInteger(visibleYear) && visibleYear !== activeYear) {
+      setActiveYear(visibleYear);
+    }
+  };
+
+  const showBlockingLoader = isLoading && !data;
 
   // ── PANTALLA DE LOGIN ────────────────────────────────────────────────────────
   if (estado === 'login') {
@@ -164,31 +215,20 @@ export default function CalendarioMisioneroPage() {
           )}
         </section>
 
-        {isLoading ? (
+        {showBlockingLoader ? (
           <section className="flex min-h-[400px] items-center justify-center rounded-2xl border border-brand-creamLight bg-white/95 p-8">
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-brand-brown" />
               <p className="text-sm text-brand-brown">Cargando calendario...</p>
             </div>
           </section>
-        ) : actividades.length === 0 ? (
-          <section className="flex min-h-[200px] items-center justify-center rounded-2xl border border-brand-creamLight bg-white/95 p-8">
-            <div className="text-center">
-              <CalendarDays className="mx-auto h-12 w-12 text-brand-brown/40" />
-              <p className="mt-4 text-lg text-brand-brown">
-                No encontramos actividades para los datos ingresados.
-              </p>
-              <p className="mt-2 text-sm text-brand-brown/60">
-                Verificá que el DNI sea correcto o probá con otro rango de fechas.
-              </p>
-            </div>
-          </section>
         ) : (
           <section className="rounded-2xl border border-brand-creamLight bg-white/95 p-4 shadow-sm md:p-6">
             <CalendarioVista
-              eventos={actividades}
-              isLoading={isLoading}
+              eventos={actividadesVisibles}
+              isLoading={isFetching}
               soloMes
+              onVisibleRangeChange={handleVisibleRangeChange}
               onEventClick={handleEventClick}
             />
           </section>
