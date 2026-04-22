@@ -33,6 +33,6 @@ export const getCalendarioOrigenLabel = (origenTipo: string) => {
   return CALENDARIO_ORIGEN_LABEL[origenTipo as CalendarioOrigen] ?? origenTipo;
 };
 
-export const CALENDARIO_MAX_RANGE_DIAS = 120;
+export const CALENDARIO_MAX_RANGE_DIAS = 366;
 export const CALENDARIO_DEFAULT_RANGE_DIAS = 120;
 export const CALENDARIO_MAX_RESULTADOS = 100;

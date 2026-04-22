@@ -50,7 +50,14 @@ const buildCumpleaniosEventos = ({
   desde: string;
   hasta: string;
 }): ActividadCalendario[] => {
-  const currentYear = new Date().getFullYear();
+  const desdeYear = Number(desde.slice(0, 4));
+  const hastaYear = Number(hasta.slice(0, 4));
+
+  if (!Number.isInteger(desdeYear) || !Number.isInteger(hastaYear) || hastaYear < desdeYear) {
+    return [];
+  }
+
+  const years = Array.from({ length: hastaYear - desdeYear + 1 }, (_, index) => desdeYear + index);
 
   return misioneros.flatMap((misionero) => {
     const fechaNacimiento = misionero.fecha_nacimiento;
@@ -58,31 +65,33 @@ const buildCumpleaniosEventos = ({
       return [];
     }
 
-    const fechaCumple = toCumpleaniosDateInYear(fechaNacimiento, currentYear);
-    if (!fechaCumple || fechaCumple < desde || fechaCumple > hasta) {
-      return [];
-    }
-
     const nombreCompleto = [misionero.nombre, misionero.apellido].filter(Boolean).join(' ').trim();
 
-    return [
-      {
-        id: `cumpleanios-${misionero.id}-${fechaCumple}`,
-        titulo: `Cumpleaños: ${nombreCompleto || 'Misionero'}`,
-        descripcion: null,
-        fecha_inicio: fechaCumple,
-        fecha_fin: null,
-        tipo: 'Cumpleaños',
-        origen_tipo: CALENDARIO_ORIGEN_CUMPLEANIOS_MISIONERO,
-        estado: 'activo',
-        origen_id: misionero.id,
-        sincronizado: false,
-        dedupe_key: null,
-        nota_admin: null,
-        created_at: null,
-        updated_at: null,
-      },
-    ];
+    return years.flatMap((year) => {
+      const fechaCumple = toCumpleaniosDateInYear(fechaNacimiento, year);
+      if (!fechaCumple || fechaCumple < desde || fechaCumple > hasta) {
+        return [];
+      }
+
+      return [
+        {
+          id: `cumpleanios-${misionero.id}-${fechaCumple}`,
+          titulo: `Cumpleaños: ${nombreCompleto || 'Misionero'}`,
+          descripcion: null,
+          fecha_inicio: fechaCumple,
+          fecha_fin: null,
+          tipo: 'Cumpleaños',
+          origen_tipo: CALENDARIO_ORIGEN_CUMPLEANIOS_MISIONERO,
+          estado: 'activo',
+          origen_id: misionero.id,
+          sincronizado: false,
+          dedupe_key: null,
+          nota_admin: null,
+          created_at: null,
+          updated_at: null,
+        },
+      ];
+    });
   });
 };
 

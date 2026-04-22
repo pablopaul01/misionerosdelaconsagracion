@@ -26,6 +26,7 @@ interface CalendarioVistaProps {
   soloMes?: boolean;
   onDateClick?: (date: string) => void;
   onEventClick?: (eventId: string) => void;
+  onVisibleRangeChange?: (range: { desde: string; hasta: string }) => void;
 }
 
 interface DayEventsSheetProps {
@@ -165,7 +166,21 @@ const transformToCalendarEvents = (actividades: ActividadCalendario[]): EventInp
   });
 };
 
-export function CalendarioVista({ eventos, isLoading, soloMes, onDateClick, onEventClick }: CalendarioVistaProps) {
+const toDateOnly = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export function CalendarioVista({
+  eventos,
+  isLoading,
+  soloMes,
+  onDateClick,
+  onEventClick,
+  onVisibleRangeChange,
+}: CalendarioVistaProps) {
   const [dayEventsSheet, setDayEventsSheet] = useState<{ open: boolean; date: string; events: ActividadCalendario[] }>({
     open: false,
     date: '',
@@ -194,6 +209,22 @@ export function CalendarioVista({ eventos, isLoading, soloMes, onDateClick, onEv
 
   const handleEventClick = (arg: { event: { id: string } }) => {
     onEventClick?.(arg.event.id);
+  };
+
+  const handleDatesSet = (arg: {
+    start: Date;
+    end: Date;
+    view: { currentStart: Date; currentEnd: Date };
+  }) => {
+    const start = arg.view.currentStart ?? arg.start;
+    const endExclusive = arg.view.currentEnd ?? arg.end;
+    const endInclusive = new Date(endExclusive);
+    endInclusive.setDate(endInclusive.getDate() - 1);
+
+    onVisibleRangeChange?.({
+      desde: toDateOnly(start),
+      hasta: toDateOnly(endInclusive),
+    });
   };
 
   const renderEventContent = (eventInfo: {
@@ -271,6 +302,7 @@ export function CalendarioVista({ eventos, isLoading, soloMes, onDateClick, onEv
           initialView={getInitialView(soloMes)}
           headerToolbar={getToolbarConfig(soloMes)}
           events={calendarEvents}
+          datesSet={handleDatesSet}
           dateClick={handleDateClick}
           eventClick={handleEventClick}
           eventContent={renderEventContent}
