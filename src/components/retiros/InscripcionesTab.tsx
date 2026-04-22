@@ -625,7 +625,7 @@ function ConversionInscripcionRow({
             )}
           </div>
           <p className="text-sm text-brand-brown break-words">DNI: {formatUiText(inscripcion.dni)} · Tel: {formatUiText(inscripcion.telefono)}</p>
-          <p className="text-xs text-brand-brown/80">{inscripcion.primer_retiro ? 'Primer retiro' : 'Ya participo en retiros'} </p>
+          <p className="text-xs text-brand-brown/80">{inscripcion.primer_retiro ? 'Primer retiro' : 'Ya participó en retiros'} </p>
         </div>
 
         <div className="flex items-center justify-end gap-2">
