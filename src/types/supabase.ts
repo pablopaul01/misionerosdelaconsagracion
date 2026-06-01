@@ -877,6 +877,295 @@ export type Database = {
           }
         ]
       }
+      sorteos: {
+        Row: {
+          cantidad_premios: number
+          costo_numero: number
+          created_at: string
+          created_by: string | null
+          descripcion: string | null
+          estado: "activo" | "finalizado" | "cancelado"
+          id: string
+          nombre: string
+          numero_desde: number
+          numero_hasta: number | null
+          updated_at: string
+        }
+        Insert: {
+          cantidad_premios: number
+          costo_numero: number
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          estado?: "activo" | "finalizado" | "cancelado"
+          id?: string
+          nombre: string
+          numero_desde?: number
+          numero_hasta?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cantidad_premios?: number
+          costo_numero?: number
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          estado?: "activo" | "finalizado" | "cancelado"
+          id?: string
+          nombre?: string
+          numero_desde?: number
+          numero_hasta?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sorteo_participantes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          documento: string | null
+          id: string
+          inscripcion_conversion_id: string | null
+          inscripcion_matrimonios_id: string | null
+          inscripcion_misioneros_id: string | null
+          nombre: string
+          registro_tipo: "conversion" | "matrimonios" | "misioneros"
+          sorteo_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          documento?: string | null
+          id?: string
+          inscripcion_conversion_id?: string | null
+          inscripcion_matrimonios_id?: string | null
+          inscripcion_misioneros_id?: string | null
+          nombre: string
+          registro_tipo: "conversion" | "matrimonios" | "misioneros"
+          sorteo_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          documento?: string | null
+          id?: string
+          inscripcion_conversion_id?: string | null
+          inscripcion_matrimonios_id?: string | null
+          inscripcion_misioneros_id?: string | null
+          nombre?: string
+          registro_tipo?: "conversion" | "matrimonios" | "misioneros"
+          sorteo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sorteo_participantes_sorteo_id_fkey"
+            columns: ["sorteo_id"]
+            isOneToOne: false
+            referencedRelation: "sorteos"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      sorteo_numeros: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          numero: number
+          participante_id: string
+          rendido: boolean
+          sorteo_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          numero: number
+          participante_id: string
+          rendido?: boolean
+          sorteo_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          numero?: number
+          participante_id?: string
+          rendido?: boolean
+          sorteo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sorteo_numeros_participante_id_fkey"
+            columns: ["participante_id"]
+            isOneToOne: false
+            referencedRelation: "sorteo_participantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sorteo_numeros_sorteo_id_fkey"
+            columns: ["sorteo_id"]
+            isOneToOne: false
+            referencedRelation: "sorteos"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      sorteo_pagos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          fecha: string
+          id: string
+          notas: string | null
+          sorteo_id: string
+          total_pagado: number
+          total_requerido: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          id?: string
+          notas?: string | null
+          sorteo_id: string
+          total_pagado: number
+          total_requerido: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          id?: string
+          notas?: string | null
+          sorteo_id?: string
+          total_pagado?: number
+          total_requerido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sorteo_pagos_sorteo_id_fkey"
+            columns: ["sorteo_id"]
+            isOneToOne: false
+            referencedRelation: "sorteos"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      sorteo_pago_metodos: {
+        Row: {
+          created_at: string
+          id: string
+          metodo: "efectivo" | "transferencia"
+          monto: number
+          pago_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metodo: "efectivo" | "transferencia"
+          monto: number
+          pago_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metodo?: "efectivo" | "transferencia"
+          monto?: number
+          pago_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sorteo_pago_metodos_pago_id_fkey"
+            columns: ["pago_id"]
+            isOneToOne: false
+            referencedRelation: "sorteo_pagos"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      sorteo_pago_numeros: {
+        Row: {
+          numero_id: string
+          pago_id: string
+        }
+        Insert: {
+          numero_id: string
+          pago_id: string
+        }
+        Update: {
+          numero_id?: string
+          pago_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sorteo_pago_numeros_numero_id_fkey"
+            columns: ["numero_id"]
+            isOneToOne: false
+            referencedRelation: "sorteo_numeros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sorteo_pago_numeros_pago_id_fkey"
+            columns: ["pago_id"]
+            isOneToOne: false
+            referencedRelation: "sorteo_pagos"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      sorteo_ganadores: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          numero_id: string
+          participante_id: string
+          premio_orden: number
+          sorteo_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          numero_id: string
+          participante_id: string
+          premio_orden: number
+          sorteo_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          numero_id?: string
+          participante_id?: string
+          premio_orden?: number
+          sorteo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sorteo_ganadores_numero_id_fkey"
+            columns: ["numero_id"]
+            isOneToOne: false
+            referencedRelation: "sorteo_numeros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sorteo_ganadores_participante_id_fkey"
+            columns: ["participante_id"]
+            isOneToOne: false
+            referencedRelation: "sorteo_participantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sorteo_ganadores_sorteo_id_fkey"
+            columns: ["sorteo_id"]
+            isOneToOne: false
+            referencedRelation: "sorteos"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       roles_servidor_retiro: {
         Row: {
           activo: boolean | null
@@ -1043,6 +1332,43 @@ export type Database = {
       activate_clase: {
         Args: { p_clase_id: string; p_formacion_id: string }
         Returns: undefined
+      }
+      agregar_participante_sorteo: {
+        Args: {
+          p_sorteo_id: string
+          p_registro_tipo: string
+          p_registro_id: string
+        }
+        Returns: string
+      }
+      asignar_numeros_sorteo: {
+        Args: {
+          p_sorteo_id: string
+          p_participante_id: string
+          p_cantidad: number
+        }
+        Returns: {
+          id: string
+          numero: number
+        }[]
+      }
+      registrar_pago_sorteo: {
+        Args: {
+          p_sorteo_id: string
+          p_numeros: number[]
+          p_metodos: Json
+        }
+        Returns: string
+      }
+      sortear_ganadores_sorteo: {
+        Args: { p_sorteo_id: string }
+        Returns: {
+          id: string
+          premio_orden: number
+          numero: number
+          participante_id: string
+          participante_nombre: string
+        }[]
       }
     }
     Enums: {

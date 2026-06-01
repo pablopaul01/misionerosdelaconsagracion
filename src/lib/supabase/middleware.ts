@@ -39,7 +39,10 @@ export const updateSession = async (request: NextRequest) => {
       .eq('id', user.id)
       .single();
 
-    if (profile?.role === USER_ROLES.RETIRO && !pathname.startsWith('/admin/retiros')) {
+    const rutasRetiroPermitidas = ['/admin/retiros', '/admin/sorteos'];
+    const retiroPuedeAcceder = rutasRetiroPermitidas.some((ruta) => pathname.startsWith(ruta));
+
+    if (profile?.role === USER_ROLES.RETIRO && !retiroPuedeAcceder) {
       return NextResponse.redirect(new URL('/admin/retiros', request.url));
     }
   }

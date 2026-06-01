@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { href: '/admin/grupo-oracion', label: 'Grupo de oración' },
   { href: '/admin/consagracion', label: 'Consagración' },
   { href: '/admin/retiros',      label: 'Retiros' },
+  { href: '/admin/sorteos',      label: 'Sorteos' },
   { href: '/admin/calendario',   label: 'Calendario' },
   { href: '/admin/usuarios',     label: 'Usuarios' },
   { href: '/admin/configuraciones', label: 'Configuraciones' },
@@ -35,7 +36,7 @@ export const AdminSidebar = ({ nombre, role }: AdminSidebarProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems = role === USER_ROLES.RETIRO
-    ? NAV_ITEMS.filter((item) => item.href === '/admin/retiros')
+    ? NAV_ITEMS.filter((item) => item.href === '/admin/retiros' || item.href === '/admin/sorteos')
     : NAV_ITEMS;
 
   // Cierra el drawer al navegar
