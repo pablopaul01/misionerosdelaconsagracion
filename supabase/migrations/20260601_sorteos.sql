@@ -18,22 +18,22 @@ CREATE TABLE IF NOT EXISTS public.sorteo_participantes (
   registro_tipo TEXT NOT NULL CHECK (registro_tipo IN ('conversion', 'matrimonios', 'misioneros')),
   inscripcion_conversion_id UUID REFERENCES public.inscripciones_retiro_conversion(id),
   inscripcion_matrimonios_id UUID REFERENCES public.inscripciones_retiro_matrimonios(id),
-  inscripcion_misioneros_id UUID REFERENCES public.inscripciones_retiro_misioneros(id),
+  misionero_id UUID REFERENCES public.misioneros(id),
   nombre TEXT NOT NULL,
   documento TEXT,
   created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT sorteo_participantes_one_registration CHECK (
-    (registro_tipo = 'conversion' AND inscripcion_conversion_id IS NOT NULL AND inscripcion_matrimonios_id IS NULL AND inscripcion_misioneros_id IS NULL)
-    OR (registro_tipo = 'matrimonios' AND inscripcion_conversion_id IS NULL AND inscripcion_matrimonios_id IS NOT NULL AND inscripcion_misioneros_id IS NULL)
-    OR (registro_tipo = 'misioneros' AND inscripcion_conversion_id IS NULL AND inscripcion_matrimonios_id IS NULL AND inscripcion_misioneros_id IS NOT NULL)
+    (registro_tipo = 'conversion' AND inscripcion_conversion_id IS NOT NULL AND inscripcion_matrimonios_id IS NULL AND misionero_id IS NULL)
+    OR (registro_tipo = 'matrimonios' AND inscripcion_conversion_id IS NULL AND inscripcion_matrimonios_id IS NOT NULL AND misionero_id IS NULL)
+    OR (registro_tipo = 'misioneros' AND inscripcion_conversion_id IS NULL AND inscripcion_matrimonios_id IS NULL AND misionero_id IS NOT NULL)
   ),
   CONSTRAINT sorteo_participantes_unique_registration UNIQUE (
     sorteo_id,
     registro_tipo,
     inscripcion_conversion_id,
     inscripcion_matrimonios_id,
-    inscripcion_misioneros_id
+    misionero_id
   )
 );
 
@@ -150,16 +150,15 @@ BEGIN
     FROM public.inscripciones_retiro_matrimonios
     WHERE id = p_registro_id;
   ELSIF p_registro_tipo = 'misioneros' THEN
-    SELECT trim(m.nombre || ' ' || m.apellido), m.dni INTO v_nombre, v_documento
-    FROM public.inscripciones_retiro_misioneros irm
-    JOIN public.misioneros m ON m.id = irm.misionero_id
-    WHERE irm.id = p_registro_id;
+    SELECT trim(nombre || ' ' || apellido), dni INTO v_nombre, v_documento
+    FROM public.misioneros
+    WHERE id = p_registro_id;
   ELSE
     RAISE EXCEPTION 'Tipo de registro no soportado';
   END IF;
 
   IF v_nombre IS NULL THEN
-    RAISE EXCEPTION 'La persona no tiene una inscripción registrada';
+    RAISE EXCEPTION 'La persona no tiene un registro válido';
   END IF;
 
   INSERT INTO public.sorteo_participantes (
@@ -167,7 +166,7 @@ BEGIN
     registro_tipo,
     inscripcion_conversion_id,
     inscripcion_matrimonios_id,
-    inscripcion_misioneros_id,
+    misionero_id,
     nombre,
     documento,
     created_by
@@ -239,7 +238,7 @@ BEGIN
   RETURN QUERY
   INSERT INTO public.sorteo_numeros (sorteo_id, participante_id, numero, created_by)
   SELECT p_sorteo_id, p_participante_id, generate_series(v_inicio, v_fin), auth.uid()
-  RETURNING sorteo_numeros.id, sorteo_numeros.numero;
+  RETURNING public.sorteo_numeros.id, public.sorteo_numeros.numero;
 END;
 $$;
 

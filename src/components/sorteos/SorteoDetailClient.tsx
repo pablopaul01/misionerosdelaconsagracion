@@ -30,6 +30,7 @@ import {
   useSorteoNumeros,
   useSorteoPagos,
   useSorteoParticipantes,
+  useSorteoRegistrosDisponibles,
 } from '@/lib/queries/sorteos';
 
 interface SorteoDetailClientProps {
@@ -51,11 +52,18 @@ export function SorteoDetailClient({ sorteoId }: SorteoDetailClientProps) {
 
   const [registroTipo, setRegistroTipo] = useState<SorteoRegistroTipo>(SORTEO_REGISTRO_TIPOS.CONVERSION);
   const [registroId, setRegistroId] = useState('');
+  const [registroSearch, setRegistroSearch] = useState('');
   const [participanteId, setParticipanteId] = useState('');
+  const [rendicionParticipanteId, setRendicionParticipanteId] = useState('');
   const [cantidad, setCantidad] = useState('1');
   const [numerosSeleccionados, setNumerosSeleccionados] = useState<number[]>([]);
   const [efectivo, setEfectivo] = useState('');
   const [transferencia, setTransferencia] = useState('');
+
+  const { data: registrosDisponibles = [], isLoading: registrosDisponiblesLoading } = useSorteoRegistrosDisponibles(
+    sorteoId,
+    registroTipo,
+  );
 
   const totalRendido = useMemo(
     () => Number(efectivo || 0) + Number(transferencia || 0),
@@ -65,16 +73,43 @@ export function SorteoDetailClient({ sorteoId }: SorteoDetailClientProps) {
     () => numerosSeleccionados.length * Number(sorteo?.costo_numero ?? 0),
     [numerosSeleccionados.length, sorteo?.costo_numero],
   );
+  const registrosFiltrados = useMemo(() => {
+    const search = registroSearch.trim().toLowerCase();
 
-  const numerosSinRendir = numeros.filter((numero) => !numero.rendido);
+    if (!search) return registrosDisponibles;
+
+    return registrosDisponibles.filter((registro) => registro.label.toLowerCase().includes(search));
+  }, [registroSearch, registrosDisponibles]);
+  const registroSeleccionado = registrosDisponibles.find((registro) => registro.id === registroId);
+
+  const numerosDelParticipante = useMemo(
+    () => numeros.filter((numero) => numero.participante_id === rendicionParticipanteId),
+    [numeros, rendicionParticipanteId],
+  );
+  const numerosPendientesDelParticipante = useMemo(
+    () => numerosDelParticipante.filter((numero) => !numero.rendido),
+    [numerosDelParticipante],
+  );
+  const participanteRendicion = participantes.find((participante) => participante.id === rendicionParticipanteId);
+
+  const handleRegistroTipoChange = (value: string) => {
+    setRegistroTipo(value as SorteoRegistroTipo);
+    setRegistroId('');
+    setRegistroSearch('');
+  };
+
+  const handleRegistroSelect = (selectedRegistroId: string) => {
+    setRegistroId(selectedRegistroId);
+  };
 
   const handleAgregarParticipante = async () => {
     try {
       await agregarParticipante.mutateAsync({ sorteo_id: sorteoId, registro_tipo: registroTipo, registro_id: registroId });
       setRegistroId('');
+      setRegistroSearch('');
       toast.success('Participante agregado');
     } catch {
-      toast.error('No se pudo agregar: verificá que la inscripción exista');
+      toast.error('No se pudo agregar: verificá que la inscripción exista o no esté repetida');
     }
   };
 
@@ -88,7 +123,20 @@ export function SorteoDetailClient({ sorteoId }: SorteoDetailClientProps) {
     }
   };
 
+  const resetRendicion = () => {
+    setNumerosSeleccionados([]);
+    setEfectivo('');
+    setTransferencia('');
+  };
+
+  const handleRendicionParticipanteChange = (selectedParticipanteId: string) => {
+    setRendicionParticipanteId(selectedParticipanteId);
+    resetRendicion();
+  };
+
   const handleToggleNumero = (numero: number) => {
+    if (!numerosPendientesDelParticipante.some((numeroPendiente) => numeroPendiente.numero === numero)) return;
+
     setNumerosSeleccionados((actuales) =>
       actuales.includes(numero)
         ? actuales.filter((seleccionado) => seleccionado !== numero)
@@ -106,9 +154,7 @@ export function SorteoDetailClient({ sorteoId }: SorteoDetailClientProps) {
   const handleRegistrarPago = async () => {
     try {
       await registrarPago.mutateAsync({ sorteo_id: sorteoId, numeros: numerosSeleccionados, metodos: buildMetodos() });
-      setNumerosSeleccionados([]);
-      setEfectivo('');
-      setTransferencia('');
+      resetRendicion();
       toast.success('Pago rendido');
     } catch {
       toast.error('El pago debe cubrir exactamente el total requerido');
@@ -152,12 +198,12 @@ export function SorteoDetailClient({ sorteoId }: SorteoDetailClientProps) {
 
         <TabsContent value="participantes">
           <Card>
-            <CardHeader><CardTitle>Agregar inscripción registrada</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Agregar registro</CardTitle></CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="grid gap-4 md:grid-cols-[220px_1fr_auto] md:items-end">
                 <div className="flex flex-col gap-1.5">
                   <Label>Tipo</Label>
-                  <Select value={registroTipo} onValueChange={(value) => setRegistroTipo(value as SorteoRegistroTipo)}>
+                  <Select value={registroTipo} onValueChange={handleRegistroTipoChange}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {Object.entries(SORTEO_REGISTRO_TIPO_LABEL).map(([value, label]) => (
@@ -167,10 +213,42 @@ export function SorteoDetailClient({ sorteoId }: SorteoDetailClientProps) {
                   </Select>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label>ID de inscripción</Label>
-                  <Input value={registroId} onChange={(event) => setRegistroId(event.target.value)} placeholder="UUID de la inscripción completada" />
+                  <Label>Registro</Label>
+                  <Input
+                    value={registroSearch}
+                    onChange={(event) => setRegistroSearch(event.target.value)}
+                    placeholder={registrosDisponiblesLoading ? 'Cargando registros...' : 'Buscar por nombre o DNI'}
+                    disabled={registrosDisponiblesLoading || registrosDisponibles.length === 0}
+                  />
+                  {registroSeleccionado ? (
+                    <p className="text-sm text-brand-brown">Seleccionada: {registroSeleccionado.label}</p>
+                  ) : null}
+                  {!registrosDisponiblesLoading && registrosDisponibles.length > 0 ? (
+                    <div className="max-h-56 overflow-y-auto rounded-md border bg-background">
+                      {registrosFiltrados.length > 0 ? (
+                        registrosFiltrados.map((registro) => (
+                          <button
+                            key={registro.id}
+                            type="button"
+                            className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-brand-creamLight ${
+                              registroId === registro.id ? 'bg-brand-creamLight font-medium text-brand-dark' : 'text-brand-brown'
+                            }`}
+                            onClick={() => handleRegistroSelect(registro.id)}
+                          >
+                            <span>{registro.label}</span>
+                            {registroId === registro.id ? <span className="text-xs">Seleccionada</span> : null}
+                          </button>
+                        ))
+                      ) : (
+                        <p className="p-3 text-sm text-brand-brown">No hay registros que coincidan con la búsqueda.</p>
+                      )}
+                    </div>
+                  ) : null}
+                  {!registrosDisponiblesLoading && registrosDisponibles.length === 0 ? (
+                    <p className="text-sm text-brand-brown">No hay registros disponibles para este tipo.</p>
+                  ) : null}
                 </div>
-                <Button onClick={handleAgregarParticipante} disabled={!registroId || agregarParticipante.isPending}>
+                <Button onClick={handleAgregarParticipante} disabled={!registroId || registrosDisponiblesLoading || agregarParticipante.isPending}>
                   <Plus className="mr-2 h-4 w-4" /> Agregar
                 </Button>
               </div>
@@ -229,17 +307,53 @@ export function SorteoDetailClient({ sorteoId }: SorteoDetailClientProps) {
           <Card>
             <CardHeader><CardTitle>Rendir números vendidos</CardTitle></CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <div className="flex flex-wrap gap-2">
-                {numerosSinRendir.map((numero) => (
-                  <Button
-                    key={numero.id}
-                    type="button"
-                    variant={numerosSeleccionados.includes(numero.numero) ? 'default' : 'outline'}
-                    onClick={() => handleToggleNumero(numero.numero)}
-                  >
-                    #{numero.numero}
-                  </Button>
-                ))}
+              <div className="flex flex-col gap-1.5">
+                <Label>Participante</Label>
+                <Select value={rendicionParticipanteId} onValueChange={handleRendicionParticipanteChange}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar participante para rendir" /></SelectTrigger>
+                  <SelectContent>
+                    {participantes.map((participante) => (
+                      <SelectItem key={participante.id} value={participante.id}>{participante.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="rounded-lg border p-3">
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-medium text-brand-dark">Números asignados</p>
+                    <p className="text-sm text-brand-brown">
+                      {participanteRendicion
+                        ? `${participanteRendicion.nombre} · ${numerosPendientesDelParticipante.length} pendientes`
+                        : 'Seleccioná un participante para ver sus números.'}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 text-xs text-brand-brown">
+                    <span className="rounded-full border px-2 py-1">Pendiente</span>
+                    <span className="rounded-full bg-brand-creamLight px-2 py-1 opacity-70">Rendido</span>
+                  </div>
+                </div>
+                {rendicionParticipanteId ? (
+                  numerosDelParticipante.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {numerosDelParticipante.map((numero) => (
+                        <Button
+                          key={numero.id}
+                          type="button"
+                          variant={numerosSeleccionados.includes(numero.numero) ? 'default' : 'outline'}
+                          className={numero.rendido ? 'cursor-not-allowed opacity-50' : undefined}
+                          disabled={numero.rendido}
+                          onClick={() => handleToggleNumero(numero.numero)}
+                        >
+                          #{numero.numero} {numero.rendido ? '· Rendido' : '· Pendiente'}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-brand-brown">Este participante todavía no tiene números asignados.</p>
+                  )
+                ) : null}
               </div>
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="flex flex-col gap-1.5">

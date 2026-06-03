@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { SORTEO_REGISTRO_TIPOS, type SorteoRegistroTipo } from '@/lib/constants/sorteos';
 import { createClient } from '@/lib/supabase/client';
 import type {
   SorteoAsignacionInput,
@@ -12,17 +13,72 @@ export const SORTEOS_QUERY_KEYS = {
   sorteos: ['sorteos'] as const,
   sorteo: (id: string) => ['sorteo', id] as const,
   participantes: (sorteoId: string) => ['sorteo-participantes', sorteoId] as const,
+  registrosDisponiblesBase: (sorteoId: string) => ['sorteo-registros-disponibles', sorteoId] as const,
+  registrosDisponibles: (sorteoId: string, registroTipo: SorteoRegistroTipo) =>
+    ['sorteo-registros-disponibles', sorteoId, registroTipo] as const,
   numeros: (sorteoId: string) => ['sorteo-numeros', sorteoId] as const,
   pagos: (sorteoId: string) => ['sorteo-pagos', sorteoId] as const,
   ganadores: (sorteoId: string) => ['sorteo-ganadores', sorteoId] as const,
 };
 
 type SorteoInsert = Database['public']['Tables']['sorteos']['Insert'];
+type SorteoParticipante = Database['public']['Tables']['sorteo_participantes']['Row'];
+type InscripcionConversion = Database['public']['Tables']['inscripciones_retiro_conversion']['Row'];
+type InscripcionMatrimonios = Database['public']['Tables']['inscripciones_retiro_matrimonios']['Row'];
+type Misionero = Database['public']['Tables']['misioneros']['Row'];
+
+export interface SorteoRegistroDisponible {
+  id: string;
+  label: string;
+}
+
+const buildNombreCompleto = (partes: Array<string | null | undefined>) => {
+  const nombre = partes.map((parte) => parte?.trim()).filter(Boolean).join(' ');
+  return nombre || 'Sin nombre registrado';
+};
+
+const buildDocumentoLabel = (documentos: Array<string | null | undefined>) => {
+  const disponibles = documentos.map((documento) => documento?.trim()).filter(Boolean);
+  return disponibles.length > 0 ? `DNI ${disponibles.join(' / ')}` : 'Sin DNI registrado';
+};
+
+const getRegistroIdParticipante = (participante: SorteoParticipante, registroTipo: SorteoRegistroTipo) => {
+  if (registroTipo === SORTEO_REGISTRO_TIPOS.CONVERSION) return participante.inscripcion_conversion_id;
+  if (registroTipo === SORTEO_REGISTRO_TIPOS.MATRIMONIOS) return participante.inscripcion_matrimonios_id;
+  return participante.misionero_id;
+};
+
+const buildRegistrosAgregados = (participantes: SorteoParticipante[], registroTipo: SorteoRegistroTipo) =>
+  new Set(
+    participantes
+      .filter((participante) => participante.registro_tipo === registroTipo)
+      .map((participante) => getRegistroIdParticipante(participante, registroTipo))
+      .filter((id): id is string => Boolean(id)),
+  );
+
+const mapConversionRegistro = (inscripcion: InscripcionConversion): SorteoRegistroDisponible => ({
+  id: inscripcion.id,
+  label: `${buildNombreCompleto([inscripcion.nombre, inscripcion.apellido])} · ${buildDocumentoLabel([inscripcion.dni])}`,
+});
+
+const mapMatrimoniosRegistro = (inscripcion: InscripcionMatrimonios): SorteoRegistroDisponible => ({
+  id: inscripcion.id,
+  label: `${buildNombreCompleto([inscripcion.nombre_esposo, inscripcion.apellido_esposo])} y ${buildNombreCompleto([
+    inscripcion.nombre_esposa,
+    inscripcion.apellido_esposa,
+  ])} · ${buildDocumentoLabel([inscripcion.dni_esposo, inscripcion.dni_esposa])}`,
+});
+
+const mapMisionerosRegistro = (misionero: Misionero): SorteoRegistroDisponible => ({
+  id: misionero.id,
+  label: `${buildNombreCompleto([misionero.nombre, misionero.apellido])} · ${buildDocumentoLabel([misionero.dni])}`,
+});
 
 const invalidateSorteoDetail = async (queryClient: ReturnType<typeof useQueryClient>, sorteoId: string) => {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: SORTEOS_QUERY_KEYS.sorteo(sorteoId) }),
     queryClient.invalidateQueries({ queryKey: SORTEOS_QUERY_KEYS.participantes(sorteoId) }),
+    queryClient.invalidateQueries({ queryKey: SORTEOS_QUERY_KEYS.registrosDisponiblesBase(sorteoId) }),
     queryClient.invalidateQueries({ queryKey: SORTEOS_QUERY_KEYS.numeros(sorteoId) }),
     queryClient.invalidateQueries({ queryKey: SORTEOS_QUERY_KEYS.pagos(sorteoId) }),
     queryClient.invalidateQueries({ queryKey: SORTEOS_QUERY_KEYS.ganadores(sorteoId) }),
@@ -98,6 +154,55 @@ export const useSorteoParticipantes = (sorteoId: string) => {
 
       if (error) throw error;
       return data;
+    },
+    enabled: !!sorteoId,
+  });
+};
+
+export const useSorteoRegistrosDisponibles = (sorteoId: string, registroTipo: SorteoRegistroTipo) => {
+  const supabase = createClient();
+
+  return useQuery({
+    queryKey: SORTEOS_QUERY_KEYS.registrosDisponibles(sorteoId, registroTipo),
+    queryFn: async () => {
+      const { data: participantes, error: participantesError } = await supabase
+        .from('sorteo_participantes')
+        .select('*')
+        .eq('sorteo_id', sorteoId)
+        .eq('registro_tipo', registroTipo);
+
+      if (participantesError) throw participantesError;
+
+      const registrosAgregados = buildRegistrosAgregados(participantes ?? [], registroTipo);
+
+      if (registroTipo === SORTEO_REGISTRO_TIPOS.CONVERSION) {
+        const { data, error } = await supabase
+          .from('inscripciones_retiro_conversion')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return (data ?? []).map(mapConversionRegistro).filter((registro) => !registrosAgregados.has(registro.id));
+      }
+
+      if (registroTipo === SORTEO_REGISTRO_TIPOS.MATRIMONIOS) {
+        const { data, error } = await supabase
+          .from('inscripciones_retiro_matrimonios')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return (data ?? []).map(mapMatrimoniosRegistro).filter((registro) => !registrosAgregados.has(registro.id));
+      }
+
+      const { data, error } = await supabase
+        .from('misioneros')
+        .select('*')
+        .order('apellido', { ascending: true })
+        .order('nombre', { ascending: true });
+
+      if (error) throw error;
+      return (data ?? []).map(mapMisionerosRegistro).filter((registro) => !registrosAgregados.has(registro.id));
     },
     enabled: !!sorteoId,
   });

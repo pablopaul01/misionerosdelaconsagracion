@@ -19,7 +19,7 @@ export const SORTEO_REGISTRO_TIPOS = {
 export const SORTEO_REGISTRO_TIPO_LABEL = {
   [SORTEO_REGISTRO_TIPOS.CONVERSION]: 'Retiro de conversión',
   [SORTEO_REGISTRO_TIPOS.MATRIMONIOS]: 'Retiro de matrimonios',
-  [SORTEO_REGISTRO_TIPOS.MISIONEROS]: 'Retiro de misioneros',
+  [SORTEO_REGISTRO_TIPOS.MISIONEROS]: 'Misioneros registrados',
 } as const;
 
 export const SORTEO_METODOS_PAGO = {

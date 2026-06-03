@@ -927,7 +927,7 @@ export type Database = {
           id: string
           inscripcion_conversion_id: string | null
           inscripcion_matrimonios_id: string | null
-          inscripcion_misioneros_id: string | null
+          misionero_id: string | null
           nombre: string
           registro_tipo: "conversion" | "matrimonios" | "misioneros"
           sorteo_id: string
@@ -939,7 +939,7 @@ export type Database = {
           id?: string
           inscripcion_conversion_id?: string | null
           inscripcion_matrimonios_id?: string | null
-          inscripcion_misioneros_id?: string | null
+          misionero_id?: string | null
           nombre: string
           registro_tipo: "conversion" | "matrimonios" | "misioneros"
           sorteo_id: string
@@ -951,12 +951,19 @@ export type Database = {
           id?: string
           inscripcion_conversion_id?: string | null
           inscripcion_matrimonios_id?: string | null
-          inscripcion_misioneros_id?: string | null
+          misionero_id?: string | null
           nombre?: string
           registro_tipo?: "conversion" | "matrimonios" | "misioneros"
           sorteo_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sorteo_participantes_misionero_id_fkey"
+            columns: ["misionero_id"]
+            isOneToOne: false
+            referencedRelation: "misioneros"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sorteo_participantes_sorteo_id_fkey"
             columns: ["sorteo_id"]
