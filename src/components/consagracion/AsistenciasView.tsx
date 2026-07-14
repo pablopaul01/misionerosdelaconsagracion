@@ -430,11 +430,11 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
       ) : (
         <>
           {/* ── Desktop: tabla ── */}
-          <div className="hidden md:block overflow-x-auto rounded-xl border border-brand-creamLight">
-            <table className="text-sm min-w-max">
+          <div className="hidden md:block w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain rounded-xl border border-brand-creamLight">
+            <table className="w-max min-w-full text-sm">
               <thead className="bg-brand-creamLight">
                 <tr>
-                  <th className="px-4 py-3 text-left font-title text-brand-dark sticky left-0 bg-brand-creamLight">
+                  <th className="sticky left-0 z-20 min-w-[220px] bg-brand-creamLight px-4 py-3 text-left font-title text-brand-dark shadow-[3px_0_4px_-4px_rgba(0,0,0,0.5)]">
                     Participante
                   </th>
                   {lecciones.map((leccion) => {
@@ -499,8 +499,8 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                   ).length;
                   const porcentaje = registradas > 0 ? Math.round((asistioCount / registradas) * 100) : null;
                   return (
-                    <tr key={insc.id} className="border-t border-brand-creamLight hover:bg-brand-cream/30">
-                      <td className="px-4 py-2 sticky left-0 bg-white font-medium text-brand-dark">
+                    <tr key={insc.id} className="group border-t border-brand-creamLight transition-colors hover:bg-slate-100">
+                      <td className="sticky left-0 z-10 min-w-[220px] bg-white px-4 py-2 font-medium text-brand-dark shadow-[3px_0_4px_-4px_rgba(0,0,0,0.5)] transition-colors group-hover:bg-slate-100">
                         <div>{insc.apellido}, {insc.nombre}</div>
                         <div className="text-xs text-brand-brown">
                           {asistioCount}/{lecciones.length}
@@ -510,7 +510,7 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                       {lecciones.map((leccion) => {
                         const reg = asistenciasMap[`${leccion.id}-${insc.id}`];
                         return (
-                          <td key={leccion.id} className="px-2 py-2">
+                          <td key={leccion.id} className="px-2 py-2 transition-colors group-hover:bg-slate-100">
                             <div className="flex justify-center">
                               <AsistenciaToggle
                                 formacionId={formacionId}
