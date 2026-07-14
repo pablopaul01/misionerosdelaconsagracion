@@ -11,8 +11,15 @@ import type {
   FormacionConsagracionInput,
   LeccionConsagracionInput,
 } from '@/lib/validations/consagracion';
+import type { Database } from '@/types/supabase';
 
 const MISIONEROS_QUERY_KEY = ['misioneros'] as const;
+const ASISTENCIAS_PAGE_SIZE = 1_000;
+
+type AsistenciaConsagracion = Pick<
+  Database['public']['Tables']['asistencias_consagracion']['Row'],
+  'id' | 'leccion_id' | 'inscripcion_id' | 'asistio'
+>;
 
 const QUERY_KEYS = {
   formaciones:    ['formaciones-consagracion'] as const,
@@ -416,19 +423,32 @@ export const useAsistenciasConsagracion = (formacionId: string) => {
   return useQuery({
     queryKey: QUERY_KEYS.asistencias(formacionId),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('asistencias_consagracion')
-        .select('id, leccion_id, inscripcion_id, asistio')
-        .in(
-          'leccion_id',
-          await supabase
-            .from('lecciones_consagracion')
-            .select('id')
-            .eq('formacion_id', formacionId)
-            .then(({ data }) => (data ?? []).map((l) => l.id)),
-        );
-      if (error) throw error;
-      return data;
+      const { data: lecciones, error: leccionesError } = await supabase
+        .from('lecciones_consagracion')
+        .select('id')
+        .eq('formacion_id', formacionId);
+      if (leccionesError) throw leccionesError;
+
+      const leccionIds = lecciones.map(({ id }) => id);
+      if (leccionIds.length === 0) return [];
+
+      const asistencias: AsistenciaConsagracion[] = [];
+      let desde = 0;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from('asistencias_consagracion')
+          .select('id, leccion_id, inscripcion_id, asistio')
+          .in('leccion_id', leccionIds)
+          .order('id')
+          .range(desde, desde + ASISTENCIAS_PAGE_SIZE - 1);
+        if (error) throw error;
+
+        asistencias.push(...data);
+        if (data.length < ASISTENCIAS_PAGE_SIZE) return asistencias;
+
+        desde += ASISTENCIAS_PAGE_SIZE;
+      }
     },
     enabled: !!formacionId,
   });
@@ -456,22 +476,37 @@ export const useToggleAsistenciaConsagracion = (formacionId: string) => {
           .delete()
           .eq('id', asistenciaId);
         if (error) throw error;
-      } else if (asistenciaId && asistio !== null) {
-        // Actualizar existente
-        const { error } = await supabase
-          .from('asistencias_consagracion')
-          .update({ asistio })
-          .eq('id', asistenciaId);
-        if (error) throw error;
+        return null;
       } else if (asistio !== null) {
-        // Crear nueva
-        const { error } = await supabase
+        // Inserta o actualiza por la clave única para tolerar datos desactualizados en la grilla.
+        const { data, error } = await supabase
           .from('asistencias_consagracion')
-          .insert({ leccion_id: leccionId, inscripcion_id: inscripcionId, asistio });
+          .upsert(
+            { leccion_id: leccionId, inscripcion_id: inscripcionId, asistio },
+            { onConflict: 'leccion_id,inscripcion_id' },
+          )
+          .select('id, leccion_id, inscripcion_id, asistio')
+          .single();
         if (error) throw error;
+        return data;
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.asistencias(formacionId) }),
+    onSuccess: (asistencia, { leccionId, inscripcionId, asistio }) => {
+      queryClient.setQueryData<AsistenciaConsagracion[]>(
+        QUERY_KEYS.asistencias(formacionId),
+        (asistencias = []) => {
+          const existeAsistencia = (item: AsistenciaConsagracion) =>
+            item.leccion_id === leccionId && item.inscripcion_id === inscripcionId;
+
+          if (asistio === null) return asistencias.filter((item) => !existeAsistencia(item));
+          if (!asistencia) return asistencias;
+
+          return asistencias.some(existeAsistencia)
+            ? asistencias.map((item) => (existeAsistencia(item) ? asistencia : item))
+            : [...asistencias, asistencia];
+        },
+      );
+    },
   });
 };
 
