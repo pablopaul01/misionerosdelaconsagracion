@@ -13,23 +13,39 @@ interface InscriptoRow {
   createdAt?: string | null;
 }
 
+export const CAMPOS_LISTA_ASISTENCIA = [
+  { id: 'numero', label: 'Nº', width: 5 },
+  { id: 'nombre', label: 'Nombre y apellido', width: 32 },
+  { id: 'dni', label: 'DNI', width: 14 },
+  { id: 'fechaNacimiento', label: 'Fecha de nacimiento', width: 18 },
+  { id: 'edad', label: 'Edad', width: 8 },
+  { id: 'direccion', label: 'Dirección', width: 28 },
+  { id: 'telefono', label: 'Teléfono', width: 16 },
+  { id: 'estadoCivil', label: 'Estado civil', width: 16 },
+  { id: 'sacramentos', label: 'Sacramentos', width: 34 },
+  { id: 'fechaInscripcion', label: 'Fecha de inscripción', width: 20 },
+  { id: 'firma', label: 'Firma', width: 35 },
+] as const;
+
+export type CampoListaAsistencia = (typeof CAMPOS_LISTA_ASISTENCIA)[number]['id'];
+
 const BORDER = { style: 'thin', color: { rgb: '000000' } };
 const CELL_BORDER = { top: BORDER, bottom: BORDER, left: BORDER, right: BORDER };
 
 const TITLE_STYLE = {
-  font:      { bold: true, sz: 13 },
+  font: { bold: true, sz: 13 },
   alignment: { horizontal: 'center', vertical: 'center' },
 };
 
 const HEADER_STYLE = {
-  font:      { bold: true, sz: 11 },
+  font: { bold: true, sz: 11 },
   alignment: { horizontal: 'center', vertical: 'center' },
-  border:    CELL_BORDER,
+  border: CELL_BORDER,
 };
 
 const DATA_STYLE = {
   alignment: { vertical: 'center' },
-  border:    CELL_BORDER,
+  border: CELL_BORDER,
 };
 
 function formatFechaNacimientoExcel(fechaNacimiento?: string | null): string {
@@ -37,10 +53,24 @@ function formatFechaNacimientoExcel(fechaNacimiento?: string | null): string {
 
   const [fechaSolo] = fechaNacimiento.split('T');
   const [year, month, day] = fechaSolo.split('-');
-
   if (!year || !month || !day) return '';
 
   return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year.padStart(4, '0')}`;
+}
+
+function calcularEdad(fechaNacimiento?: string | null): string {
+  if (!fechaNacimiento) return '';
+
+  const [fechaSolo] = fechaNacimiento.split('T');
+  const [year, month, day] = fechaSolo.split('-').map(Number);
+  if (!year || !month || !day) return '';
+
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - year;
+  const cumplioAnios = hoy.getMonth() > month - 1 || (hoy.getMonth() === month - 1 && hoy.getDate() >= day);
+  if (!cumplioAnios) edad -= 1;
+
+  return edad >= 0 ? String(edad) : '';
 }
 
 export function exportarListaAsistencia(
@@ -49,119 +79,51 @@ export function exportarListaAsistencia(
   tituloVisible: string,
   includeFirma: boolean = true,
   incluirDatosInscriptos: boolean = false,
+  camposSeleccionados?: CampoListaAsistencia[],
 ) {
-  const headers = incluirDatosInscriptos
-    ? [
-        'Nº',
-        'Nombre y apellido',
-        'DNI',
-        'Fecha de nacimiento',
-        'Dirección',
-        'Teléfono',
-        'Estado civil',
-        'Sacramentos',
-        'Fecha de inscripción',
-        ...(includeFirma ? ['Firma'] : []),
-      ]
-    : includeFirma
-      ? ['Nº', 'Nombre', 'DNI', 'Fecha de inscripción', 'Firma']
-      : ['Nº', 'Nombre', 'DNI', 'Fecha de inscripción'];
+  const campos = camposSeleccionados ?? (incluirDatosInscriptos
+    ? CAMPOS_LISTA_ASISTENCIA.filter(({ id }) => includeFirma || id !== 'firma').map(({ id }) => id)
+    : ['numero', 'nombre', 'dni', 'fechaInscripcion', ...(includeFirma ? ['firma'] : [])] as CampoListaAsistencia[]);
+  const configuracionCampos = campos.flatMap((campo) => {
+    const configuracion = CAMPOS_LISTA_ASISTENCIA.find(({ id }) => id === campo);
+    return configuracion ? [configuracion] : [];
+  });
+  const headers = configuracionCampos.map(({ label }) => label);
 
-  // Sort alphabetically by apellido
   const sortedInscriptos = [...inscriptos].sort((a, b) =>
-    (a.apellido ?? '').localeCompare(b.apellido ?? '', 'es', { sensitivity: 'base' }),
+    a.apellido.localeCompare(b.apellido, 'es', { sensitivity: 'base' }),
   );
+  const filas = sortedInscriptos.map((inscripto, index) => {
+    const valores: Record<CampoListaAsistencia, string | number> = {
+      numero: index + 1,
+      nombre: `${inscripto.apellido}, ${inscripto.nombre}`.trim(),
+      dni: inscripto.dni ?? '',
+      fechaNacimiento: formatFechaNacimientoExcel(inscripto.fechaNacimiento),
+      edad: calcularEdad(inscripto.fechaNacimiento),
+      direccion: inscripto.direccion ?? '',
+      telefono: inscripto.telefono ?? '',
+      estadoCivil: inscripto.estadoCivil ?? '',
+      sacramentos: (inscripto.sacramentos ?? []).join(', '),
+      fechaInscripcion: inscripto.createdAt ? new Date(inscripto.createdAt).toLocaleDateString('es-AR') : '',
+      firma: '',
+    };
+    return campos.map((campo) => valores[campo]);
+  });
 
-  const filas = incluirDatosInscriptos
-    ? sortedInscriptos.map((i, idx) => {
-      const nombreYApellido = `${i.apellido}, ${i.nombre}`.trim();
-      const sacramentos = (i.sacramentos ?? []).join(', ');
-
-      return [
-        idx + 1,
-        nombreYApellido,
-        i.dni ?? '',
-        formatFechaNacimientoExcel(i.fechaNacimiento),
-        i.direccion ?? '',
-        i.telefono ?? '',
-        i.estadoCivil ?? '',
-        sacramentos,
-        i.createdAt ? new Date(i.createdAt).toLocaleDateString('es-AR') : '',
-        ...(includeFirma ? [''] : []),
-      ];
-    })
-    : sortedInscriptos.map((i, idx) => {
-      const nombreCompleto = `${i.apellido}, ${i.nombre}`;
-      return includeFirma
-        ? [idx + 1, nombreCompleto, i.dni ?? '', i.createdAt ? new Date(i.createdAt).toLocaleDateString('es-AR') : '', '']
-        : [idx + 1, nombreCompleto, i.dni ?? '', i.createdAt ? new Date(i.createdAt).toLocaleDateString('es-AR') : '']
-    });
-
-  const cols = headers.map((_, idx) => XLSX.utils.encode_col(idx));
-
-  // fila 1 = título, fila 2 = encabezados, filas 3+ = datos
-  const aoa = [
-    includeFirma ? [tituloVisible, '', '', '', ''] : [tituloVisible, '', '', ''],
-    headers,
-    ...filas,
-  ];
-
+  const cols = headers.map((_, index) => XLSX.utils.encode_col(index));
+  const aoa = [[tituloVisible, ...headers.slice(1).map(() => '')], headers, ...filas];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-  // Merge A1:E1 para el título
-  ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: (headers.length - 1) } },
-  ];
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }];
+  ws['!cols'] = configuracionCampos.map(({ width }) => ({ wch: width }));
+  ws['!rows'] = [{ hpt: 26 }, { hpt: 22 }, ...filas.map(() => ({ hpt: 20 }))];
+  ws.A1.s = TITLE_STYLE;
 
-  if (incluirDatosInscriptos) {
-    ws['!cols'] = [
-      { wch: 5 },
-      { wch: 32 },
-      { wch: 14 },
-      { wch: 18 },
-      { wch: 28 },
-      { wch: 16 },
-      { wch: 16 },
-      { wch: 34 },
-      ...(includeFirma ? [{ wch: 35 }] : []),
-    ];
-  } else {
-    const maxNombre = Math.max(...sortedInscriptos.map((i) => `${i.apellido}, ${i.nombre}`.length), 'Nombre'.length);
-    const maxDni = Math.max(...sortedInscriptos.map((i) => (i.dni ?? '').length), 'DNI'.length);
-
-    ws['!cols'] = includeFirma
-      ? [
-          { wch: 5 },
-          { wch: maxNombre + 2 },
-          { wch: maxDni + 2 },
-          { wch: 20 },
-          { wch: 35 },
-        ]
-      : [
-          { wch: 5 },
-          { wch: maxNombre + 2 },
-          { wch: maxDni + 2 },
-          { wch: 20 },
-        ];
-  }
-
-  ws['!rows'] = [
-    { hpt: 26 },  // título
-    { hpt: 22 },  // encabezado
-    ...filas.map(() => ({ hpt: 20 })),
-  ];
-
-  // Título (fila 1)
-  ws['A1'].s = TITLE_STYLE;
-
-  // Encabezados (fila 2)
   cols.forEach((col) => { ws[`${col}2`].s = HEADER_STYLE; });
-
-  // Datos (filas 3+)
-  for (let r = 3; r <= aoa.length; r++) {
+  for (let row = 3; row <= aoa.length; row++) {
     cols.forEach((col) => {
-      if (!ws[`${col}${r}`]) ws[`${col}${r}`] = { t: 's', v: '' };
-      ws[`${col}${r}`].s = DATA_STYLE;
+      if (!ws[`${col}${row}`]) ws[`${col}${row}`] = { t: 's', v: '' };
+      ws[`${col}${row}`].s = DATA_STYLE;
     });
   }
 

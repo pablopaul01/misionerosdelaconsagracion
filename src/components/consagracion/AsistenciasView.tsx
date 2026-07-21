@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from '@tanstack/react-form';
 import {
   useLeccionesConsagracion,
@@ -15,12 +15,17 @@ import { TIPO_LECCION } from '@/lib/constants/consagracion';
 import { AsistenciaToggle } from './AsistenciaToggle';
 import { MisioneroSelect } from './MisioneroSelect';
 import { formatFechaCorta } from '@/lib/utils/dates';
-import { exportarListaAsistencia } from '@/lib/utils/exportExcel';
+import {
+  CAMPOS_LISTA_ASISTENCIA,
+  exportarListaAsistencia,
+  type CampoListaAsistencia,
+} from '@/lib/utils/exportExcel';
 import { FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -51,6 +56,100 @@ import { Pencil } from 'lucide-react';
 interface AsistenciasViewProps {
   formacionId: string;
 }
+
+const CAMPOS_EXPORTACION_POR_DEFECTO = CAMPOS_LISTA_ASISTENCIA.map(({ id }) => id);
+
+type ComparadorPorcentaje = 'mayor' | 'menor';
+type EstadoAsistenciaReciente = 'con' | 'sin';
+
+const calcularPorcentajeAsistencia = (
+  inscripcionId: string,
+  lecciones: { id: string }[],
+  asistenciasMap: Record<string, { asistio: boolean }>,
+) => {
+  const registradas = lecciones.filter((leccion) => asistenciasMap[`${leccion.id}-${inscripcionId}`] !== undefined);
+  if (registradas.length === 0) return null;
+
+  const asistencias = registradas.filter((leccion) => asistenciasMap[`${leccion.id}-${inscripcionId}`]?.asistio).length;
+  return Math.round((asistencias / registradas.length) * 100);
+};
+
+interface FiltrosAsistenciaProps {
+  idPrefix: string;
+  comparadorPorcentaje: ComparadorPorcentaje;
+  porcentajeAsistencia: string;
+  estadoAsistenciaReciente: EstadoAsistenciaReciente;
+  ultimasAsistenciasRegistradas: string;
+  participantesFiltrados: number;
+  totalParticipantes: number;
+  onComparadorPorcentajeChange: (value: ComparadorPorcentaje) => void;
+  onPorcentajeAsistenciaChange: (value: string) => void;
+  onEstadoAsistenciaRecienteChange: (value: EstadoAsistenciaReciente) => void;
+  onUltimasAsistenciasRegistradasChange: (value: string) => void;
+}
+
+const FiltrosAsistencia = ({
+  idPrefix,
+  comparadorPorcentaje,
+  porcentajeAsistencia,
+  estadoAsistenciaReciente,
+  ultimasAsistenciasRegistradas,
+  participantesFiltrados,
+  totalParticipantes,
+  onComparadorPorcentajeChange,
+  onPorcentajeAsistenciaChange,
+  onEstadoAsistenciaRecienteChange,
+  onUltimasAsistenciasRegistradasChange,
+}: FiltrosAsistenciaProps) => (
+  <div className="flex flex-wrap items-end gap-3">
+    <div className="flex flex-col gap-1.5">
+      <Label>Porcentaje de asistencia</Label>
+      <div className="flex gap-2">
+        <Select value={comparadorPorcentaje} onValueChange={(value) => onComparadorPorcentajeChange(value as ComparadorPorcentaje)}>
+          <SelectTrigger className="w-28 bg-white"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="mayor">Mayor a</SelectItem>
+            <SelectItem value="menor">Menor a</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          id={`${idPrefix}-porcentaje-asistencia`}
+          className="w-24 bg-white"
+          type="number"
+          min={0}
+          max={100}
+          placeholder="%"
+          value={porcentajeAsistencia}
+          onChange={(event) => onPorcentajeAsistenciaChange(event.target.value)}
+        />
+      </div>
+    </div>
+    <div className="flex flex-col gap-1.5">
+      <Label>Últimas asistencias registradas</Label>
+      <div className="flex gap-2">
+        <Select value={estadoAsistenciaReciente} onValueChange={(value) => onEstadoAsistenciaRecienteChange(value as EstadoAsistenciaReciente)}>
+          <SelectTrigger className="w-40 bg-white"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="con">Con asistencia</SelectItem>
+            <SelectItem value="sin">Sin asistencia</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          id={`${idPrefix}-ultimas-asistencias`}
+          className="w-24 bg-white"
+          type="number"
+          min={1}
+          placeholder="Cantidad"
+          value={ultimasAsistenciasRegistradas}
+          onChange={(event) => onUltimasAsistenciasRegistradasChange(event.target.value)}
+        />
+      </div>
+    </div>
+    <p className="pb-2 text-sm text-brand-brown">
+      {participantesFiltrados} de {totalParticipantes}
+    </p>
+  </div>
+);
 
 const NuevaLeccionForm = ({ formacionId, proximoNumero }: { formacionId: string; proximoNumero: number }) => {
   const { mutateAsync: addLeccion } = useAddLeccion(formacionId);
@@ -302,6 +401,12 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [modoMobile, setModoMobile] = useState<'por-leccion' | 'por-participante'>('por-leccion');
   const [leccionSeleccionada, setLeccionSeleccionada] = useState<string | null>(null);
+  const [comparadorPorcentaje, setComparadorPorcentaje] = useState<ComparadorPorcentaje>('mayor');
+  const [porcentajeAsistencia, setPorcentajeAsistencia] = useState('');
+  const [estadoAsistenciaReciente, setEstadoAsistenciaReciente] = useState<EstadoAsistenciaReciente>('con');
+  const [ultimasAsistenciasRegistradas, setUltimasAsistenciasRegistradas] = useState('');
+  const [exportacionAbierta, setExportacionAbierta] = useState(false);
+  const [camposExportacion, setCamposExportacion] = useState<CampoListaAsistencia[]>(CAMPOS_EXPORTACION_POR_DEFECTO);
 
   const toggleExpandido = (id: string) =>
     setExpandidos((prev) => {
@@ -314,6 +419,40 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
   const asistenciasMap = Object.fromEntries(
     asistencias.map((a) => [`${a.leccion_id}-${a.inscripcion_id}`, a]),
   );
+
+  const inscripcionesFiltradas = useMemo(() => {
+    const porcentaje = Number(porcentajeAsistencia);
+    const cantidadAsistencias = Number(ultimasAsistenciasRegistradas);
+    const leccionesOrdenadas = [...lecciones].sort((a, b) => b.numero - a.numero);
+    const cantidadValida = Number.isInteger(cantidadAsistencias) && cantidadAsistencias > 0;
+
+    return inscripciones.filter((inscripcion) => {
+      const porcentajeParticipante = calcularPorcentajeAsistencia(inscripcion.id, lecciones, asistenciasMap) ?? 0;
+      const cumplePorcentaje = !porcentajeAsistencia || (
+        Number.isFinite(porcentaje)
+        && (comparadorPorcentaje === 'mayor'
+          ? porcentajeParticipante > porcentaje
+          : porcentajeParticipante < porcentaje)
+      );
+      const asistenciasRecientes = leccionesOrdenadas
+        .map((leccion) => asistenciasMap[`${leccion.id}-${inscripcion.id}`])
+        .filter((asistencia): asistencia is NonNullable<typeof asistencia> => asistencia !== undefined)
+        .slice(0, cantidadValida ? cantidadAsistencias : 0);
+      const cumpleAsistenciaReciente = !cantidadValida || (
+        asistenciasRecientes.length === cantidadAsistencias
+        && asistenciasRecientes.every(({ asistio }) => asistio === (estadoAsistenciaReciente === 'con'))
+      );
+      return cumplePorcentaje && cumpleAsistenciaReciente;
+    });
+  }, [
+    asistenciasMap,
+    comparadorPorcentaje,
+    estadoAsistenciaReciente,
+    inscripciones,
+    lecciones,
+    porcentajeAsistencia,
+    ultimasAsistenciasRegistradas,
+  ]);
 
   const proximoNumero = lecciones.length + 1;
 
@@ -337,39 +476,91 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
     }
   };
 
+  const toggleCampoExportacion = (campo: CampoListaAsistencia) => {
+    setCamposExportacion((campos) => (
+      campos.includes(campo) ? campos.filter((item) => item !== campo) : [...campos, campo]
+    ));
+  };
+
+  const handleExportar = () => {
+    exportarListaAsistencia(
+      inscripcionesFiltradas.map(({ apellido, nombre, dni, fecha_nacimiento, domicilio, whatsapp, estado_civil, sacramentos, created_at }) => ({
+        apellido,
+        nombre,
+        dni,
+        fechaNacimiento: fecha_nacimiento,
+        direccion: domicilio,
+        telefono: whatsapp,
+        estadoCivil: estado_civil,
+        sacramentos: Array.isArray(sacramentos)
+          ? sacramentos.filter((item): item is string => typeof item === 'string')
+          : [],
+        createdAt: created_at,
+      })),
+      `Lista_Consagracion_${new Date().getFullYear()}`,
+      `Asistencia — Consagración ${new Date().getFullYear()}`,
+      true,
+      true,
+      camposExportacion,
+    );
+    setExportacionAbierta(false);
+  };
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
         <NuevaLeccionForm formacionId={formacionId} proximoNumero={proximoNumero} />
         {inscripciones.length > 0 && (
           <Button
             variant="outline"
             className="border-brand-brown text-brand-brown hover:bg-brand-cream gap-2"
-            onClick={() => exportarListaAsistencia(
-              inscripciones.map(({ apellido, nombre, dni, fecha_nacimiento, domicilio, whatsapp, estado_civil, sacramentos, created_at }) => ({
-                apellido,
-                nombre,
-                dni,
-                fechaNacimiento: fecha_nacimiento,
-                direccion: domicilio,
-                telefono: whatsapp,
-                estadoCivil: estado_civil,
-                sacramentos: Array.isArray(sacramentos)
-                  ? sacramentos.filter((item): item is string => typeof item === 'string')
-                  : [],
-                createdAt: created_at,
-              })),
-              `Lista_Consagracion_${new Date().getFullYear()}`,
-              `Asistencia — Consagración ${new Date().getFullYear()}`,
-              true,
-              true,
-            )}
+            onClick={() => setExportacionAbierta(true)}
           >
             <FileDown className="w-4 h-4" />
             Exportar lista
           </Button>
         )}
+        {inscripciones.length > 0 && (
+          <div className="ml-auto hidden rounded-lg bg-brand-cream p-3 md:block">
+            <FiltrosAsistencia
+              idPrefix="desktop"
+              comparadorPorcentaje={comparadorPorcentaje}
+              porcentajeAsistencia={porcentajeAsistencia}
+              estadoAsistenciaReciente={estadoAsistenciaReciente}
+              ultimasAsistenciasRegistradas={ultimasAsistenciasRegistradas}
+              participantesFiltrados={inscripcionesFiltradas.length}
+              totalParticipantes={inscripciones.length}
+              onComparadorPorcentajeChange={setComparadorPorcentaje}
+              onPorcentajeAsistenciaChange={setPorcentajeAsistencia}
+              onEstadoAsistenciaRecienteChange={setEstadoAsistenciaReciente}
+              onUltimasAsistenciasRegistradasChange={setUltimasAsistenciasRegistradas}
+            />
+          </div>
+        )}
       </div>
+
+      {inscripciones.length > 0 && (
+        <details className="rounded-lg bg-brand-cream md:hidden">
+          <summary className="cursor-pointer px-4 py-3 font-title text-brand-dark">
+            Filtros ({inscripcionesFiltradas.length} de {inscripciones.length})
+          </summary>
+          <div className="border-t border-brand-creamLight p-4">
+            <FiltrosAsistencia
+              idPrefix="mobile"
+              comparadorPorcentaje={comparadorPorcentaje}
+              porcentajeAsistencia={porcentajeAsistencia}
+              estadoAsistenciaReciente={estadoAsistenciaReciente}
+              ultimasAsistenciasRegistradas={ultimasAsistenciasRegistradas}
+              participantesFiltrados={inscripcionesFiltradas.length}
+              totalParticipantes={inscripciones.length}
+              onComparadorPorcentajeChange={setComparadorPorcentaje}
+              onPorcentajeAsistenciaChange={setPorcentajeAsistencia}
+              onEstadoAsistenciaRecienteChange={setEstadoAsistenciaReciente}
+              onUltimasAsistenciasRegistradasChange={setUltimasAsistenciasRegistradas}
+            />
+          </div>
+        </details>
+      )}
 
       {lecciones.length === 0 ? (
         <p className="text-brand-brown text-sm">No hay lecciones creadas aún.</p>
@@ -490,7 +681,7 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                 </tr>
               </thead>
               <tbody>
-                {inscripciones.map((insc) => {
+                {inscripcionesFiltradas.map((insc) => {
                   const asistioCount = lecciones.filter(
                     (l) => asistenciasMap[`${l.id}-${insc.id}`]?.asistio === true,
                   ).length;
@@ -579,7 +770,7 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                 {/* Lista de inscriptos para la lección seleccionada */}
                 {leccionSeleccionada && (() => {
                   const leccion = lecciones.find((l) => l.id === leccionSeleccionada)!;
-                  const presentes = inscripciones.filter(
+                   const presentes = inscripcionesFiltradas.filter(
                     (i) => asistenciasMap[`${leccionSeleccionada}-${i.id}`]?.asistio === true,
                   ).length;
                   return (
@@ -598,9 +789,9 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                           <Pencil className="w-4 h-4" />
                           Editar lección
                         </button>
-                        <p className="text-xs text-brand-brown">{presentes}/{inscripciones.length} presentes</p>
+                         <p className="text-xs text-brand-brown">{presentes}/{inscripcionesFiltradas.length} presentes</p>
                       </div>
-                      {inscripciones.map((insc) => {
+                       {inscripcionesFiltradas.map((insc) => {
                         const reg = asistenciasMap[`${leccionSeleccionada}-${insc.id}`];
                         return (
                           <div
@@ -637,7 +828,7 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
             {/* Modo: Por participante (acordeón) */}
             {modoMobile === 'por-participante' && (
               <div className="flex flex-col gap-2">
-                {inscripciones.map((insc) => {
+                 {inscripcionesFiltradas.map((insc) => {
                   const abierto = expandidos.has(insc.id);
                   const asistioCount = lecciones.filter(
                     (l) => asistenciasMap[`${l.id}-${insc.id}`]?.asistio === true,
@@ -702,6 +893,38 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
           </div>
         </>
       )}
+
+      <Dialog open={exportacionAbierta} onOpenChange={setExportacionAbierta}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-title text-brand-dark">Campos a exportar</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {CAMPOS_LISTA_ASISTENCIA.map(({ id, label }) => (
+              <label key={id} className="flex cursor-pointer items-center gap-2 text-sm text-brand-dark">
+                <Checkbox
+                  checked={camposExportacion.includes(id)}
+                  onCheckedChange={() => toggleCampoExportacion(id)}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <p className="text-sm text-brand-brown">
+            Se exportarán {inscripcionesFiltradas.length} participantes según los filtros aplicados.
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setExportacionAbierta(false)}>Cancelar</Button>
+            <Button
+              className="bg-brand-brown text-white"
+              disabled={camposExportacion.length === 0 || inscripcionesFiltradas.length === 0}
+              onClick={handleExportar}
+            >
+              Exportar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog para editar lección */}
       <EditarLeccionDialog
