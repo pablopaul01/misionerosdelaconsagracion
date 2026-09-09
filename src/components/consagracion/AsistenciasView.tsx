@@ -16,6 +16,10 @@ import { AsistenciaToggle } from './AsistenciaToggle';
 import { MisioneroSelect } from './MisioneroSelect';
 import { formatFechaCorta } from '@/lib/utils/dates';
 import {
+  calcularEstadisticasAsistenciaPorLeccion,
+  formatPromedioAcumulado,
+} from '@/lib/utils/asistenciaEstadisticas';
+import {
   CAMPOS_LISTA_ASISTENCIA,
   exportarListaAsistencia,
   type CampoListaAsistencia,
@@ -514,6 +518,15 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
     ultimasAsistenciasRegistradas,
   ]);
 
+  const estadisticasPorLeccion = useMemo(
+    () => calcularEstadisticasAsistenciaPorLeccion(
+      lecciones,
+      inscripciones.map((inscripcion) => inscripcion.id),
+      asistencias,
+    ),
+    [asistencias, inscripciones, lecciones],
+  );
+
   const proximoNumero = lecciones.length + 1;
 
   const handleGuardarLeccion = async (data: Partial<LeccionData> & { id: string }) => {
@@ -739,6 +752,26 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                     );
                   })}
                 </tr>
+                <tr className="border-t border-brand-cream">
+                  <th className="sticky left-0 z-20 min-w-[220px] bg-brand-creamLight px-4 py-2 text-left font-title text-xs text-brand-dark shadow-[3px_0_4px_-4px_rgba(0,0,0,0.5)]">
+                    Asistentes
+                  </th>
+                  {lecciones.map((leccion) => (
+                    <th key={leccion.id} className="px-2 py-2 text-center text-xs font-normal text-brand-dark">
+                      {estadisticasPorLeccion[leccion.id]?.asistentes ?? 0}
+                    </th>
+                  ))}
+                </tr>
+                <tr className="border-t border-brand-cream">
+                  <th className="sticky left-0 z-20 min-w-[220px] bg-brand-creamLight px-4 py-2 text-left font-title text-xs text-brand-dark shadow-[3px_0_4px_-4px_rgba(0,0,0,0.5)]">
+                    Prom. acum.
+                  </th>
+                  {lecciones.map((leccion) => (
+                    <th key={leccion.id} className="px-2 py-2 text-center text-xs font-normal text-brand-dark">
+                      {formatPromedioAcumulado(estadisticasPorLeccion[leccion.id]?.promedioAcumulado ?? null)}
+                    </th>
+                  ))}
+                </tr>
               </thead>
               <tbody>
                 {inscripcionesFiltradas.map((insc) => {
@@ -833,6 +866,7 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                    const presentes = inscripcionesFiltradas.filter(
                     (i) => asistenciasMap[`${leccionSeleccionada}-${i.id}`]?.asistio === true,
                   ).length;
+                  const estadisticaLeccion = estadisticasPorLeccion[leccionSeleccionada];
                   return (
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
@@ -849,7 +883,10 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                           <Pencil className="w-4 h-4" />
                           Editar lección
                         </button>
-                         <p className="text-xs text-brand-brown">{presentes}/{inscripcionesFiltradas.length} presentes</p>
+                         <div className="text-right text-xs text-brand-brown">
+                           <p>{presentes}/{inscripcionesFiltradas.length} presentes</p>
+                           <p>Prom. acum.: {formatPromedioAcumulado(estadisticaLeccion?.promedioAcumulado ?? null)}</p>
+                         </div>
                       </div>
                        {inscripcionesFiltradas.map((insc) => {
                         const reg = asistenciasMap[`${leccionSeleccionada}-${insc.id}`];
