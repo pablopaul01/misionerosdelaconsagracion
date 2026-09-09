@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } from 'react';
 import { useForm } from '@tanstack/react-form';
 import {
   useLeccionesConsagracion,
@@ -15,6 +15,10 @@ import { TIPO_LECCION } from '@/lib/constants/consagracion';
 import { AsistenciaToggle } from './AsistenciaToggle';
 import { MisioneroSelect } from './MisioneroSelect';
 import { formatFechaCorta } from '@/lib/utils/dates';
+import {
+  calcularEstadisticasAsistenciaPorLeccion,
+  formatPromedioAcumulado,
+} from '@/lib/utils/asistenciaEstadisticas';
 import {
   CAMPOS_LISTA_ASISTENCIA,
   exportarListaAsistencia,
@@ -390,6 +394,66 @@ const EditarLeccionDialog = ({ leccion, open, onOpenChange, onSave }: EditarLecc
   );
 };
 
+const DesktopTableScroll = ({ children, contentKey }: { children: ReactNode; contentKey: string }) => {
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const syncingRef = useRef(false);
+  const [scrollWidth, setScrollWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const tableScroller = tableScrollRef.current;
+    if (!tableScroller) return;
+
+    const updateWidth = () => {
+      setScrollWidth(tableScroller.scrollWidth);
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(tableScroller);
+    const table = tableScroller.querySelector('table');
+    if (table) observer.observe(table);
+    return () => observer.disconnect();
+  }, [contentKey]);
+
+  const syncScroll = (source: HTMLDivElement, target: HTMLDivElement) => {
+    if (syncingRef.current) return;
+    syncingRef.current = true;
+    target.scrollLeft = source.scrollLeft;
+    syncingRef.current = false;
+  };
+
+  const handleTopScroll = (event: UIEvent<HTMLDivElement>) => {
+    const tableScroller = tableScrollRef.current;
+    if (tableScroller) syncScroll(event.currentTarget, tableScroller);
+  };
+
+  const handleTableScroll = (event: UIEvent<HTMLDivElement>) => {
+    const topScroller = topScrollRef.current;
+    if (topScroller) syncScroll(event.currentTarget, topScroller);
+  };
+
+  return (
+    <div className="hidden md:block w-full max-w-full min-w-0">
+      <div
+        ref={topScrollRef}
+        aria-hidden="true"
+        className="sticky top-0 z-30 overflow-x-auto overflow-y-hidden overscroll-x-contain bg-brand-cream pb-1"
+        onScroll={handleTopScroll}
+      >
+        <div className="h-px" style={{ width: scrollWidth }} />
+      </div>
+      <div
+        ref={tableScrollRef}
+        className="overflow-x-auto overscroll-x-contain rounded-xl border border-brand-creamLight"
+        onScroll={handleTableScroll}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
 export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
   const { data: lecciones = [] } = useLeccionesConsagracion(formacionId);
   const { data: inscripciones = [] } = useInscripcionesConsagracion(formacionId);
@@ -453,6 +517,15 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
     porcentajeAsistencia,
     ultimasAsistenciasRegistradas,
   ]);
+
+  const estadisticasPorLeccion = useMemo(
+    () => calcularEstadisticasAsistenciaPorLeccion(
+      lecciones,
+      inscripciones.map((inscripcion) => inscripcion.id),
+      asistencias,
+    ),
+    [asistencias, inscripciones, lecciones],
+  );
 
   const proximoNumero = lecciones.length + 1;
 
@@ -621,7 +694,7 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
       ) : (
         <>
           {/* ── Desktop: tabla ── */}
-          <div className="hidden md:block w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain rounded-xl border border-brand-creamLight">
+          <DesktopTableScroll contentKey={`${lecciones.length}-${inscripcionesFiltradas.length}`}>
             <table className="w-max min-w-full text-sm">
               <thead className="bg-brand-creamLight">
                 <tr>
@@ -679,6 +752,26 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                     );
                   })}
                 </tr>
+                <tr className="border-t border-brand-cream">
+                  <th className="sticky left-0 z-20 min-w-[220px] bg-brand-creamLight px-4 py-2 text-left font-title text-xs text-brand-dark shadow-[3px_0_4px_-4px_rgba(0,0,0,0.5)]">
+                    Asistentes
+                  </th>
+                  {lecciones.map((leccion) => (
+                    <th key={leccion.id} className="px-2 py-2 text-center text-xs font-normal text-brand-dark">
+                      {estadisticasPorLeccion[leccion.id]?.asistentes ?? 0}
+                    </th>
+                  ))}
+                </tr>
+                <tr className="border-t border-brand-cream">
+                  <th className="sticky left-0 z-20 min-w-[220px] bg-brand-creamLight px-4 py-2 text-left font-title text-xs text-brand-dark shadow-[3px_0_4px_-4px_rgba(0,0,0,0.5)]">
+                    Prom. acum.
+                  </th>
+                  {lecciones.map((leccion) => (
+                    <th key={leccion.id} className="px-2 py-2 text-center text-xs font-normal text-brand-dark">
+                      {formatPromedioAcumulado(estadisticasPorLeccion[leccion.id]?.promedioAcumulado ?? null)}
+                    </th>
+                  ))}
+                </tr>
               </thead>
               <tbody>
                 {inscripcionesFiltradas.map((insc) => {
@@ -719,7 +812,7 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                 })}
               </tbody>
             </table>
-          </div>
+          </DesktopTableScroll>
 
           {/* ── Mobile: toggle de modos ── */}
           <div className="md:hidden flex flex-col gap-3">
@@ -773,6 +866,7 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                    const presentes = inscripcionesFiltradas.filter(
                     (i) => asistenciasMap[`${leccionSeleccionada}-${i.id}`]?.asistio === true,
                   ).length;
+                  const estadisticaLeccion = estadisticasPorLeccion[leccionSeleccionada];
                   return (
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between">
@@ -789,7 +883,10 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                           <Pencil className="w-4 h-4" />
                           Editar lección
                         </button>
-                         <p className="text-xs text-brand-brown">{presentes}/{inscripcionesFiltradas.length} presentes</p>
+                         <div className="text-right text-xs text-brand-brown">
+                           <p>{presentes}/{inscripcionesFiltradas.length} presentes</p>
+                           <p>Prom. acum.: {formatPromedioAcumulado(estadisticaLeccion?.promedioAcumulado ?? null)}</p>
+                         </div>
                       </div>
                        {inscripcionesFiltradas.map((insc) => {
                         const reg = asistenciasMap[`${leccionSeleccionada}-${insc.id}`];
