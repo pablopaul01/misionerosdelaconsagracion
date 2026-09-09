@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } from 'react';
 import { useForm } from '@tanstack/react-form';
 import {
   useLeccionesConsagracion,
@@ -390,6 +390,66 @@ const EditarLeccionDialog = ({ leccion, open, onOpenChange, onSave }: EditarLecc
   );
 };
 
+const DesktopTableScroll = ({ children, contentKey }: { children: ReactNode; contentKey: string }) => {
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const syncingRef = useRef(false);
+  const [scrollWidth, setScrollWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const tableScroller = tableScrollRef.current;
+    if (!tableScroller) return;
+
+    const updateWidth = () => {
+      setScrollWidth(tableScroller.scrollWidth);
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(tableScroller);
+    const table = tableScroller.querySelector('table');
+    if (table) observer.observe(table);
+    return () => observer.disconnect();
+  }, [contentKey]);
+
+  const syncScroll = (source: HTMLDivElement, target: HTMLDivElement) => {
+    if (syncingRef.current) return;
+    syncingRef.current = true;
+    target.scrollLeft = source.scrollLeft;
+    syncingRef.current = false;
+  };
+
+  const handleTopScroll = (event: UIEvent<HTMLDivElement>) => {
+    const tableScroller = tableScrollRef.current;
+    if (tableScroller) syncScroll(event.currentTarget, tableScroller);
+  };
+
+  const handleTableScroll = (event: UIEvent<HTMLDivElement>) => {
+    const topScroller = topScrollRef.current;
+    if (topScroller) syncScroll(event.currentTarget, topScroller);
+  };
+
+  return (
+    <div className="hidden md:block w-full max-w-full min-w-0">
+      <div
+        ref={topScrollRef}
+        aria-hidden="true"
+        className="sticky top-0 z-30 overflow-x-auto overflow-y-hidden overscroll-x-contain bg-brand-cream pb-1"
+        onScroll={handleTopScroll}
+      >
+        <div className="h-px" style={{ width: scrollWidth }} />
+      </div>
+      <div
+        ref={tableScrollRef}
+        className="overflow-x-auto overscroll-x-contain rounded-xl border border-brand-creamLight"
+        onScroll={handleTableScroll}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
 export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
   const { data: lecciones = [] } = useLeccionesConsagracion(formacionId);
   const { data: inscripciones = [] } = useInscripcionesConsagracion(formacionId);
@@ -621,7 +681,7 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
       ) : (
         <>
           {/* ── Desktop: tabla ── */}
-          <div className="hidden md:block w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain rounded-xl border border-brand-creamLight">
+          <DesktopTableScroll contentKey={`${lecciones.length}-${inscripcionesFiltradas.length}`}>
             <table className="w-max min-w-full text-sm">
               <thead className="bg-brand-creamLight">
                 <tr>
@@ -719,7 +779,7 @@ export const AsistenciasView = ({ formacionId }: AsistenciasViewProps) => {
                 })}
               </tbody>
             </table>
-          </div>
+          </DesktopTableScroll>
 
           {/* ── Mobile: toggle de modos ── */}
           <div className="md:hidden flex flex-col gap-3">
